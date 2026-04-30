@@ -1,0 +1,57 @@
+name: Refresh data and deploy
+
+on:
+  # Run every day at 14:30 UTC (~9:30am ET) — after most US morning releases.
+  schedule:
+    - cron: "30 14 * * *"
+  # Allow manual runs from the Actions tab.
+  workflow_dispatch:
+  # Also rebuild on every push so a content/styling change goes live immediately.
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Refresh inflation data from BLS
+        env:
+          BLS_API_KEY: ${{ secrets.BLS_API_KEY }}
+        run: python scripts/fetch_inflation.py
+
+      - name: Show generated data summary
+        run: |
+          test -s data/inflation.json
+          python -c "import json; d=json.load(open('data/inflation.json')); print('latest:', d['latest_label']); print('headline kpi:', d['kpis']['headline'])"
+
+      - name: Upload site as Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
