@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>About &mdash; Economics Guru</title>
+<meta name="description" content="Methodology, sources, and refresh schedule for Economics Guru.">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/assets/styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  .prose { max-width: 760px; }
+  .prose h2 { font-family: var(--font-display); color: var(--navy); margin-top: 28px; }
+  .prose p, .prose li { font-size: 16px; line-height: 1.7; }
+  .prose code {
+    background: var(--chart-bg); padding: 2px 6px; border: 1px solid var(--border);
+    border-radius: 3px; font-size: 13px;
+  }
+  .prose dl dt { font-weight: 700; color: var(--navy); margin-top: 12px; }
+  .prose dl dd { margin: 4px 0 0; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">Economics<span class="tag">Guru</span></div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/inflation/">Inflation</a>
+      <a href="/about/" class="active">About</a>
+    </nav>
+  </div>
+</header>
+
+<main class="prose">
+  <div class="page-header">
+    <h1>About this site</h1>
+    <div class="subtitle">Methodology, sources, and refresh schedule.</div>
+  </div>
+
+  <p>
+    Economics Guru is a companion data resource for the <a href="https://www.alfiemeek.com" target="_blank" rel="noopener">Alfie Meek weekly economic update</a>.
+    Every chart on this site is built directly from public-data APIs and refreshes automatically on a daily schedule.
+  </p>
+
+  <h2>Data sources</h2>
+  <dl>
+    <dt>U.S. Bureau of Labor Statistics (BLS)</dt>
+    <dd>Consumer Price Index, employment, wages.</dd>
+    <dt>Federal Reserve Bank of St. Louis (FRED)</dt>
+    <dd>Interest rates, monetary aggregates, broad macro series.</dd>
+    <dt>U.S. Bureau of Economic Analysis (BEA)</dt>
+    <dd>GDP, personal income, PCE inflation.</dd>
+    <dt>U.S. Census Bureau</dt>
+    <dd>Retail sales, housing starts, building permits.</dd>
+  </dl>
+
+  <h2>Refresh schedule</h2>
+  <p>
+    Data is fetched once per day at approximately 9:30am Eastern time, after the typical morning release window for U.S. economic statistics.
+    The page banner shows the last successful build time. If a release is delayed (for example, during a federal government shutdown), the chart for that period will be blank
+    and a notice will appear above the dashboard.
+  </p>
+
+  <h2>How a chart is built</h2>
+  <p>
+    For each series, we pull at least two years of monthly observations, compute year-over-year and month-over-month changes,
+    and surface them alongside a short list of summary KPIs. Headline figures use not-seasonally-adjusted data
+    (matching how they are reported in the press), while monthly changes use seasonally-adjusted data
+    so that month-to-month seasonality does not obscure the underlying trend.
+  </p>
+
+  <h2>Source code</h2>
+  <p>
+    The site is open-source &mdash; the data fetch script and chart code are visible at
+    <a href="https://github.com/gteconomist/economicsguru" target="_blank" rel="noopener">github.com/gteconomist/economicsguru</a>.
+  </p>
+
+  <h2>Disclaimer</h2>
+  <p>
+    Charts and analysis are provided for informational purposes only. Data is pulled directly from official statistical agencies but is not validated by Economics Guru;
+    please consult the original source for any decisions that depend on accuracy.
+  </p>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, and BEA.</div>
+    <div>Data refreshes nightly.</div>
+  </div>
+</footer>
+
+<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+</body>
+</html>

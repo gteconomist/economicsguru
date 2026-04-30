@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Economics Guru &mdash; Live US Economic Data</title>
+<meta name="description" content="Live US economic data dashboards: inflation, labor market, growth, and rates. Updated daily from BLS, FRED, and BEA.">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/assets/styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  .hero { padding: 36px 0 24px; }
+  .hero h1 { font-size: 40px; }
+  .hero p  { font-size: 17px; color: var(--ink-soft); max-width: 720px; }
+  .topic-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 24px;
+  }
+  @media (max-width: 980px) { .topic-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 540px) { .topic-grid { grid-template-columns: 1fr; } }
+  .topic-card {
+    background: var(--panel-bg); border: 1px solid var(--border);
+    border-top: 4px solid var(--navy); padding: 18px;
+    text-decoration: none; color: var(--ink); display: block;
+  }
+  .topic-card:hover { border-color: var(--navy); text-decoration: none; }
+  .topic-card.coming { opacity: 0.55; cursor: not-allowed; }
+  .topic-card h3 {
+    margin: 0 0 6px; font-family: var(--font-display); color: var(--navy); font-size: 20px;
+  }
+  .topic-card p { margin: 0; color: var(--ink-soft); font-size: 14px; }
+  .topic-card .badge {
+    display: inline-block; margin-bottom: 8px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--mustard);
+  }
+  .topic-card.coming .badge { color: var(--silver); }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">Economics<span class="tag">Guru</span></div>
+    <nav>
+      <a href="/" class="active">Home</a>
+      <a href="/inflation/">Inflation</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <h1 style="font-family:var(--font-display); color:var(--navy); font-weight:800; margin:0 0 10px;">Live US economic data, updated daily.</h1>
+    <p>Charts, KPIs, and downloadable series for the indicators that matter most &mdash; sourced directly from the BLS, FRED, and BEA. Built as a companion to the <a href="https://www.alfiemeek.com" target="_blank" rel="noopener">Alfie Meek weekly economic update</a>.</p>
+  </section>
+
+  <div class="topic-grid">
+    <a class="topic-card" href="/inflation/">
+      <div class="badge">Available</div>
+      <h3>Inflation</h3>
+      <p>CPI headline &amp; core, monthly change, components, energy prices.</p>
+    </a>
+    <div class="topic-card coming">
+      <div class="badge">Coming soon</div>
+      <h3>Labor Market</h3>
+      <p>Payrolls, unemployment rate, JOLTS, wage growth, labor force participation.</p>
+    </div>
+    <div class="topic-card coming">
+      <div class="badge">Coming soon</div>
+      <h3>Growth &amp; Output</h3>
+      <p>Real GDP, retail sales, industrial production, ISM PMIs.</p>
+    </div>
+    <div class="topic-card coming">
+      <div class="badge">Coming soon</div>
+      <h3>Rates &amp; Markets</h3>
+      <p>Fed funds, Treasury yields, yield curve shape, mortgage rates, breakevens.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, and BEA. <a href="/about/">Methodology</a></div>
+    <div>Data refreshes nightly.</div>
+  </div>
+</footer>
+
+<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+</body>
+</html>
