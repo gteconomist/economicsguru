@@ -1,11 +1,8 @@
-/* economicsguru.com — shared styles
- * Palette and typography lifted from the chart style used in the weekly blog
- * (cream chart areas, navy primary, mustard/teal/khaki accents).
- */
+/* economicsguru.com — shared styles */
 
 :root {
   /* Palette */
-  --navy:        #1a3a5c;
+  --navy:        #003057;
   --navy-soft:   #2e5984;
   --mustard:     #d4a017;
   --khaki:       #9b8b6a;
@@ -17,13 +14,15 @@
   --black:       #1a1a1a;
 
   /* Surfaces */
-  --page-bg:     #ffffff;
-  --chart-bg:    #fbf5dc;   /* the cream you see in the blog charts */
-  --panel-bg:    #ffffff;
-  --border:      #d9d3b8;
-  --grid:        #b6ad8d;
-  --ink:         #1a1a1a;
-  --ink-soft:    #6b7280;
+  --page-bg:           #003057;     /* navy page background */
+  --chart-bg:          #fbf5dc;     /* cream inside chart panels */
+  --panel-bg:          #ffffff;     /* white cards floating on navy */
+  --border:            #d9d3b8;
+  --grid:              #b6ad8d;
+  --ink:               #1a1a1a;     /* dark text inside white cards */
+  --ink-soft:          #6b7280;
+  --ink-on-navy:       #f3ecd0;     /* light text on navy page */
+  --ink-on-navy-soft:  #b9bfa6;     /* softer light text on navy */
 
   /* Type */
   --font-sans: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -34,19 +33,19 @@
 html, body {
   margin: 0; padding: 0;
   background: var(--page-bg);
-  color: var(--ink);
+  color: var(--ink-on-navy);
   font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
-a { color: var(--navy); text-decoration: none; }
+a { color: var(--mustard); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 /* ---------- Page chrome ---------- */
 .site-header {
-  border-bottom: 2px solid var(--navy);
+  border-bottom: 2px solid var(--mustard);
   background: var(--page-bg);
 }
 .site-header .wrap {
@@ -56,30 +55,30 @@ a:hover { text-decoration: underline; }
 .site-header .brand {
   font-family: var(--font-display);
   font-weight: 700; font-size: 22px; letter-spacing: -0.01em;
-  color: var(--navy);
+  color: var(--ink-on-navy);
 }
 .site-header .brand .tag { color: var(--mustard); }
 .site-header nav a {
-  margin-left: 18px; font-size: 14px; color: var(--ink-soft);
+  margin-left: 18px; font-size: 14px; color: var(--ink-on-navy-soft);
   text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
 }
-.site-header nav a.active, .site-header nav a:hover { color: var(--navy); text-decoration: none; }
+.site-header nav a.active, .site-header nav a:hover { color: var(--mustard); text-decoration: none; }
 
 main { max-width: 1200px; margin: 0 auto; padding: 28px 24px 48px; }
 
 .page-header { margin-bottom: 18px; }
 .page-header h1 {
-  font-family: var(--font-display); color: var(--navy);
+  font-family: var(--font-display); color: var(--ink-on-navy);
   font-weight: 800; font-size: 32px; letter-spacing: -0.01em;
   margin: 0 0 4px;
 }
 .page-header .subtitle {
-  color: var(--ink-soft); font-style: italic; font-size: 15px;
+  color: var(--ink-on-navy-soft); font-style: italic; font-size: 15px;
 }
 .page-header .latest {
-  margin-top: 6px; font-size: 13px; color: var(--ink-soft);
+  margin-top: 6px; font-size: 13px; color: var(--ink-on-navy-soft);
 }
-.page-header .latest strong { color: var(--navy); font-style: normal; }
+.page-header .latest strong { color: var(--mustard); font-style: normal; }
 
 /* ---------- Notice banner ---------- */
 .notice {
@@ -99,6 +98,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 28px 24px 48px; }
   border: 1px solid var(--border); border-top: 3px solid var(--navy);
   background: var(--panel-bg); border-radius: 4px;
   padding: 12px 14px;
+  color: var(--ink);
 }
 .kpi .label {
   font-size: 11px; font-weight: 700; color: var(--navy);
@@ -123,6 +123,7 @@ main { max-width: 1200px; margin: 0 auto; padding: 28px 24px 48px; }
   background: var(--panel-bg);
   border: 1px solid var(--border); border-radius: 4px;
   padding: 16px 18px 12px;
+  color: var(--ink);
 }
 .chart-card .title {
   text-align: center;
@@ -148,33 +149,21 @@ main { max-width: 1200px; margin: 0 auto; padding: 28px 24px 48px; }
 
 /* ---------- Footer ---------- */
 .site-footer {
-  border-top: 1px solid var(--border); margin-top: 36px;
+  border-top: 1px solid var(--mustard); margin-top: 36px;
   padding: 18px 24px;
 }
 .site-footer .wrap {
   max-width: 1200px; margin: 0 auto;
-  font-size: 12px; color: var(--ink-soft);
+  font-size: 12px; color: var(--ink-on-navy-soft);
   display: flex; gap: 16px; flex-wrap: wrap; justify-content: space-between;
 }
-.site-footer a { color: var(--ink-soft); }
+.site-footer a { color: var(--mustard); }
 
-/* ---------- Controls (interactivity) ---------- */
-.controls {
-  display: flex; gap: 16px; align-items: center; margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.controls label { font-size: 13px; color: var(--ink-soft); font-weight: 600; }
+/* ---------- Controls (interactivity, future) ---------- */
+.controls { display: flex; gap: 16px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.controls label { font-size: 13px; color: var(--ink-on-navy-soft); font-weight: 600; }
 .range-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; }
-.range-toggle button {
-  background: var(--panel-bg); border: 0; padding: 6px 12px;
-  font-size: 13px; color: var(--navy); cursor: pointer; font-weight: 600;
-  border-right: 1px solid var(--border);
-}
+.range-toggle button { background: var(--panel-bg); border: 0; padding: 6px 12px; font-size: 13px; color: var(--navy); cursor: pointer; font-weight: 600; border-right: 1px solid var(--border); }
 .range-toggle button:last-child { border-right: 0; }
 .range-toggle button.active { background: var(--navy); color: white; }
-.range-toggle button:hover:not(.active) { background: #f5f0d8; }
-
-.download-link {
-  margin-left: auto;
-  font-size: 12px; color: var(--ink-soft);
-}
+.download-link { margin-left: auto; font-size: 12px; color: var(--ink-on-navy-soft); }
