@@ -13,7 +13,7 @@ Chart.defaults.color = BRAND.navy;
 
 const RANGE_MONTHS = { '12m': 13, '5y': 60, '10y': 120, '20y': 240, 'max': Infinity };
 let CURRENT_RANGE = '12m';
-let CURRENT_PAGE  = 'inflation';   // 'inflation' | 'labor' — set by render entry point
+let CURRENT_PAGE  = 'inflation';
 let RAW_DATA = null;
 const CHART_INSTANCES = {};
 
@@ -83,7 +83,6 @@ const baseOptions = (yFmt, opts={}) => ({
   ...opts.chart,
 });
 
-// One-half of a dual-axis chart spec ('left' or 'right'). Used by labor charts.
 function axisSpec(yFmt, position, opts={}) {
   return {
     type: 'linear',
@@ -161,7 +160,7 @@ function attachDownloadHandlers() {
 }
 
 // =========================================================
-// Inflation: chart builders
+// CPI: chart builders
 // =========================================================
 function pointSizeForLength(n) { return n > 80 ? 0 : (n > 30 ? 1.5 : 3); }
 
@@ -240,10 +239,7 @@ function buildEnergy(view) {
 }
 
 const INFLATION_BUILDERS = {
-  chartYoy: buildYoy,
-  chartMom: buildMom,
-  chartComp: buildComp,
-  chartEnergy: buildEnergy,
+  chartYoy: buildYoy, chartMom: buildMom, chartComp: buildComp, chartEnergy: buildEnergy,
 };
 
 function renderAll(view) {
@@ -251,7 +247,6 @@ function renderAll(view) {
     if (document.getElementById(id)) makeChart(id, builder(view));
   }
 }
-
 function renderKpis(data) {
   const kpiHost = document.getElementById('kpis');
   if (!kpiHost) return;
@@ -277,7 +272,6 @@ function renderKpis(data) {
       </div>`;
   }).join('');
 }
-
 function registerAllCsvs(view) {
   registerCsv('chartYoy', 'headline-vs-core-cpi.csv',
     ['Month', 'Headline CPI YoY (%)', 'Core CPI YoY (%)'],
@@ -313,10 +307,7 @@ function rangedViewLabor(data, range) {
     jolts_openings:    tail(data.jolts_openings, n),
     jolts_hires:       tail(data.jolts_hires, n),
     jolts_quits:       tail(data.jolts_quits, n),
-    kpis: data.kpis,
-    cps_latest: data.cps_latest,
-    jolts_latest: data.jolts_latest,
-    notice: data.notice,
+    kpis: data.kpis, cps_latest: data.cps_latest, jolts_latest: data.jolts_latest, notice: data.notice,
   };
 }
 
@@ -342,21 +333,14 @@ function buildUrLfp(view) {
       interaction: { mode: 'index', intersect: false },
       animation: { duration: 350 },
       plugins: {
-        legend: { position: 'bottom',
-          labels: { boxWidth: 12, boxHeight: 12, padding: 12, color: BRAND.navy, font: { size: 12, weight: '600' } } },
+        legend: { position: 'bottom', labels: { boxWidth: 12, boxHeight: 12, padding: 12, color: BRAND.navy, font: { size: 12, weight: '600' } } },
         tooltip: {
           backgroundColor: BRAND.navy, titleColor: '#fff', bodyColor: '#fff',
           borderColor: BRAND.mustard, borderWidth: 1, padding: 10, cornerRadius: 4,
-          callbacks: {
-            label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y == null ? 'n/a' : ctx.parsed.y.toFixed(1) + '%'}`
-          }
+          callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y == null ? 'n/a' : ctx.parsed.y.toFixed(1) + '%'}` }
         }
       },
-      scales: {
-        x: baseScales(v=>v).x,
-        yUr:  axisSpec(v => v.toFixed(1) + '%', 'left'),
-        yLfp: axisSpec(v => v.toFixed(1) + '%', 'right'),
-      },
+      scales: { x: baseScales(v=>v).x, yUr:  axisSpec(v => v.toFixed(1) + '%', 'left'), yLfp: axisSpec(v => v.toFixed(1) + '%', 'right') },
     },
   };
 }
@@ -402,8 +386,7 @@ function buildWages(view) {
       interaction: { mode: 'index', intersect: false },
       animation: { duration: 350 },
       plugins: {
-        legend: { position: 'bottom',
-          labels: { boxWidth: 12, boxHeight: 12, padding: 12, color: BRAND.navy, font: { size: 12, weight: '600' } } },
+        legend: { position: 'bottom', labels: { boxWidth: 12, boxHeight: 12, padding: 12, color: BRAND.navy, font: { size: 12, weight: '600' } } },
         tooltip: {
           backgroundColor: BRAND.navy, titleColor: '#fff', bodyColor: '#fff',
           borderColor: BRAND.mustard, borderWidth: 1, padding: 10, cornerRadius: 4,
@@ -416,11 +399,7 @@ function buildWages(view) {
           }
         }
       },
-      scales: {
-        x: baseScales(v=>v).x,
-        yAhe: axisSpec(v => v.toFixed(1) + '%', 'left'),
-        yHrs: axisSpec(v => v.toFixed(1), 'right'),
-      },
+      scales: { x: baseScales(v=>v).x, yAhe: axisSpec(v => v.toFixed(1) + '%', 'left'), yHrs: axisSpec(v => v.toFixed(1), 'right') },
     },
   };
 }
@@ -489,12 +468,8 @@ function buildJolts(view) {
 }
 
 const LABOR_BUILDERS = {
-  chartUrLfp:    buildUrLfp,
-  chartPayrolls: buildPayrolls,
-  chartWages:    buildWages,
-  chartFtPt:     buildFtPt,
-  chartNativity: buildNativity,
-  chartJolts:    buildJolts,
+  chartUrLfp: buildUrLfp, chartPayrolls: buildPayrolls, chartWages: buildWages,
+  chartFtPt: buildFtPt, chartNativity: buildNativity, chartJolts: buildJolts,
 };
 
 function renderAllLabor(view) {
@@ -510,27 +485,27 @@ function renderKpisLabor(data) {
   const fmtThousandsAsM = v => (v == null) ? 'n/a' : (v / 1000).toFixed(2) + 'M';
   const fmtPct1         = v => (v == null) ? 'n/a' : v.toFixed(1) + '%';
   const KPI_DEFS = [
-    { key: 'unemployment', label: 'Unemployment Rate',     accent: BRAND.coral,
+    { key: 'unemployment', label: 'Unemployment Rate', accent: BRAND.coral,
       valueFmt: k => fmtPct1(k.value),
       deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
       goodDir: 'down' },
-    { key: 'payrolls', label: 'Payrolls (m/m)',            accent: BRAND.navy,
+    { key: 'payrolls', label: 'Payrolls (m/m)', accent: BRAND.navy,
       valueFmt: k => fmtThousandsK(k.value),
       deltaFmt: k => k.delta == null ? 'no prior data' : `${fmtThousandsK(k.delta)} vs prior month`,
       goodDir: 'up' },
-    { key: 'lfp', label: 'Participation Rate',             accent: BRAND.teal,
+    { key: 'lfp', label: 'Participation Rate', accent: BRAND.teal,
       valueFmt: k => fmtPct1(k.value),
       deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
       goodDir: 'up' },
-    { key: 'ahe_yoy', label: 'Avg Hourly Earnings YoY',    accent: BRAND.mustard,
+    { key: 'ahe_yoy', label: 'Avg Hourly Earnings YoY', accent: BRAND.mustard,
       valueFmt: k => fmtPct1(k.value),
       deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
       goodDir: 'up' },
-    { key: 'openings', label: 'Job Openings',              accent: BRAND.green,
+    { key: 'openings', label: 'Job Openings', accent: BRAND.green,
       valueFmt: k => fmtThousandsAsM(k.value),
       deltaFmt: k => k.delta == null ? 'no prior data' : `${fmtThousandsK(k.delta)} vs prior month`,
       goodDir: 'up' },
-    { key: 'quits', label: 'Quits',                        accent: BRAND.khaki,
+    { key: 'quits', label: 'Quits', accent: BRAND.khaki,
       valueFmt: k => fmtThousandsAsM(k.value),
       deltaFmt: k => k.delta == null ? 'no prior data' : `${fmtThousandsK(k.delta)} vs prior month`,
       goodDir: 'up' },
@@ -539,9 +514,8 @@ function renderKpisLabor(data) {
     const k = data.kpis[def.key];
     let dCls = 'flat';
     if (k.delta != null && k.delta !== 0) {
-      const isGood = (k.delta > 0 && def.goodDir === 'up') ||
-                     (k.delta < 0 && def.goodDir === 'down');
-      dCls = isGood ? 'down' : 'up';   // CSS: "down" = teal (good), "up" = coral (bad)
+      const isGood = (k.delta > 0 && def.goodDir === 'up') || (k.delta < 0 && def.goodDir === 'down');
+      dCls = isGood ? 'down' : 'up';
     }
     const arrow = k.delta == null ? '–' : (k.delta > 0 ? '▲' : (k.delta < 0 ? '▼' : '▬'));
     return `
@@ -558,8 +532,7 @@ function registerAllCsvsLabor(view) {
     ['Month', 'Unemployment Rate (%)', 'Labor Force Participation (%)'],
     mergeSeries([view.unemployment_rate, view.lfp_rate]));
   registerCsv('chartPayrolls', 'nonfarm-payroll-change.csv',
-    ['Month', 'Payroll Change (thousands)'],
-    view.payroll_mom);
+    ['Month', 'Payroll Change (thousands)'], view.payroll_mom);
   registerCsv('chartWages', 'wages-and-hours.csv',
     ['Month', 'AHE YoY (%)', 'Avg Weekly Hours'],
     mergeSeries([view.ahe_yoy, view.avg_weekly_hours]));
@@ -575,6 +548,155 @@ function registerAllCsvsLabor(view) {
 }
 
 // =========================================================
+// PPI: chart builders
+// =========================================================
+function rangedViewPpi(data, range) {
+  const n = RANGE_MONTHS[range];
+  return {
+    headline_yoy:    tail(data.headline_yoy, n),
+    core_yoy:        tail(data.core_yoy, n),
+    goods_yoy:       tail(data.goods_yoy, n),
+    services_yoy:    tail(data.services_yoy, n),
+    foods_yoy:       tail(data.foods_yoy, n),
+    energy_yoy:      tail(data.energy_yoy, n),
+    headline_mom_sa: tail(data.headline_mom_sa, n),
+    core_mom_sa:     tail(data.core_mom_sa, n),
+    goods_idx:       rebaseToFirst(tail(data.goods_level, n)),
+    services_idx:    rebaseToFirst(tail(data.services_level, n)),
+    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+  };
+}
+
+function buildPpiYoy(view) {
+  const labels = view.headline_yoy.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Headline PPI', data: view.headline_yoy.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy, tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: 'Core PPI (less foods & energy)', data: view.core_yoy.map(r => r[1]),
+          borderColor: BRAND.khaki, backgroundColor: BRAND.khaki, tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: 'Fed 2% target', data: labels.map(()=>2.0),
+          borderColor: BRAND.teal, borderWidth: 1.5, pointRadius: 0 }
+      ]
+    },
+    options: baseOptions(v => `${v.toFixed(1)}%`)
+  };
+}
+
+function buildPpiMom(view) {
+  const labels = view.headline_mom_sa.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const momH = view.headline_mom_sa.map(r => r[1]);
+  const momC = view.core_mom_sa.map(r => r[1]);
+  return {
+    data: {
+      labels,
+      datasets: [
+        { type: 'bar', label: 'Headline PPI MoM (SA)', data: momH,
+          backgroundColor: momH.map(v => v == null ? BRAND.silver : (v >= 0 ? BRAND.navy : BRAND.coral)),
+          borderColor: 'transparent', barPercentage: 0.85, categoryPercentage: 0.85 },
+        { type: 'line', label: 'Core PPI MoM (SA)', data: momC,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          borderWidth: 2.2, pointRadius: pr, tension: 0.2, spanGaps: false }
+      ]
+    },
+    options: baseOptions(v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`, { scales: { beginAtZero: false } })
+  };
+}
+
+function buildPpiComp(view) {
+  const labels = view.goods_yoy.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Goods',    data: view.goods_yoy.map(r => r[1]),    borderColor: BRAND.coral,   backgroundColor: BRAND.coral,   tension: 0.2, borderWidth: 2.2, pointRadius: pr },
+        { label: 'Services', data: view.services_yoy.map(r => r[1]), borderColor: BRAND.teal,    backgroundColor: BRAND.teal,    tension: 0.2, borderWidth: 2.2, pointRadius: pr },
+        { label: 'Foods',    data: view.foods_yoy.map(r => r[1]),    borderColor: BRAND.green,   backgroundColor: BRAND.green,   tension: 0.2, borderWidth: 2.2, pointRadius: pr },
+        { label: 'Energy',   data: view.energy_yoy.map(r => r[1]),   borderColor: BRAND.mustard, backgroundColor: BRAND.mustard, tension: 0.2, borderWidth: 2.2, pointRadius: pr }
+      ]
+    },
+    options: baseOptions(v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`)
+  };
+}
+
+function buildPpiSpotlight(view) {
+  const labels = view.goods_idx.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Goods (start = 100)', data: view.goods_idx.map(r => r[1]),
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral, tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: 'Services (start = 100)', data: view.services_idx.map(r => r[1]),
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal, tension: 0.2, borderWidth: 2.5, pointRadius: pr }
+      ]
+    },
+    options: baseOptions(v => v.toFixed(1))
+  };
+}
+
+const PPI_BUILDERS = {
+  chartPpiYoy: buildPpiYoy, chartPpiMom: buildPpiMom,
+  chartPpiComp: buildPpiComp, chartPpiSpotlight: buildPpiSpotlight,
+};
+
+function renderAllPpi(view) {
+  for (const [id, builder] of Object.entries(PPI_BUILDERS)) {
+    if (document.getElementById(id)) makeChart(id, builder(view));
+  }
+}
+
+function renderKpisPpi(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const KPI_DEFS = [
+    { key: 'headline', label: 'Headline PPI', accent: BRAND.navy },
+    { key: 'core',     label: 'Core PPI',     accent: BRAND.khaki },
+    { key: 'goods',    label: 'Goods',        accent: BRAND.coral },
+    { key: 'services', label: 'Services',     accent: BRAND.teal },
+    { key: 'foods',    label: 'Foods',        accent: BRAND.green },
+    { key: 'energy',   label: 'Energy',       accent: BRAND.mustard },
+  ];
+  kpiHost.innerHTML = KPI_DEFS.map(def => {
+    const k = data.kpis[def.key];
+    const dCls = k.delta == null ? 'flat' : (k.delta > 0 ? 'up' : (k.delta < 0 ? 'down' : 'flat'));
+    const arrow = k.delta == null ? '–' : (k.delta > 0 ? '▲' : (k.delta < 0 ? '▼' : '▬'));
+    const dTxt = k.delta == null ? 'no prior data' :
+      (k.delta > 0 ? `+${k.delta.toFixed(2)} pp` : `${k.delta.toFixed(2)} pp`);
+    return `
+      <div class="kpi" style="border-top-color:${def.accent}">
+        <div class="label">${def.label}</div>
+        <div class="value">${k.value.toFixed(1)}%</div>
+        <div class="delta ${dCls}">${arrow} ${dTxt} vs prior month</div>
+      </div>`;
+  }).join('');
+}
+
+function registerAllCsvsPpi(view) {
+  registerCsv('chartPpiYoy', 'headline-vs-core-ppi.csv',
+    ['Month', 'Headline PPI YoY (%)', 'Core PPI YoY (%)'],
+    mergeSeries([view.headline_yoy, view.core_yoy]));
+  registerCsv('chartPpiMom', 'ppi-monthly-change-sa.csv',
+    ['Month', 'Headline PPI MoM SA (%)', 'Core PPI MoM SA (%)'],
+    mergeSeries([view.headline_mom_sa, view.core_mom_sa]));
+  registerCsv('chartPpiComp', 'ppi-components-yoy.csv',
+    ['Month', 'Goods YoY (%)', 'Services YoY (%)', 'Foods YoY (%)', 'Energy YoY (%)'],
+    mergeSeries([view.goods_yoy, view.services_yoy, view.foods_yoy, view.energy_yoy]));
+  registerCsv('chartPpiSpotlight', 'ppi-goods-vs-services-indexed.csv',
+    ['Month', 'Goods (Index)', 'Services (Index)'],
+    mergeSeries([view.goods_idx, view.services_idx]));
+}
+
+// =========================================================
 // Range / dispatch
 // =========================================================
 function applyRange(range) {
@@ -582,12 +704,13 @@ function applyRange(range) {
   if (!RAW_DATA) return;
   if (CURRENT_PAGE === 'labor') {
     const view = rangedViewLabor(RAW_DATA, range);
-    renderAllLabor(view);
-    registerAllCsvsLabor(view);
+    renderAllLabor(view); registerAllCsvsLabor(view);
+  } else if (CURRENT_PAGE === 'ppi') {
+    const view = rangedViewPpi(RAW_DATA, range);
+    renderAllPpi(view); registerAllCsvsPpi(view);
   } else {
     const view = rangedView(RAW_DATA, range);
-    renderAll(view);
-    registerAllCsvs(view);
+    renderAll(view); registerAllCsvs(view);
   }
   document.querySelectorAll('.range-toggle button').forEach(b => {
     b.classList.toggle('active', b.dataset.range === range);
@@ -614,14 +737,10 @@ window.EG = {
     document.getElementById('latest-month').textContent = formatLabelLong(data.latest_label);
     renderKpis(data);
     const view = rangedView(data, CURRENT_RANGE);
-    renderAll(view);
-    registerAllCsvs(view);
-    attachDownloadHandlers();
-    wireRangeToggle();
+    renderAll(view); registerAllCsvs(view);
+    attachDownloadHandlers(); wireRangeToggle();
   },
 
-  // Embed mode: render exactly one chart, no chrome.
-  // chartKey is one of: 'headline', 'mom', 'components', 'energy'
   renderEmbed(chartKey, data, range) {
     CURRENT_PAGE = 'inflation';
     RAW_DATA = data;
@@ -641,28 +760,41 @@ window.EG = {
     if (joltsEl) joltsEl.textContent = formatLabelLong(data.jolts_latest);
     renderKpisLabor(data);
     const view = rangedViewLabor(data, CURRENT_RANGE);
-    renderAllLabor(view);
-    registerAllCsvsLabor(view);
-    attachDownloadHandlers();
-    wireRangeToggle();
+    renderAllLabor(view); registerAllCsvsLabor(view);
+    attachDownloadHandlers(); wireRangeToggle();
   },
 
-  // Embed mode for labor: render exactly one chart, no chrome.
-  // chartKey is one of: 'unemployment', 'payrolls', 'wages', 'fulltime', 'nativity', 'jolts'
   renderLaborEmbed(chartKey, data, range) {
     CURRENT_PAGE = 'labor';
     RAW_DATA = data;
     if (range && RANGE_MONTHS[range]) CURRENT_RANGE = range;
     const view = rangedViewLabor(data, CURRENT_RANGE);
     const map = {
-      unemployment: 'chartUrLfp',
-      payrolls:     'chartPayrolls',
-      wages:        'chartWages',
-      fulltime:     'chartFtPt',
-      nativity:     'chartNativity',
-      jolts:        'chartJolts',
+      unemployment: 'chartUrLfp', payrolls: 'chartPayrolls', wages: 'chartWages',
+      fulltime: 'chartFtPt', nativity: 'chartNativity', jolts: 'chartJolts',
     };
     const id = map[chartKey] || 'chartUrLfp';
     if (LABOR_BUILDERS[id]) makeChart(id, LABOR_BUILDERS[id](view));
+  },
+
+  renderPpi(data) {
+    CURRENT_PAGE = 'ppi';
+    RAW_DATA = data;
+    document.getElementById('latest-month').textContent = formatLabelLong(data.latest_label);
+    renderKpisPpi(data);
+    const view = rangedViewPpi(data, CURRENT_RANGE);
+    renderAllPpi(view); registerAllCsvsPpi(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  // Embed mode for PPI: chartKey ∈ 'headline' | 'mom' | 'components' | 'spotlight'
+  renderPpiEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'ppi';
+    RAW_DATA = data;
+    if (range && RANGE_MONTHS[range]) CURRENT_RANGE = range;
+    const view = rangedViewPpi(data, CURRENT_RANGE);
+    const map = { headline: 'chartPpiYoy', mom: 'chartPpiMom', components: 'chartPpiComp', spotlight: 'chartPpiSpotlight' };
+    const id = map[chartKey] || 'chartPpiYoy';
+    if (PPI_BUILDERS[id]) makeChart(id, PPI_BUILDERS[id](view));
   },
 };
