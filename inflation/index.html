@@ -10,6 +10,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  .interactivity-hint { margin: 10px 0 16px; font-size: 12.5px; font-style: italic; color: var(--ink-on-navy-soft); }
+  .chart-card .source { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; }
+  .chart-card .csv-link { font-size: 11px; font-weight: 700; color: var(--mustard); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; text-decoration: none; }
+  .chart-card .csv-link::before { content: '\2193  '; }
+  .chart-card .csv-link:hover { text-decoration: underline; }
+  .controls { display: flex; gap: 12px; align-items: center; margin: 4px 0 0; flex-wrap: wrap; }
+  .controls .label-text { font-size: 12px; color: var(--ink-on-navy-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+</style>
 </head>
 <body>
 
@@ -38,33 +47,60 @@
 
   <div id="kpis" class="kpi-grid"></div>
 
+  <div class="controls">
+    <span class="label-text">Time range:</span>
+    <div class="range-toggle">
+      <button data-range="12m" class="active">12 mo</button>
+      <button data-range="5y">5 yr</button>
+      <button data-range="10y">10 yr</button>
+      <button data-range="20y">20 yr</button>
+      <button data-range="max">Max</button>
+    </div>
+  </div>
+
+  <div class="interactivity-hint">
+    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post.
+  </div>
+
   <div class="chart-grid">
     <div class="chart-card">
       <div class="title">Headline vs Core CPI</div>
       <div class="subtitle">(Year-over-Year Percent Change)</div>
       <div class="chart-wrap"><canvas id="chartYoy"></canvas></div>
-      <div class="source">Source: U.S. Bureau of Labor Statistics &mdash; CUUR0000SA0, CUUR0000SA0L1E.</div>
+      <div class="source">
+        <span>Source: BLS &mdash; CUUR0000SA0, CUUR0000SA0L1E.</span>
+        <a href="#" class="csv-link" data-chart="chartYoy">Download CSV</a>
+      </div>
     </div>
 
     <div class="chart-card">
       <div class="title">Monthly Inflation</div>
       <div class="subtitle">(Seasonally Adjusted; Month-over-Month Percent Change)</div>
       <div class="chart-wrap"><canvas id="chartMom"></canvas></div>
-      <div class="source">Source: U.S. Bureau of Labor Statistics &mdash; CUSR0000SA0, CUSR0000SA0L1E.</div>
+      <div class="source">
+        <span>Source: BLS &mdash; CUSR0000SA0, CUSR0000SA0L1E.</span>
+        <a href="#" class="csv-link" data-chart="chartMom">Download CSV</a>
+      </div>
     </div>
 
     <div class="chart-card">
       <div class="title">CPI Components</div>
       <div class="subtitle">(Year-over-Year Percent Change)</div>
       <div class="chart-wrap"><canvas id="chartComp"></canvas></div>
-      <div class="source">Source: BLS &mdash; Food (SAF1), Energy (SA0E), Shelter (SAH1), Services (SAS).</div>
+      <div class="source">
+        <span>Source: BLS &mdash; Food, Energy, Shelter, Services.</span>
+        <a href="#" class="csv-link" data-chart="chartComp">Download CSV</a>
+      </div>
     </div>
 
     <div class="chart-card">
       <div class="title">Energy Prices, Indexed</div>
-      <div class="subtitle">(Twelve Months Ago = 100)</div>
+      <div class="subtitle">(Start of Selected Range = 100)</div>
       <div class="chart-wrap"><canvas id="chartEnergy"></canvas></div>
-      <div class="source">Source: BLS &mdash; Gasoline (SETB01), Energy (SA0E).</div>
+      <div class="source">
+        <span>Source: BLS &mdash; Gasoline (SETB01), Energy (SA0E).</span>
+        <a href="#" class="csv-link" data-chart="chartEnergy">Download CSV</a>
+      </div>
     </div>
   </div>
 </main>
