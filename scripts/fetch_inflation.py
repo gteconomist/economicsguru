@@ -1,12 +1,8 @@
 #!/usr/bin/env python3
 """
 Fetch latest US CPI series from the BLS public API and write a normalized JSON
-payload to data/inflation.json. Designed to run from a GitHub Actions cron.
-
-Environment variables:
-  BLS_API_KEY      (optional but recommended; free key gives higher rate limits)
-
-The API key is the only secret used; everything else is public BLS data.
+payload to data/inflation.json. Pulls 25 years of history so the frontend can
+offer time-range pickers (12m / 5y / 20y / max).
 """
 
 import os
@@ -16,26 +12,13 @@ import datetime as dt
 from pathlib import Path
 from urllib import request, error
 
-# Series we pull. All Consumer Price Index series.
-# CUUR = Not Seasonally Adjusted (used for YoY headlines)
-# CUSR = Seasonally Adjusted (used for MoM)
 NSA_IDS = [
-    "CUUR0000SA0",       # All items (headline)
-    "CUUR0000SA0L1E",    # Core (all items less food & energy)
-    "CUUR0000SAH1",      # Shelter
-    "CUUR0000SAF1",      # Food
-    "CUUR0000SA0E",      # Energy
-    "CUUR0000SETB01",    # Gasoline (all types)
-    "CUUR0000SAS",       # Services
+    "CUUR0000SA0", "CUUR0000SA0L1E", "CUUR0000SAH1", "CUUR0000SAF1",
+    "CUUR0000SA0E", "CUUR0000SETB01", "CUUR0000SAS",
 ]
 SA_IDS = [
-    "CUSR0000SA0",
-    "CUSR0000SA0L1E",
-    "CUSR0000SAH1",
-    "CUSR0000SAF1",
-    "CUSR0000SA0E",
-    "CUSR0000SETB01",
-    "CUSR0000SAS",
+    "CUSR0000SA0", "CUSR0000SA0L1E", "CUSR0000SAH1", "CUSR0000SAF1",
+    "CUSR0000SA0E", "CUSR0000SETB01", "CUSR0000SAS",
 ]
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -43,11 +26,7 @@ OUT_PATH = REPO_ROOT / "data" / "inflation.json"
 
 
 def fetch(seriesids, start_year, end_year):
-    body = {
-        "seriesid": seriesids,
-        "startyear": str(start_year),
-        "endyear": str(end_year),
-    }
+    body = {"seriesid": seriesids, "startyear": str(start_year), "endyear": str(end_year)}
     api_key = os.environ.get("BLS_API_KEY")
     if api_key:
         body["registrationkey"] = api_key
@@ -56,7 +35,7 @@ def fetch(seriesids, start_year, end_year):
         data=json.dumps(body).encode(),
         headers={"Content-Type": "application/json"},
     )
-    with request.urlopen(req, timeout=30) as r:
+    with request.urlopen(req, timeout=60) as r:
         payload = json.loads(r.read())
     if payload.get("status") != "REQUEST_SUCCEEDED":
         raise RuntimeError(f"BLS API error: {payload}")
@@ -67,7 +46,7 @@ def fetch(seriesids, start_year, end_year):
             if not r["period"].startswith("M"):
                 continue
             month = int(r["period"][1:])
-            if month > 12:        # M13 = annual average, skip
+            if month > 12:
                 continue
             try:
                 v = float(r["value"])
@@ -89,7 +68,6 @@ def yoy(rows):
 
 
 def mom_strict(rows):
-    """Only emit MoM when the previous calendar month exists."""
     by = {(y, m): v for (y, m, v) in rows}
     out = []
     for (y, m, v) in rows:
@@ -103,9 +81,8 @@ def mom_strict(rows):
     return out
 
 
-def rebase(rows):
-    base = rows[0][2]
-    return [[f"{y}-{m:02d}", round(v / base * 100, 2)] for (y, m, v) in rows]
+def levels(rows):
+    return [[f"{y}-{m:02d}", v] for (y, m, v) in rows]
 
 
 def kpi(yoy_rows):
@@ -115,15 +92,10 @@ def kpi(yoy_rows):
         if v is not None:
             prev = v
             break
-    return {
-        "value": last,
-        "delta": round(last - prev, 2) if prev is not None else None,
-    }
+    return {"value": last, "delta": round(last - prev, 2) if prev is not None else None}
 
 
 def detect_gaps(rows):
-    """Return a list of (year, month) tuples that are missing in a series.
-    Useful for surfacing things like the Oct-2025 shutdown gap."""
     if not rows:
         return []
     have = {(y, m) for (y, m, _) in rows}
@@ -140,20 +112,40 @@ def detect_gaps(rows):
     return out
 
 
-def main():
+# BLS API caps at 25 years per request — chunk the call so we get a deep history.
+def fetch_long(ids, years_back=25):
     today = dt.date.today()
-    # Pull a couple of full years so YoY anchors are always available
-    nsa = fetch(NSA_IDS, today.year - 2, today.year)
-    sa  = fetch(SA_IDS,  today.year - 2, today.year)
+    chunks = []
+    end = today.year
+    while end > today.year - years_back:
+        start = max(end - 19, today.year - years_back)  # 20-year chunks
+        chunks.append(fetch(ids, start, end))
+        end = start - 1
 
-    LAST = 14  # leave headroom for a one-month gap
+    merged = {sid: [] for sid in ids}
+    seen = {sid: set() for sid in ids}
+    for chunk in chunks:
+        for sid, rows in chunk.items():
+            for (y, m, v) in rows:
+                if (y, m) in seen[sid]:
+                    continue
+                seen[sid].add((y, m))
+                merged[sid].append((y, m, v))
+    for sid in merged:
+        merged[sid].sort()
+    return merged
 
-    headline_yoy = yoy(nsa["CUUR0000SA0"])[-LAST:]
-    core_yoy     = yoy(nsa["CUUR0000SA0L1E"])[-LAST:]
-    food_yoy     = yoy(nsa["CUUR0000SAF1"])[-LAST:]
-    energy_yoy   = yoy(nsa["CUUR0000SA0E"])[-LAST:]
-    shelter_yoy  = yoy(nsa["CUUR0000SAH1"])[-LAST:]
-    services_yoy = yoy(nsa["CUUR0000SAS"])[-LAST:]
+
+def main():
+    nsa = fetch_long(NSA_IDS, years_back=25)
+    sa  = fetch_long(SA_IDS,  years_back=25)
+
+    headline_yoy = yoy(nsa["CUUR0000SA0"])
+    core_yoy     = yoy(nsa["CUUR0000SA0L1E"])
+    food_yoy     = yoy(nsa["CUUR0000SAF1"])
+    energy_yoy   = yoy(nsa["CUUR0000SA0E"])
+    shelter_yoy  = yoy(nsa["CUUR0000SAH1"])
+    services_yoy = yoy(nsa["CUUR0000SAS"])
 
     out = {
         "headline_yoy":     headline_yoy,
@@ -162,10 +154,11 @@ def main():
         "energy_yoy":       energy_yoy,
         "shelter_yoy":      shelter_yoy,
         "services_yoy":     services_yoy,
-        "headline_mom_sa":  mom_strict(sa["CUSR0000SA0"])[-LAST:],
-        "core_mom_sa":      mom_strict(sa["CUSR0000SA0L1E"])[-LAST:],
-        "gasoline_idx":     rebase(nsa["CUUR0000SETB01"][-LAST:]),
-        "energy_idx":       rebase(nsa["CUUR0000SA0E"][-LAST:]),
+        "headline_mom_sa":  mom_strict(sa["CUSR0000SA0"]),
+        "core_mom_sa":      mom_strict(sa["CUSR0000SA0L1E"]),
+        # Raw level series — frontend rebases to "start of selected range = 100"
+        "gasoline_level":   levels(nsa["CUUR0000SETB01"]),
+        "energy_level":     levels(nsa["CUUR0000SA0E"]),
         "kpis": {
             "headline": kpi(headline_yoy),
             "core":     kpi(core_yoy),
@@ -178,8 +171,8 @@ def main():
         "build_time":   dt.datetime.utcnow().isoformat(timespec="seconds") + "Z",
     }
 
-    # Surface any gaps as a notice on the page
-    gaps = detect_gaps(nsa["CUUR0000SA0"][-LAST:])
+    # Surface gaps in the recent past as a notice
+    gaps = detect_gaps(nsa["CUUR0000SA0"][-14:])
     if gaps:
         names = ", ".join(dt.date(y, m, 1).strftime("%B %Y") for (y, m) in gaps)
         out["notice"] = (
@@ -189,9 +182,10 @@ def main():
         )
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUT_PATH.write_text(json.dumps(out, indent=2))
+    OUT_PATH.write_text(json.dumps(out))
     print(f"Wrote {OUT_PATH} ({OUT_PATH.stat().st_size} bytes); "
-          f"latest = {out['latest_label']}; gaps = {gaps}")
+          f"latest = {out['latest_label']}; gaps = {gaps}; "
+          f"history = {len(headline_yoy)} months")
 
 
 if __name__ == "__main__":
