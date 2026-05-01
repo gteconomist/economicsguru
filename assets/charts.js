@@ -204,7 +204,7 @@ function buildMom(view) {
   };
 }
 function buildComp(view) {
-  const labels = view.food_yoy.map(r => r[1] != null ? shortLabel : null) && view.headline_yoy.map(r => shortLabel(r[0]));
+  const labels = view.headline_yoy.map(r => shortLabel(r[0]));
   const pr = pointSizeForLength(labels.length);
   return {
     type: 'line',
@@ -697,6 +697,159 @@ function registerAllCsvsPpi(view) {
 }
 
 // =========================================================
+// PCE: chart builders
+// =========================================================
+function rangedViewPce(data, range) {
+  const n = RANGE_MONTHS[range];
+  return {
+    headline_yoy:     tail(data.headline_yoy, n),
+    core_yoy:         tail(data.core_yoy, n),
+    services_yoy:     tail(data.services_yoy, n),
+    supercore_yoy:    tail(data.supercore_yoy, n),
+    goods_yoy:        tail(data.goods_yoy, n),
+    energy_yoy:       tail(data.energy_yoy, n),
+    headline_mom_sa:  tail(data.headline_mom_sa, n),
+    core_mom_sa:      tail(data.core_mom_sa, n),
+    supercore_mom_sa: tail(data.supercore_mom_sa, n),
+    durables_idx:     rebaseToFirst(tail(data.durables_level, n)),
+    nondurables_idx:  rebaseToFirst(tail(data.nondurables_level, n)),
+    services_idx:     rebaseToFirst(tail(data.services_level, n)),
+    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+  };
+}
+
+function buildPceYoy(view) {
+  const labels = view.headline_yoy.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Headline PCE', data: view.headline_yoy.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy, tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: 'Core PCE (ex food & energy)', data: view.core_yoy.map(r => r[1]),
+          borderColor: BRAND.khaki, backgroundColor: BRAND.khaki, tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: 'Fed 2% target', data: labels.map(()=>2.0),
+          borderColor: BRAND.teal, borderWidth: 1.5, pointRadius: 0 }
+      ]
+    },
+    options: baseOptions(v => `${v.toFixed(1)}%`)
+  };
+}
+
+function buildPceMom(view) {
+  const labels = view.headline_mom_sa.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const momH = view.headline_mom_sa.map(r => r[1]);
+  const momC = view.core_mom_sa.map(r => r[1]);
+  return {
+    data: {
+      labels,
+      datasets: [
+        { type: 'bar', label: 'Headline PCE MoM (SA)', data: momH,
+          backgroundColor: momH.map(v => v == null ? BRAND.silver : (v >= 0 ? BRAND.navy : BRAND.coral)),
+          borderColor: 'transparent', barPercentage: 0.85, categoryPercentage: 0.85 },
+        { type: 'line', label: 'Core PCE MoM (SA)', data: momC,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          borderWidth: 2.2, pointRadius: pr, tension: 0.2, spanGaps: false }
+      ]
+    },
+    options: baseOptions(v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`, { scales: { beginAtZero: false } })
+  };
+}
+
+function buildPceComp(view) {
+  const labels = view.goods_yoy.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Goods',                          data: view.goods_yoy.map(r => r[1]),     borderColor: BRAND.coral,   backgroundColor: BRAND.coral,   tension: 0.2, borderWidth: 2.2, pointRadius: pr },
+        { label: 'Services',                       data: view.services_yoy.map(r => r[1]),  borderColor: BRAND.teal,    backgroundColor: BRAND.teal,    tension: 0.2, borderWidth: 2.2, pointRadius: pr },
+        { label: 'Supercore (services ex housing)',data: view.supercore_yoy.map(r => r[1]), borderColor: BRAND.navy,    backgroundColor: BRAND.navy,    tension: 0.2, borderWidth: 2.5, pointRadius: pr, borderDash: [6,3] },
+        { label: 'Energy',                         data: view.energy_yoy.map(r => r[1]),    borderColor: BRAND.mustard, backgroundColor: BRAND.mustard, tension: 0.2, borderWidth: 2.2, pointRadius: pr }
+      ]
+    },
+    options: baseOptions(v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`)
+  };
+}
+
+function buildPceSpotlight(view) {
+  const labels = view.durables_idx.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Durables (start = 100)',    data: view.durables_idx.map(r => r[1]),
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral, tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: 'Nondurables (start = 100)', data: view.nondurables_idx.map(r => r[1]),
+          borderColor: BRAND.green, backgroundColor: BRAND.green, tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: 'Services (start = 100)',    data: view.services_idx.map(r => r[1]),
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal, tension: 0.2, borderWidth: 2.5, pointRadius: pr }
+      ]
+    },
+    options: baseOptions(v => v.toFixed(1))
+  };
+}
+
+const PCE_BUILDERS = {
+  chartPceYoy: buildPceYoy, chartPceMom: buildPceMom,
+  chartPceComp: buildPceComp, chartPceSpotlight: buildPceSpotlight,
+};
+
+function renderAllPce(view) {
+  for (const [id, builder] of Object.entries(PCE_BUILDERS)) {
+    if (document.getElementById(id)) makeChart(id, builder(view));
+  }
+}
+
+function renderKpisPce(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const KPI_DEFS = [
+    { key: 'headline',  label: 'Headline PCE', accent: BRAND.navy },
+    { key: 'core',      label: 'Core PCE',     accent: BRAND.khaki },
+    { key: 'services',  label: 'Services',     accent: BRAND.teal },
+    { key: 'supercore', label: 'Supercore',    accent: BRAND.mustard },
+    { key: 'goods',     label: 'Goods',        accent: BRAND.coral },
+    { key: 'energy',    label: 'Energy',       accent: BRAND.green },
+  ];
+  kpiHost.innerHTML = KPI_DEFS.map(def => {
+    const k = data.kpis[def.key];
+    const dCls = k.delta == null ? 'flat' : (k.delta > 0 ? 'up' : (k.delta < 0 ? 'down' : 'flat'));
+    const arrow = k.delta == null ? '–' : (k.delta > 0 ? '▲' : (k.delta < 0 ? '▼' : '▬'));
+    const dTxt = k.delta == null ? 'no prior data' :
+      (k.delta > 0 ? `+${k.delta.toFixed(2)} pp` : `${k.delta.toFixed(2)} pp`);
+    return `
+      <div class="kpi" style="border-top-color:${def.accent}">
+        <div class="label">${def.label}</div>
+        <div class="value">${k.value.toFixed(1)}%</div>
+        <div class="delta ${dCls}">${arrow} ${dTxt} vs prior month</div>
+      </div>`;
+  }).join('');
+}
+
+function registerAllCsvsPce(view) {
+  registerCsv('chartPceYoy', 'headline-vs-core-pce.csv',
+    ['Month', 'Headline PCE YoY (%)', 'Core PCE YoY (%)'],
+    mergeSeries([view.headline_yoy, view.core_yoy]));
+  registerCsv('chartPceMom', 'pce-monthly-change-sa.csv',
+    ['Month', 'Headline PCE MoM SA (%)', 'Core PCE MoM SA (%)'],
+    mergeSeries([view.headline_mom_sa, view.core_mom_sa]));
+  registerCsv('chartPceComp', 'pce-components-yoy.csv',
+    ['Month', 'Goods YoY (%)', 'Services YoY (%)', 'Supercore YoY (%)', 'Energy YoY (%)'],
+    mergeSeries([view.goods_yoy, view.services_yoy, view.supercore_yoy, view.energy_yoy]));
+  registerCsv('chartPceSpotlight', 'pce-durables-nondurables-services-indexed.csv',
+    ['Month', 'Durables (Index)', 'Nondurables (Index)', 'Services (Index)'],
+    mergeSeries([view.durables_idx, view.nondurables_idx, view.services_idx]));
+}
+
+// =========================================================
 // Range / dispatch
 // =========================================================
 function applyRange(range) {
@@ -708,6 +861,9 @@ function applyRange(range) {
   } else if (CURRENT_PAGE === 'ppi') {
     const view = rangedViewPpi(RAW_DATA, range);
     renderAllPpi(view); registerAllCsvsPpi(view);
+  } else if (CURRENT_PAGE === 'pce') {
+    const view = rangedViewPce(RAW_DATA, range);
+    renderAllPce(view); registerAllCsvsPce(view);
   } else {
     const view = rangedView(RAW_DATA, range);
     renderAll(view); registerAllCsvs(view);
@@ -796,5 +952,26 @@ window.EG = {
     const map = { headline: 'chartPpiYoy', mom: 'chartPpiMom', components: 'chartPpiComp', spotlight: 'chartPpiSpotlight' };
     const id = map[chartKey] || 'chartPpiYoy';
     if (PPI_BUILDERS[id]) makeChart(id, PPI_BUILDERS[id](view));
+  },
+
+  renderPce(data) {
+    CURRENT_PAGE = 'pce';
+    RAW_DATA = data;
+    document.getElementById('latest-month').textContent = formatLabelLong(data.latest_label);
+    renderKpisPce(data);
+    const view = rangedViewPce(data, CURRENT_RANGE);
+    renderAllPce(view); registerAllCsvsPce(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  // Embed mode for PCE: chartKey ∈ 'headline' | 'mom' | 'components' | 'spotlight'
+  renderPceEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'pce';
+    RAW_DATA = data;
+    if (range && RANGE_MONTHS[range]) CURRENT_RANGE = range;
+    const view = rangedViewPce(data, CURRENT_RANGE);
+    const map = { headline: 'chartPceYoy', mom: 'chartPceMom', components: 'chartPceComp', spotlight: 'chartPceSpotlight' };
+    const id = map[chartKey] || 'chartPceYoy';
+    if (PCE_BUILDERS[id]) makeChart(id, PCE_BUILDERS[id](view));
   },
 };
