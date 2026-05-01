@@ -10,6 +10,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  .interactivity-hint { margin: 10px 0 16px; font-size: 12.5px; font-style: italic; color: var(--ink-on-navy-soft); }
+  .chart-card .source { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; }
+  .chart-card .csv-link { font-size: 11px; font-weight: 700; color: var(--mustard); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; text-decoration: none; }
+  .chart-card .csv-link::before { content: '\2193  '; }
+  .chart-card .csv-link:hover { text-decoration: underline; }
+  .controls { display: flex; gap: 12px; align-items: center; margin: 4px 0 0; flex-wrap: wrap; }
+  .controls .label-text { font-size: 12px; color: var(--ink-on-navy-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+</style>
 </head>
 <body>
 
@@ -38,47 +47,80 @@
 
   <div id="kpis" class="kpi-grid"></div>
 
+  <div class="controls">
+    <span class="label-text">Time range:</span>
+    <div class="range-toggle">
+      <button data-range="12m" class="active">12 mo</button>
+      <button data-range="5y">5 yr</button>
+      <button data-range="10y">10 yr</button>
+      <button data-range="20y">20 yr</button>
+      <button data-range="max">Max</button>
+    </div>
+  </div>
+
+  <div class="interactivity-hint">
+    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post.
+  </div>
+
   <div class="chart-grid">
     <div class="chart-card">
       <div class="title">Unemployment &amp; Labor Force Participation</div>
       <div class="subtitle">(Seasonally Adjusted, Percent &mdash; dual axis)</div>
       <div class="chart-wrap"><canvas id="chartUrLfp"></canvas></div>
-      <div class="source">Source: U.S. Bureau of Labor Statistics &mdash; LNS14000000 (UR), LNS11300000 (LFP).</div>
+      <div class="source">
+        <span>Source: BLS &mdash; LNS14000000 (UR), LNS11300000 (LFP).</span>
+        <a href="#" class="csv-link" data-chart="chartUrLfp">Download CSV</a>
+      </div>
     </div>
 
     <div class="chart-card">
       <div class="title">Monthly Change in Nonfarm Payrolls</div>
       <div class="subtitle">(Seasonally Adjusted; Thousands of Jobs)</div>
       <div class="chart-wrap"><canvas id="chartPayrolls"></canvas></div>
-      <div class="source">Source: BLS Current Employment Statistics (CES) &mdash; CES0000000001.</div>
+      <div class="source">
+        <span>Source: BLS Current Employment Statistics &mdash; CES0000000001.</span>
+        <a href="#" class="csv-link" data-chart="chartPayrolls">Download CSV</a>
+      </div>
     </div>
 
     <div class="chart-card">
       <div class="title">Wages &amp; Hours</div>
-      <div class="subtitle">(Total Private; YoY Earnings Growth and Avg Weekly Hours)</div>
+      <div class="subtitle">(Total Private; AHE YoY and Avg Weekly Hours)</div>
       <div class="chart-wrap"><canvas id="chartWages"></canvas></div>
-      <div class="source">Source: BLS CES &mdash; CES0500000003 (AHE), CES0500000002 (Hours).</div>
+      <div class="source">
+        <span>Source: BLS CES &mdash; CES0500000003 (AHE), CES0500000002 (Hours).</span>
+        <a href="#" class="csv-link" data-chart="chartWages">Download CSV</a>
+      </div>
     </div>
 
     <div class="chart-card">
       <div class="title">Full-Time vs Part-Time Employment</div>
-      <div class="subtitle">(Seasonally Adjusted; Indexed, Window Start = 100)</div>
+      <div class="subtitle">(Seasonally Adjusted; Start of Selected Range = 100)</div>
       <div class="chart-wrap"><canvas id="chartFtPt"></canvas></div>
-      <div class="source">Source: BLS Current Population Survey &mdash; LNS12500000 (FT), LNS12600000 (PT).</div>
+      <div class="source">
+        <span>Source: BLS CPS &mdash; LNS12500000 (FT), LNS12600000 (PT).</span>
+        <a href="#" class="csv-link" data-chart="chartFtPt">Download CSV</a>
+      </div>
     </div>
 
     <div class="chart-card">
       <div class="title">Foreign-Born vs Native-Born Employment</div>
       <div class="subtitle">(Year-over-Year Percent Change; NSA &mdash; series published unadjusted)</div>
       <div class="chart-wrap"><canvas id="chartNativity"></canvas></div>
-      <div class="source">Source: BLS CPS Table A-7 &mdash; LNU02073413 (Foreign-Born), LNU02073395 (Native-Born).</div>
+      <div class="source">
+        <span>Source: BLS CPS Table A-7 &mdash; LNU02073413, LNU02073395.</span>
+        <a href="#" class="csv-link" data-chart="chartNativity">Download CSV</a>
+      </div>
     </div>
 
     <div class="chart-card">
       <div class="title">JOLTS &mdash; Openings, Hires, Quits</div>
       <div class="subtitle">(Total Nonfarm; Thousands, Seasonally Adjusted)</div>
       <div class="chart-wrap"><canvas id="chartJolts"></canvas></div>
-      <div class="source">Source: BLS Job Openings and Labor Turnover Survey &mdash; JTS&hellip;JOL / HIL / QUL.</div>
+      <div class="source">
+        <span>Source: BLS JOLTS &mdash; JTS&hellip;JOL / HIL / QUL.</span>
+        <a href="#" class="csv-link" data-chart="chartJolts">Download CSV</a>
+      </div>
     </div>
   </div>
 </main>
