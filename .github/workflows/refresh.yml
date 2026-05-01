@@ -35,10 +35,17 @@ jobs:
           BLS_API_KEY: ${{ secrets.BLS_API_KEY }}
         run: python scripts/fetch_inflation.py
 
+      - name: Refresh labor market data from BLS
+        env:
+          BLS_API_KEY: ${{ secrets.BLS_API_KEY }}
+        run: python scripts/fetch_labor.py
+
       - name: Show generated data summary
         run: |
           test -s data/inflation.json
-          python -c "import json; d=json.load(open('data/inflation.json')); print('latest:', d['latest_label']); print('headline kpi:', d['kpis']['headline'])"
+          test -s data/labor.json
+          python -c "import json; d=json.load(open('data/inflation.json')); print('inflation latest:', d['latest_label']); print('headline kpi:', d['kpis']['headline'])"
+          python -c "import json; d=json.load(open('data/labor.json')); print('labor CPS:', d['cps_latest'], 'JOLTS:', d['jolts_latest']); print('UR kpi:', d['kpis']['unemployment'])"
 
       - name: Upload site as Pages artifact
         uses: actions/upload-pages-artifact@v3
