@@ -1,12 +1,9 @@
 name: Refresh data and deploy
 
 on:
-  # Run every day at 14:30 UTC (~9:30am ET) — after most US morning releases.
   schedule:
     - cron: "30 14 * * *"
-  # Allow manual runs from the Actions tab.
   workflow_dispatch:
-  # Also rebuild on every push so a content/styling change goes live immediately.
   push:
     branches: [main]
 
@@ -30,10 +27,15 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Refresh inflation data from BLS
+      - name: Refresh CPI data from BLS
         env:
           BLS_API_KEY: ${{ secrets.BLS_API_KEY }}
         run: python scripts/fetch_inflation.py
+
+      - name: Refresh PPI data from BLS
+        env:
+          BLS_API_KEY: ${{ secrets.BLS_API_KEY }}
+        run: python scripts/fetch_ppi.py
 
       - name: Refresh labor market data from BLS
         env:
@@ -43,9 +45,11 @@ jobs:
       - name: Show generated data summary
         run: |
           test -s data/inflation.json
+          test -s data/ppi.json
           test -s data/labor.json
-          python -c "import json; d=json.load(open('data/inflation.json')); print('inflation latest:', d['latest_label']); print('headline kpi:', d['kpis']['headline'])"
-          python -c "import json; d=json.load(open('data/labor.json')); print('labor CPS:', d['cps_latest'], 'JOLTS:', d['jolts_latest']); print('UR kpi:', d['kpis']['unemployment'])"
+          python -c "import json; d=json.load(open('data/inflation.json')); print('CPI latest:', d['latest_label']); print('CPI headline kpi:', d['kpis']['headline'])"
+          python -c "import json; d=json.load(open('data/ppi.json')); print('PPI latest:', d['latest_label']); print('PPI headline kpi:', d['kpis']['headline'])"
+          python -c "import json; d=json.load(open('data/labor.json')); print('Labor CPS:', d['cps_latest'], 'JOLTS:', d['jolts_latest']); print('UR kpi:', d['kpis']['unemployment'])"
 
       - name: Upload site as Pages artifact
         uses: actions/upload-pages-artifact@v3
