@@ -213,4 +213,49 @@ def main():
         "payroll_level":     payroll_level,
         "ahe_yoy":           ahe_yoy,
         "avg_weekly_hours":  avg_weekly_hours,
-        "ft_level":          ft_
+        "ft_level":          ft_level,
+        "pt_level":          pt_level,
+        "foreign_born_yoy":  foreign_born_yoy,
+        "native_born_yoy":   native_born_yoy,
+        "jolts_openings":    jolts_openings,
+        "jolts_hires":       jolts_hires,
+        "jolts_quits":       jolts_quits,
+        "kpis": {
+            "unemployment": kpi(unemployment_rate, unit="pp"),
+            "payrolls":     kpi(payroll_mom,       unit="k"),
+            "lfp":          kpi(lfp_rate,          unit="pp"),
+            "ahe_yoy":      kpi(ahe_yoy,           unit="pp"),
+            "openings":     kpi(jolts_openings,    unit="k"),
+            "quits":        kpi(jolts_quits,       unit="k"),
+        },
+        "latest_label":  cps_latest,
+        "ces_latest":    ces_latest,
+        "cps_latest":    cps_latest,
+        "jolts_latest":  jolts_latest,
+        "build_time":    dt.datetime.utcnow().isoformat(timespec="seconds") + "Z",
+    }
+
+    gaps = detect_gaps_recent(raw["LNS14000000"], n=14)
+    if gaps:
+        names = ", ".join(dt.date(y, m, 1).strftime("%B %Y") for (y, m) in gaps)
+        out["notice"] = (
+            f"The BLS Employment Situation release for {names} is missing from "
+            "the source data. Charts skip the missing month; month-over-month "
+            "changes are not shown for the month immediately following."
+        )
+
+    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUT_PATH.write_text(json.dumps(out, indent=2))
+    print(
+        f"Wrote {OUT_PATH} ({OUT_PATH.stat().st_size} bytes); "
+        f"CPS={cps_latest}; CES={ces_latest}; JOLTS={jolts_latest}; "
+        f"UR history={len(unemployment_rate)} months; gaps={gaps}"
+    )
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (error.URLError, RuntimeError) as e:
+        print(f"FETCH FAILED: {e}", file=sys.stderr)
+        sys.exit(1)
