@@ -42,11 +42,15 @@ jobs:
           BLS_API_KEY: ${{ secrets.BLS_API_KEY }}
         run: python scripts/fetch_labor.py
 
-        - name: Refresh PCE data from BEA
+      - name: Refresh labor market data from BLS
+        env:
+          BLS_API_KEY: ${{ secrets.BLS_API_KEY }}
+        run: python scripts/fetch_labor.py
+
+      - name: Refresh PCE data from BEA
         env:
           BEA_API_KEY: ${{ secrets.BEA_API_KEY }}
         run: python scripts/fetch_pce.py
-
       - name: Show generated data summary
         run: |
           test -s data/inflation.json
