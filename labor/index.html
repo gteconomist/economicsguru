@@ -1,1 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Labor Market &mdash; Economics Guru</title>
+<meta name="description" content="Live US labor market dashboard: payrolls, unemployment, JOLTS, wages, hours, labor force participation, and full- vs part-time employment. Updated daily from BLS.">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/assets/styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
 
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">Economics<span class="tag">Guru</span></div>
+    <nav>
+      <a href="/" >Home</a>
+      <a href="/inflation/">Inflation</a>
+      <a href="/labor/" class="active">Labor</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="page-header">
+    <h1>US Labor Market Dashboard</h1>
+    <div class="subtitle">Payrolls, unemployment, wages, hours, participation, and JOLTS &mdash; sourced live from the U.S. Bureau of Labor Statistics.</div>
+    <div class="latest">Latest CPS / payrolls release: <strong id="latest-month">&hellip;</strong> &middot; JOLTS: <strong id="latest-jolts">&hellip;</strong></div>
+  </div>
+
+  <div class="notice" id="notice" style="display:none">
+    <strong>Data note:</strong> <span id="notice-text"></span>
+  </div>
+
+  <div id="kpis" class="kpi-grid"></div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="title">Unemployment &amp; Labor Force Participation</div>
+      <div class="subtitle">(Seasonally Adjusted, Percent &mdash; dual axis)</div>
+      <div class="chart-wrap"><canvas id="chartUrLfp"></canvas></div>
+      <div class="source">Source: U.S. Bureau of Labor Statistics &mdash; LNS14000000 (UR), LNS11300000 (LFP).</div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Monthly Change in Nonfarm Payrolls</div>
+      <div class="subtitle">(Seasonally Adjusted; Thousands of Jobs)</div>
+      <div class="chart-wrap"><canvas id="chartPayrolls"></canvas></div>
+      <div class="source">Source: BLS Current Employment Statistics (CES) &mdash; CES0000000001.</div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Wages &amp; Hours</div>
+      <div class="subtitle">(Total Private; YoY Earnings Growth and Avg Weekly Hours)</div>
+      <div class="chart-wrap"><canvas id="chartWages"></canvas></div>
+      <div class="source">Source: BLS CES &mdash; CES0500000003 (AHE), CES0500000002 (Hours).</div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Full-Time vs Part-Time Employment</div>
+      <div class="subtitle">(Seasonally Adjusted; Indexed, Window Start = 100)</div>
+      <div class="chart-wrap"><canvas id="chartFtPt"></canvas></div>
+      <div class="source">Source: BLS Current Population Survey &mdash; LNS12500000 (FT), LNS12600000 (PT).</div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Foreign-Born vs Native-Born Employment</div>
+      <div class="subtitle">(Year-over-Year Percent Change; NSA &mdash; series published unadjusted)</div>
+      <div class="chart-wrap"><canvas id="chartNativity"></canvas></div>
+      <div class="source">Source: BLS CPS Table A-7 &mdash; LNU02073413 (Foreign-Born), LNU02073395 (Native-Born).</div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">JOLTS &mdash; Openings, Hires, Quits</div>
+      <div class="subtitle">(Total Nonfarm; Thousands, Seasonally Adjusted)</div>
+      <div class="chart-wrap"><canvas id="chartJolts"></canvas></div>
+      <div class="source">Source: BLS Job Openings and Labor Turnover Survey &mdash; JTS&hellip;JOL / HIL / QUL.</div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, and BEA. <a href="/about/">Methodology</a></div>
+    <div>Data refreshes nightly. Last successful build: <span id="build-time">&hellip;</span></div>
+  </div>
+</footer>
+
+<script src="/assets/charts.js"></script>
+<script>
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+fetch('/data/labor.json', { cache: 'no-cache' })
+  .then(r => r.json())
+  .then(data => {
+    EG.renderLabor(data);
+    if (data.notice) {
+      document.getElementById('notice').style.display = '';
+      document.getElementById('notice-text').textContent = data.notice;
+    }
+    if (data.build_time) {
+      document.getElementById('build-time').textContent =
+        new Date(data.build_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    document.querySelector('main').insertAdjacentHTML('afterbegin',
+      '<div class="notice"><strong>Could not load data.</strong> Try refreshing in a moment.</div>');
+  });
+</script>
+
+</body>
+</html>
