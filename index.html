@@ -12,7 +12,7 @@
 <style>
   .hero { padding: 36px 0 24px; }
   .hero h1 { font-size: 40px; }
-  .hero p  { font-size: 17px; color: var(--ink-on-navy-soft); max-width: 720px; }
+  .hero p  { font-size: 17px; color: var(--ink-soft); max-width: 720px; }
   .topic-grid {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 24px;
   }
@@ -45,6 +45,7 @@
     <nav>
       <a href="/" class="active">Home</a>
       <a href="/inflation/">Inflation</a>
+      <a href="/labor/">Labor</a>
       <a href="/about/">About</a>
     </nav>
   </div>
@@ -52,8 +53,8 @@
 
 <main>
   <section class="hero">
-    <h1 style="font-family:var(--font-display); color:var(--ink-on-navy); font-weight:800; margin:0 0 10px;">Live US economic data, updated daily.</h1>
-    <p>Charts, KPIs, and downloadable series for the indicators that matter most &mdash; sourced directly from the BLS, FRED, and BEA. Built as a companion to <a href="https://www.alfiemeek.com" target="_blank" rel="noopener">Alfie Meek's Weekly Economic Update</a>.</p>
+    <h1 style="font-family:var(--font-display); color:var(--navy); font-weight:800; margin:0 0 10px;">Live US economic data, updated daily.</h1>
+    <p>Charts, KPIs, and downloadable series for the indicators that matter most &mdash; sourced directly from the BLS, FRED, and BEA. Built as a companion to the <a href="https://www.alfiemeek.com" target="_blank" rel="noopener">Alfie Meek weekly economic update</a>.</p>
   </section>
 
   <div class="topic-grid">
@@ -62,11 +63,11 @@
       <h3>Inflation</h3>
       <p>CPI headline &amp; core, monthly change, components, energy prices.</p>
     </a>
-    <div class="topic-card coming">
-      <div class="badge">Coming soon</div>
+    <a class="topic-card" href="/labor/">
+      <div class="badge">Available</div>
       <h3>Labor Market</h3>
       <p>Payrolls, unemployment rate, JOLTS, wage growth, labor force participation.</p>
-    </div>
+    </a>
     <div class="topic-card coming">
       <div class="badge">Coming soon</div>
       <h3>Growth &amp; Output</h3>
