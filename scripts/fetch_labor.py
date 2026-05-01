@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """
 Fetch the latest US labor-market series from the BLS public API and write a
-normalized JSON payload to data/labor.json. Designed to run from a GitHub
-Actions cron, alongside scripts/fetch_inflation.py.
+normalized JSON payload to data/labor.json.
+
+Pulls ~25 years of monthly history (chunked into 19-year requests because the
+BLS v2 API caps each call at 20 years). The frontend (charts.js) does the
+range-slicing and on-demand re-indexing, so this script just emits long arrays
+of [YYYY-MM, value] pairs plus a few raw-level series the chart layer rebases.
 
 Series pulled
 -------------
@@ -19,7 +23,7 @@ CPS (household survey, Seasonally Adjusted)
   LNS12500000    Employed, Usually Work Full Time (thousands)
   LNS12600000    Employed, Usually Work Part Time (thousands)
 
-CPS (Not Seasonally Adjusted — these series are NSA only)
+CPS (Not Seasonally Adjusted)
   LNU02073413    Foreign-Born, Employment Level (thousands, NSA)
   LNU02073395    Native-Born, Employment Level (thousands, NSA)
 
@@ -28,8 +32,9 @@ JOLTS (Seasonally Adjusted)
   JTS000000000000000HIL  Hires, total nonfarm (thousands)
   JTS000000000000000QUL  Quits, total nonfarm (thousands)
 
-Environment variables:
-  BLS_API_KEY      (optional but recommended; free key gives higher rate limits)
+Environment variables
+---------------------
+  BLS_API_KEY      (free key gives higher rate limits and the 20-year window)
 """
 
 import os
@@ -39,37 +44,23 @@ import datetime as dt
 from pathlib import Path
 from urllib import request, error
 
-# ---- Series buckets (kept separate so output stays readable) ----
-CES_IDS = [
-    "CES0000000001",
-    "CES0500000002",
-    "CES0500000003",
-]
+CES_IDS = ["CES0000000001", "CES0500000002", "CES0500000003"]
 CPS_SA_IDS = [
-    "LNS12000000",
-    "LNS11000000",
-    "LNS11300000",
-    "LNS14000000",
-    "LNS12500000",
-    "LNS12600000",
+    "LNS12000000", "LNS11000000", "LNS11300000",
+    "LNS14000000", "LNS12500000", "LNS12600000",
 ]
-CPS_NSA_IDS = [
-    "LNU02073413",  # foreign-born, employment level (NSA)
-    "LNU02073395",  # native-born, employment level (NSA)
-]
-JOLTS_IDS = [
-    "JTS000000000000000JOL",
-    "JTS000000000000000HIL",
-    "JTS000000000000000QUL",
-]
+CPS_NSA_IDS = ["LNU02073413", "LNU02073395"]
+JOLTS_IDS = ["JTS000000000000000JOL", "JTS000000000000000HIL", "JTS000000000000000QUL"]
 ALL_IDS = CES_IDS + CPS_SA_IDS + CPS_NSA_IDS + JOLTS_IDS
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OUT_PATH = REPO_ROOT / "data" / "labor.json"
 
+CHUNK_YEARS = 19  # stay safely under the 20-year per-request cap
+
 
 # ---------- BLS fetch ----------
-def fetch(seriesids, start_year, end_year):
+def fetch_chunk(seriesids, start_year, end_year):
     body = {
         "seriesid": seriesids,
         "startyear": str(start_year),
@@ -83,7 +74,7 @@ def fetch(seriesids, start_year, end_year):
         data=json.dumps(body).encode(),
         headers={"Content-Type": "application/json"},
     )
-    with request.urlopen(req, timeout=30) as r:
+    with request.urlopen(req, timeout=60) as r:
         payload = json.loads(r.read())
     if payload.get("status") != "REQUEST_SUCCEEDED":
         raise RuntimeError(f"BLS API error: {payload}")
@@ -94,7 +85,7 @@ def fetch(seriesids, start_year, end_year):
             if not r["period"].startswith("M"):
                 continue
             month = int(r["period"][1:])
-            if month > 12:        # M13 = annual average, skip
+            if month > 12:
                 continue
             try:
                 v = float(r["value"])
@@ -104,6 +95,23 @@ def fetch(seriesids, start_year, end_year):
         rows.sort()
         out[s["seriesID"]] = rows
     return out
+
+
+def fetch_long(seriesids, start_year, end_year):
+    """Fetch a long range by chunking; merge and dedupe across chunks."""
+    merged = {sid: {} for sid in seriesids}
+    cur = start_year
+    while cur <= end_year:
+        chunk_end = min(cur + CHUNK_YEARS - 1, end_year)
+        chunk = fetch_chunk(seriesids, cur, chunk_end)
+        for sid, rows in chunk.items():
+            for (y, m, v) in rows:
+                merged[sid][(y, m)] = v
+        cur = chunk_end + 1
+    return {
+        sid: sorted((y, m, v) for (y, m), v in by.items())
+        for sid, by in merged.items()
+    }
 
 
 # ---------- Transforms ----------
@@ -117,7 +125,6 @@ def yoy(rows):
 
 
 def diff_level(rows, decimals=0):
-    """Month-over-month difference in level units (e.g. payroll change in k)."""
     by = {(y, m): v for (y, m, v) in rows}
     out = []
     for (y, m, v) in rows:
@@ -132,22 +139,10 @@ def diff_level(rows, decimals=0):
 
 
 def values(rows, decimals=2):
-    """Just emit the raw level (e.g. unemployment rate, LFP rate, hours)."""
     return [[f"{y}-{m:02d}", round(v, decimals)] for (y, m, v) in rows]
 
 
-def rebase(rows):
-    """Rebase a level series to 100 at the first point of the window."""
-    base = rows[0][2]
-    return [[f"{y}-{m:02d}", round(v / base * 100, 2)] for (y, m, v) in rows]
-
-
 def kpi(series, unit="pp"):
-    """Build a KPI block: latest value + delta vs prior month (in `unit`).
-
-    `series` is a list of [label, value] pairs already in display units.
-    `unit` is just metadata so the front-end can pick the right suffix.
-    """
     last = series[-1][1]
     prev = None
     for _, v in reversed(series[:-1]):
@@ -162,7 +157,9 @@ def kpi(series, unit="pp"):
     }
 
 
-def detect_gaps(rows):
+def detect_gaps_recent(rows, n=14):
+    """Only flag gaps within the last n months (older NSA series can have legitimate gaps)."""
+    rows = rows[-n:]
     if not rows:
         return []
     have = {(y, m) for (y, m, _) in rows}
@@ -182,96 +179,38 @@ def detect_gaps(rows):
 # ---------- Main ----------
 def main():
     today = dt.date.today()
-    # Pull 3 calendar years so YoY anchors and rolling diffs always have a runway
-    raw = fetch(ALL_IDS, today.year - 2, today.year)
+    raw = fetch_long(ALL_IDS, today.year - 24, today.year)
 
-    LAST = 14  # leave headroom for a one-month gap
+    unemployment_rate = values(raw["LNS14000000"], 1)
+    lfp_rate          = values(raw["LNS11300000"], 1)
 
-    # --- Headline rates ---
-    unemployment_rate = values(raw["LNS14000000"], 1)[-LAST:]
-    lfp_rate          = values(raw["LNS11300000"], 1)[-LAST:]
+    payroll_mom   = diff_level(raw["CES0000000001"], 0)
+    payroll_level = values(raw["CES0000000001"], 0)
 
-    # --- Payrolls (m/m change in thousands) ---
-    payroll_mom   = diff_level(raw["CES0000000001"], 0)[-LAST:]
-    payroll_level = values(raw["CES0000000001"], 0)[-LAST:]
+    ahe_yoy          = yoy(raw["CES0500000003"])
+    avg_weekly_hours = values(raw["CES0500000002"], 1)
 
-    # --- Wages & hours ---
-    ahe_yoy          = yoy(raw["CES0500000003"])[-LAST:]
-    avg_weekly_hours = values(raw["CES0500000002"], 1)[-LAST:]
+    # Raw levels — frontend rebases the visible window to start = 100
+    ft_level = values(raw["LNS12500000"], 0)
+    pt_level = values(raw["LNS12600000"], 0)
 
-    # --- Full-time / part-time (indexed; window-start = 100) ---
-    ft_idx = rebase(raw["LNS12500000"][-LAST:])
-    pt_idx = rebase(raw["LNS12600000"][-LAST:])
+    # NSA series → YoY washes out seasonality; pre-compute over full history
+    foreign_born_yoy = yoy(raw["LNU02073413"])
+    native_born_yoy  = yoy(raw["LNU02073395"])
 
-    # --- Nativity (NSA → use YoY % so seasonality washes out) ---
-    foreign_born_yoy = yoy(raw["LNU02073413"])[-LAST:]
-    native_born_yoy  = yoy(raw["LNU02073395"])[-LAST:]
+    jolts_openings = values(raw["JTS000000000000000JOL"], 0)
+    jolts_hires    = values(raw["JTS000000000000000HIL"], 0)
+    jolts_quits    = values(raw["JTS000000000000000QUL"], 0)
 
-    # --- JOLTS (levels, thousands) ---
-    jolts_openings = values(raw["JTS000000000000000JOL"], 0)[-LAST:]
-    jolts_hires    = values(raw["JTS000000000000000HIL"], 0)[-LAST:]
-    jolts_quits    = values(raw["JTS000000000000000QUL"], 0)[-LAST:]
-
-    # --- "as of" labels (each survey publishes on its own cadence) ---
     cps_latest   = "{}-{:02d}".format(*raw["LNS14000000"][-1][:2])
     ces_latest   = "{}-{:02d}".format(*raw["CES0000000001"][-1][:2])
     jolts_latest = "{}-{:02d}".format(*raw["JTS000000000000000JOL"][-1][:2])
 
     out = {
-        # raw display series
         "unemployment_rate": unemployment_rate,
         "lfp_rate":          lfp_rate,
         "payroll_mom":       payroll_mom,
         "payroll_level":     payroll_level,
         "ahe_yoy":           ahe_yoy,
         "avg_weekly_hours":  avg_weekly_hours,
-        "ft_idx":            ft_idx,
-        "pt_idx":            pt_idx,
-        "foreign_born_yoy":  foreign_born_yoy,
-        "native_born_yoy":   native_born_yoy,
-        "jolts_openings":    jolts_openings,
-        "jolts_hires":       jolts_hires,
-        "jolts_quits":       jolts_quits,
-
-        # KPI strip (six cards across the top of the page)
-        "kpis": {
-            "unemployment": kpi(unemployment_rate,  unit="pp"),    # %
-            "payrolls":     kpi(payroll_mom,        unit="k"),     # thousands of jobs added
-            "lfp":          kpi(lfp_rate,           unit="pp"),    # %
-            "ahe_yoy":      kpi(ahe_yoy,            unit="pp"),    # %
-            "openings":     kpi(jolts_openings,     unit="k"),     # thousands
-            "quits":        kpi(jolts_quits,        unit="k"),     # thousands
-        },
-
-        # latest_label is anchored on CPS (this is what people mean by "the data")
-        "latest_label":  cps_latest,
-        "ces_latest":    ces_latest,
-        "cps_latest":    cps_latest,
-        "jolts_latest":  jolts_latest,
-        "build_time":    dt.datetime.utcnow().isoformat(timespec="seconds") + "Z",
-    }
-
-    # Surface gaps in CPS (the most-watched series) as a page-level notice
-    gaps = detect_gaps(raw["LNS14000000"][-LAST:])
-    if gaps:
-        names = ", ".join(dt.date(y, m, 1).strftime("%B %Y") for (y, m) in gaps)
-        out["notice"] = (
-            f"The BLS Employment Situation release for {names} is missing from "
-            "the source data. Charts skip the missing month; month-over-month "
-            "changes are not shown for the month immediately following."
-        )
-
-    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUT_PATH.write_text(json.dumps(out, indent=2))
-    print(
-        f"Wrote {OUT_PATH} ({OUT_PATH.stat().st_size} bytes); "
-        f"CPS={cps_latest}; CES={ces_latest}; JOLTS={jolts_latest}; gaps={gaps}"
-    )
-
-
-if __name__ == "__main__":
-    try:
-        main()
-    except (error.URLError, RuntimeError) as e:
-        print(f"FETCH FAILED: {e}", file=sys.stderr)
-        sys.exit(1)
+        "ft_level":          ft_
