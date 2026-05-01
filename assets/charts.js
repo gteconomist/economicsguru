@@ -11,7 +11,7 @@ Chart.defaults.font.family = '"Source Sans Pro", -apple-system, BlinkMacSystemFo
 Chart.defaults.font.size = 12;
 Chart.defaults.color = BRAND.navy;
 
-const RANGE_MONTHS = { '12m': 13, '5y': 60, '20y': 240, 'max': Infinity };
+const RANGE_MONTHS = { '12m': 13, '5y': 60, '10y': 120, '20y': 240, 'max': Infinity };
 let CURRENT_RANGE = '12m';
 let RAW_DATA = null;
 const CHART_INSTANCES = {};
