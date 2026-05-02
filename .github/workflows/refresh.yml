@@ -100,13 +100,20 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_treasuries.py
 
+      - name: Refresh Commodities data from Stooq + FRED + MetalPriceAPI
+        env:
+          FRED_API_KEY:       ${{ secrets.FRED_API_KEY }}
+          METALPRICE_API_KEY: ${{ secrets.METALPRICE_API_KEY }}
+        continue-on-error: true
+        run: python scripts/fetch_commodities.py
+
       # Show data summary, but don't fail the workflow if some files are missing
       # (a fetch step may have hit a quota or rate-limit). Each line is wrapped
       # so a missing/empty JSON prints a warning and we keep going.
       - name: Show generated data summary
         run: |
           set +e
-          for f in inflation ppi labor pce housing_existing housing_new housing_permits gdp consumer treasuries; do
+          for f in inflation ppi labor pce housing_existing housing_new housing_permits gdp consumer treasuries commodities; do
             if [[ -s "data/${f}.json" ]]; then
               echo "OK  data/${f}.json ($(stat -c%s data/${f}.json) bytes)"
             else
@@ -124,6 +131,7 @@ jobs:
           python -c "import json; d=json.load(open('data/gdp.json')); print('GDP latest:', d['latest_label']); print('GDP QoQ ann kpi:', d['kpis']['gdp_qoq_ann']); print('Productivity kpi:', d['kpis']['productivity'])" 2>/dev/null || echo "skip GDP summary"
           python -c "import json; d=json.load(open('data/consumer.json')); print('Consumer latest:', d['latest_label']); print('Retail MoM kpi:', d['kpis']['retail_mom']); print('PI MoM kpi:', d['kpis']['pi_mom']); print('UMich kpi:', d['kpis']['umich_sentiment']); print('CB CCI kpi:', d['kpis']['cb_confidence']); print('UMich components loaded:', d.get('umich_components_loaded')); print('CB CSV loaded:', d.get('cb_loaded'))" 2>/dev/null || echo "skip consumer summary"
           python -c "import json; d=json.load(open('data/treasuries.json')); print('Treasuries latest:', d['latest_label']); print('10Y kpi:', d['kpis']['y10y']); print('2s10s spread kpi:', d['kpis']['spread']); print('Fed Funds kpi:', d['kpis']['ffr']); print('Curve maturities:', [p['maturity'] for p in d['yield_curve_today']])" 2>/dev/null || echo "skip treasuries summary"
+          python -c "import json; d=json.load(open('data/commodities.json')); print('Commodities latest:', d['latest_label']); print('Gold kpi:', d['kpis']['gold']); print('Silver kpi:', d['kpis']['silver']); print('Platinum kpi:', d['kpis']['platinum']); print('G/S ratio kpi:', d['kpis']['gs_ratio']); print('WTI kpi:', d['kpis']['wti']); print('CSV baseline loaded:', d.get('metals_csv_loaded')); print('MetalPriceAPI ok:', d.get('metalprice_succeeded'))" 2>/dev/null || echo "skip commodities summary"
           exit 0
 
       # Auto-commit fresh data files + CSV baselines if their content materially
@@ -160,7 +168,7 @@ jobs:
           done
 
           # CSV baselines -- commit on any change (they're append-only / hand-edited)
-          for f in data/historical/nar_existing_homes.csv data/historical/nahb_hmi.csv data/historical/umich_sentiment.csv data/historical/conference_board.csv; do
+          for f in data/historical/nar_existing_homes.csv data/historical/nahb_hmi.csv data/historical/umich_sentiment.csv data/historical/conference_board.csv data/historical/precious_metals_kitco.csv; do
             if [[ -f "$f" && -n "$(git status --porcelain "$f")" ]]; then
               changed="$changed $f"
             fi
