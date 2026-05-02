@@ -8,7 +8,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write   # write (was: read) so fetch_housing_existing.py can auto-append the CSV baseline
   pages: write
   id-token: write
 
@@ -63,7 +63,20 @@ jobs:
           python -c "import json; d=json.load(open('data/ppi.json')); print('PPI latest:', d['latest_label']); print('PPI headline kpi:', d['kpis']['headline'])"
           python -c "import json; d=json.load(open('data/labor.json')); print('Labor CPS:', d['cps_latest'], 'JOLTS:', d['jolts_latest']); print('UR kpi:', d['kpis']['unemployment'])"
           python -c "import json; d=json.load(open('data/pce.json')); print('PCE latest:', d['latest_label']); print('PCE headline kpi:', d['kpis']['headline']); print('PCE supercore kpi:', d['kpis']['supercore'])"
-          python -c "import json; d=json.load(open('data/housing_existing.json')); print('Existing Homes latest:', d['latest_label']); print('Sales kpi:', d['kpis']['sales']); print('Mortgage kpi:', d['kpis']['mortgage_30y']); print('CSV baseline loaded:', d.get('csv_baseline_loaded'))"
+          python -c "import json; d=json.load(open('data/housing_existing.json')); print('Existing Homes latest:', d['latest_label']); print('Sales kpi:', d['kpis']['sales']); print('Mortgage kpi:', d['kpis']['mortgage_30y']); print('CSV baseline loaded:', d.get('csv_baseline_loaded')); print('CSV rows appended this run:', d.get('csv_rows_appended_this_run', 0))"
+
+      - name: Commit auto-appended CSV rows (if any)
+        run: |
+          if [[ -n "$(git status --porcelain data/historical/nar_existing_homes.csv)" ]]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add data/historical/nar_existing_homes.csv
+            git commit -m "data: auto-append latest NAR months from FRED [skip ci]"
+            git push
+            echo "Committed CSV update."
+          else
+            echo "No CSV changes to commit."
+          fi
 
       - name: Upload site as Pages artifact
         uses: actions/upload-pages-artifact@v3
