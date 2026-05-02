@@ -15,7 +15,7 @@ FRED (https://fred.stlouisfed.org)
 Local CSV baseline (optional — extends NAR series back beyond FRED's 12-month window)
   data/historical/nar_existing_homes.csv
   Columns (header row required, dates as YYYY-MM-DD on first of month):
-    date,existing_home_sales,median_sales_price,median_sales_price_sa,months_supply,active_inventory,pending_home_sales
+    date,existing_home_sales,median_sales_price,median_sales_price_sa,months_supply,active_inventory
 
   - existing_home_sales:    SAAR units (e.g., 5040000)
   - median_sales_price:     USD, NSA (e.g., 165800)            — FRED also publishes this
@@ -27,13 +27,12 @@ Local CSV baseline (optional — extends NAR series back beyond FRED's 12-month 
                                                                  (e.g., Moody's X-13).
   - months_supply:          number (e.g., 4.5)
   - active_inventory:       units (e.g., 1990000)
-  - pending_home_sales:     NAR Pending Home Sales Index (2001=100; e.g., 95.4) — CSV-only
   - empty cell allowed for any single value
 
 Merge rule: FRED data wins on any overlapping month (it carries revisions). CSV provides
-everything older than FRED's window. Pending Home Sales is CSV-only (not on FRED). The SA
-median-price series is computed in-house from the merged NSA series, but a CSV-provided
-override (median_sales_price_sa) wins when present.
+everything older than FRED's window. The SA median-price series is computed in-house from
+the merged NSA series, but a CSV-provided override (median_sales_price_sa) wins when
+present.
 
 Environment variables
 ---------------------
@@ -70,7 +69,7 @@ WEEKLY_FRED_SERIES = {
 
 # CSV columns the script understands (subset of these is fine; missing = no baseline)
 CSV_COLUMNS = ["existing_home_sales", "median_sales_price", "median_sales_price_sa",
-               "months_supply", "active_inventory", "pending_home_sales"]
+               "months_supply", "active_inventory"]
 
 
 # ---------- FRED ----------
@@ -175,9 +174,9 @@ NAR_CSV_REQUIRED = ["existing_home_sales", "median_sales_price",
 def append_new_fred_months_to_csv(csv_path, fred_nar_data):
     """
     Append any FRED months not already present in the CSV, preserving the
-    file's existing column schema (so a CSV with extra optional columns like
-    median_sales_price_sa or pending_home_sales gets empty cells in those
-    positions for the new rows). Returns the number of rows appended.
+    file's existing column schema (so a CSV with an extra optional column like
+    median_sales_price_sa gets empty cells in that position for the new rows).
+    Returns the number of rows appended.
     """
     if not csv_path.exists():
         return 0  # bootstrap-time CSV is required to be created manually first
@@ -362,9 +361,6 @@ def main():
         median_price_sa_pairs = compute_sa_multiplicative(merged_nar["median_sales_price"])
         sa_method = "computed_ratio_to_ma"
 
-    # Pending Home Sales — CSV-only (NAR PHSI not on FRED)
-    pending_home_sales = baseline.get("pending_home_sales", [])
-
     # Build output series (frontend wants [YYYY-MM, value] pairs)
     sales_level     = to_label_pairs(merged_nar["existing_home_sales"], 0)
     median_price    = to_label_pairs(merged_nar["median_sales_price"], 0)
@@ -374,7 +370,6 @@ def main():
     cs_hpi_level    = to_label_pairs(case_shiller, 2)
     cs_hpi_yoy      = yoy(case_shiller, 2)
     mortgage_rate   = to_label_pairs(mortgage_monthly, 2)
-    pending_idx     = to_label_pairs(pending_home_sales, 1) if pending_home_sales else []
 
     # latest_label = the most recent month any NAR series has data for
     latest_label = max(
@@ -391,7 +386,6 @@ def main():
         "case_shiller_hpi_level": cs_hpi_level,
         "case_shiller_hpi_yoy":   cs_hpi_yoy,
         "mortgage_30y":     mortgage_rate,
-        "pending_home_sales": pending_idx,
         "kpis": {
             "sales":        kpi_from_pairs(sales_level, 0),
             "median_price": kpi_from_pairs(median_price, 0),
@@ -417,12 +411,6 @@ def main():
             "data/historical/nar_existing_homes.csv will extend these back "
             "to their full history."
         )
-    if not pending_idx:
-        n2 = ("Pending Home Sales is sourced from a local CSV baseline "
-              "(NAR PHSI is not redistributed on FRED). Add a "
-              "'pending_home_sales' column to data/historical/nar_existing_homes.csv "
-              "to enable the chart.")
-        out["notice"] = (out.get("notice", "") + " " + n2).strip()
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_PATH.write_text(json.dumps(out, indent=2))
