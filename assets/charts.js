@@ -1523,6 +1523,265 @@ function registerAllCsvsNewHomes(view) {
   }
 }
 
+
+// =========================================================
+// Permits & Starts — page builders
+// =========================================================
+function rangedViewPermitsStarts(data, range) {
+  const n = RANGE_MONTHS[range];
+  return {
+    permits_total:        tail(data.permits_total || [], n),
+    permits_sf:           tail(data.permits_sf || [], n),
+    permits_mf:           tail(data.permits_mf || [], n),
+    permits_24:           tail(data.permits_24 || [], n),
+    permits_5plus:        tail(data.permits_5plus || [], n),
+    starts_total:         tail(data.starts_total || [], n),
+    starts_sf:            tail(data.starts_sf || [], n),
+    starts_mf:            tail(data.starts_mf || [], n),
+    starts_24:            tail(data.starts_24 || [], n),
+    starts_5plus:         tail(data.starts_5plus || [], n),
+    permits_total_yoy:    tail(data.permits_total_yoy || [], n),
+    permits_sf_yoy:       tail(data.permits_sf_yoy || [], n),
+    permits_mf_yoy:       tail(data.permits_mf_yoy || [], n),
+    starts_total_yoy:     tail(data.starts_total_yoy || [], n),
+    starts_sf_yoy:        tail(data.starts_sf_yoy || [], n),
+    starts_mf_yoy:        tail(data.starts_mf_yoy || [], n),
+    permits_starts_ratio: tail(data.permits_starts_ratio || [], n),
+    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+  };
+}
+
+// "1,372" — units-in-thousands tick & tooltip formatter for permits/starts axes
+function fmtThousands(v) {
+  if (v == null) return 'n/a';
+  return Math.round(v).toLocaleString('en-US');
+}
+function fmtPctSigned(v) {
+  if (v == null) return 'n/a';
+  return (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+}
+function fmtRatio(v) {
+  if (v == null) return 'n/a';
+  return v.toFixed(2);
+}
+
+function buildPsPermits(view) {
+  // Total / SF / MF on one chart, all SAAR thousands.
+  const labels = view.permits_total.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Total Permits (SAAR)', data: view.permits_total.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Single-Family', data: view.permits_sf.map(r => r[1]),
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr, fill: false },
+        { label: 'Multi-Family (2+ units)', data: view.permits_mf.map(r => r[1]),
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr, fill: false },
+      ],
+    },
+    options: baseOptions(fmtThousands),
+  };
+}
+
+function buildPsPermitsMf(view) {
+  // Multi-family detail: 2-4 units vs 5+ units.
+  const labels = view.permits_24.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '5+ Unit Buildings', data: view.permits_5plus.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: '2-4 Unit Buildings', data: view.permits_24.map(r => r[1]),
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr, fill: false },
+      ],
+    },
+    options: baseOptions(fmtThousands),
+  };
+}
+
+function buildPsStarts(view) {
+  // Total / SF / MF starts — SAAR thousands.
+  const labels = view.starts_total.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Total Starts (SAAR)', data: view.starts_total.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Single-Family', data: view.starts_sf.map(r => r[1]),
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr, fill: false },
+        { label: 'Multi-Family (2+ units)', data: view.starts_mf.map(r => r[1]),
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr, fill: false },
+      ],
+    },
+    options: baseOptions(fmtThousands),
+  };
+}
+
+function buildPsPvsS(view) {
+  // Permits vs Starts (totals, SAAR). Permits typically lead starts by ~1 month;
+  // when permits run materially above starts, builders are authorizing faster
+  // than they're breaking ground (hesitation); below = catching up to backlog.
+  const labels = view.permits_total.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  // Align starts to the permits date axis
+  const startsMap = new Map((view.starts_total || []).map(r => [r[0], r[1]]));
+  const startsAligned = view.permits_total.map(r => startsMap.has(r[0]) ? startsMap.get(r[0]) : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Total Permits (SAAR)', data: view.permits_total.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Total Starts (SAAR)', data: startsAligned,
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr, fill: false, spanGaps: false },
+      ],
+    },
+    options: baseOptions(fmtThousands),
+  };
+}
+
+function buildPsYoy(view) {
+  // YoY % change — permits and starts (totals).
+  const labels = view.permits_total_yoy.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const startsMap = new Map((view.starts_total_yoy || []).map(r => [r[0], r[1]]));
+  const startsAligned = view.permits_total_yoy.map(r => startsMap.has(r[0]) ? startsMap.get(r[0]) : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Permits YoY %', data: view.permits_total_yoy.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Starts YoY %', data: startsAligned,
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr, fill: false, spanGaps: false },
+        { label: '0% line', data: labels.map(()=>0),
+          borderColor: BRAND.silver, borderWidth: 1.2, borderDash: [4,4], pointRadius: 0, fill: false },
+      ],
+    },
+    options: baseOptions(fmtPctSigned),
+  };
+}
+
+function buildPsRatio(view) {
+  // Permits ÷ Starts. Reference line at 1.0 — equilibrium.
+  const labels = view.permits_starts_ratio.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Permits ÷ Starts', data: view.permits_starts_ratio.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Equilibrium (1.0)', data: labels.map(()=>1.0),
+          borderColor: BRAND.teal, borderWidth: 1.2, borderDash: [4,4], pointRadius: 0, fill: false },
+      ],
+    },
+    options: baseOptions(fmtRatio),
+  };
+}
+
+const PERMITS_STARTS_BUILDERS = {
+  chartPsPermits:   buildPsPermits,
+  chartPsPermitsMf: buildPsPermitsMf,
+  chartPsStarts:    buildPsStarts,
+  chartPsPvsS:      buildPsPvsS,
+  chartPsYoy:       buildPsYoy,
+  chartPsRatio:     buildPsRatio,
+};
+
+function renderAllPermitsStarts(view) {
+  Object.entries(PERMITS_STARTS_BUILDERS).forEach(([id, builder]) => {
+    const cfg = builder(view);
+    if (cfg) makeChart(id, cfg);
+  });
+}
+
+function registerAllCsvsPermitsStarts(view) {
+  registerCsv('chartPsPermits', 'building-permits.csv',
+    ['Month', 'Total Permits (SAAR k)', 'Single-Family Permits (SAAR k)', 'Multi-Family Permits (SAAR k, 2+ units)'],
+    mergeSeries([view.permits_total, view.permits_sf, view.permits_mf]));
+  registerCsv('chartPsPermitsMf', 'building-permits-multifamily-detail.csv',
+    ['Month', '2-4 Unit Permits (SAAR k)', '5+ Unit Permits (SAAR k)'],
+    mergeSeries([view.permits_24, view.permits_5plus]));
+  registerCsv('chartPsStarts', 'housing-starts.csv',
+    ['Month', 'Total Starts (SAAR k)', 'Single-Family Starts (SAAR k)', 'Multi-Family Starts (SAAR k, 2+ units)'],
+    mergeSeries([view.starts_total, view.starts_sf, view.starts_mf]));
+  registerCsv('chartPsPvsS', 'permits-vs-starts.csv',
+    ['Month', 'Total Permits (SAAR k)', 'Total Starts (SAAR k)'],
+    mergeSeries([view.permits_total, view.starts_total]));
+  registerCsv('chartPsYoy', 'permits-starts-yoy.csv',
+    ['Month', 'Permits YoY (%)', 'Starts YoY (%)'],
+    mergeSeries([view.permits_total_yoy, view.starts_total_yoy]));
+  registerCsv('chartPsRatio', 'permits-to-starts-ratio.csv',
+    ['Month', 'Permits ÷ Starts'],
+    view.permits_starts_ratio);
+}
+
+function renderKpisPermitsStarts(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const fmtNum = v => (v == null ? 'n/a' : Math.round(v).toLocaleString('en-US'));
+  const fmtPct = v => (v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%');
+
+  // For permits and starts, the "good" direction is up (more building = more
+  // supply / more activity). YoY drives the cycle read; MoM is noisy enough
+  // we color based on YoY.
+  const KPI_DEFS = [
+    { key: 'permits_total', label: 'Total Permits',          accent: BRAND.navy    },
+    { key: 'permits_sf',    label: 'Single-Family Permits',  accent: BRAND.mustard },
+    { key: 'permits_mf',    label: 'Multi-Family Permits',   accent: BRAND.teal    },
+    { key: 'starts_total',  label: 'Total Starts',           accent: BRAND.navy    },
+    { key: 'starts_sf',     label: 'Single-Family Starts',   accent: BRAND.mustard },
+    { key: 'starts_mf',     label: 'Multi-Family Starts',    accent: BRAND.teal    },
+  ];
+  kpiHost.innerHTML = KPI_DEFS.map(def => {
+    const k = data.kpis[def.key] || { value: null, mom: null, yoy: null, label: null };
+    // MoM line: arrow + level delta
+    const momArrow = k.mom == null ? '–' : (k.mom > 0 ? '▲' : (k.mom < 0 ? '▼' : '▬'));
+    const momTxt = k.mom == null ? 'no prior data'
+                                 : `${k.mom > 0 ? '+' : ''}${fmtNum(k.mom)} vs prior month`;
+    // YoY line: separate, colored independently
+    let yCls = 'flat';
+    if (k.yoy != null && k.yoy !== 0) yCls = (k.yoy > 0 ? 'down' : 'up');  // up=good=green, down=bad=red
+    const yoyArrow = k.yoy == null ? '–' : (k.yoy > 0 ? '▲' : (k.yoy < 0 ? '▼' : '▬'));
+    // MoM coloring: same goodDir-up logic
+    let mCls = 'flat';
+    if (k.mom != null && k.mom !== 0) mCls = (k.mom > 0 ? 'down' : 'up');
+    return `
+      <div class="kpi" style="border-top-color:${def.accent}">
+        <div class="label">${def.label}</div>
+        <div class="value">${fmtNum(k.value)}<span style="font-size:11px; font-weight:600; color:var(--ink-soft); margin-left:4px;">k SAAR</span></div>
+        <div class="delta ${mCls}">${momArrow} ${momTxt}</div>
+        <div class="delta-yoy ${yCls}">${yoyArrow} ${fmtPct(k.yoy)} year-over-year</div>
+      </div>`;
+  }).join('');
+}
+
 // =========================================================
 // Range / dispatch
 // =========================================================
@@ -1544,6 +1803,9 @@ function applyRange(range) {
   } else if (CURRENT_PAGE === 'new-homes') {
     const view = rangedViewNewHomes(RAW_DATA, range);
     renderAllNewHomes(view); registerAllCsvsNewHomes(view);
+  } else if (CURRENT_PAGE === 'permits-starts') {
+    const view = rangedViewPermitsStarts(RAW_DATA, range);
+    renderAllPermitsStarts(view); registerAllCsvsPermitsStarts(view);
   } else {
     const view = rangedView(RAW_DATA, range);
     renderAll(view); registerAllCsvs(view);
@@ -1717,5 +1979,35 @@ window.EG = {
     };
     const id = map[chartKey] || 'chartNhSales';
     if (NEW_HOMES_BUILDERS[id]) makeChart(id, NEW_HOMES_BUILDERS[id](view));
+  },
+
+  renderPermitsStarts(data) {
+    CURRENT_PAGE = 'permits-starts';
+    RAW_DATA = data;
+    const m = document.getElementById('latest-month');
+    if (m) m.textContent = formatLabelLong(data.latest_label);
+    renderKpisPermitsStarts(data);
+    const view = rangedViewPermitsStarts(data, CURRENT_RANGE);
+    renderAllPermitsStarts(view); registerAllCsvsPermitsStarts(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  // Embed mode for Permits & Starts:
+  // chartKey ∈ 'permits' | 'permitsmf' | 'starts' | 'pvss' | 'yoy' | 'ratio'
+  renderPermitsStartsEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'permits-starts';
+    RAW_DATA = data;
+    if (range && RANGE_MONTHS[range]) CURRENT_RANGE = range;
+    const view = rangedViewPermitsStarts(data, CURRENT_RANGE);
+    const map = {
+      permits:    'chartPsPermits',
+      permitsmf:  'chartPsPermitsMf',
+      starts:     'chartPsStarts',
+      pvss:       'chartPsPvsS',
+      yoy:        'chartPsYoy',
+      ratio:      'chartPsRatio',
+    };
+    const id = map[chartKey] || 'chartPsPermits';
+    if (PERMITS_STARTS_BUILDERS[id]) makeChart(id, PERMITS_STARTS_BUILDERS[id](view));
   },
 };
