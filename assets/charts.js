@@ -863,7 +863,6 @@ function rangedViewExistingHomes(data, range) {
     case_shiller_hpi_level: tail(data.case_shiller_hpi_level || [], n),
     case_shiller_hpi_yoy:   tail(data.case_shiller_hpi_yoy || [], n),
     mortgage_30y:           tail(data.mortgage_30y || [], n),
-    pending_home_sales:     tail(data.pending_home_sales || [], n),
     kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
   };
 }
@@ -1027,25 +1026,6 @@ function buildEhMortgage(view) {
   };
 }
 
-function buildEhPending(view) {
-  const labels = view.pending_home_sales.map(r => shortLabel(r[0]));
-  const pr = pointSizeForLength(labels.length);
-  return {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Pending Home Sales Index (NAR PHSI, 2001=100)', data: view.pending_home_sales.map(r => r[1]),
-          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
-          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
-        { label: '2001 baseline (100)', data: labels.map(()=>100),
-          borderColor: BRAND.silver, borderWidth: 1, pointRadius: 0, borderDash: [4,4] },
-      ],
-    },
-    options: baseOptions(v => v == null ? 'n/a' : v.toFixed(1)),
-  };
-}
-
 const EXISTING_HOMES_BUILDERS = {
   chartEhSales:      buildEhSales,
   chartEhMedianPrice:buildEhMedianPrice,
@@ -1053,7 +1033,6 @@ const EXISTING_HOMES_BUILDERS = {
   chartEhInventory:  buildEhInventory,
   chartEhCsYoy:      buildEhCsYoy,
   chartEhMortgage:   buildEhMortgage,
-  chartEhPending:    buildEhPending,
 };
 
 function renderAllExistingHomes(view) {
@@ -1061,11 +1040,6 @@ function renderAllExistingHomes(view) {
     const el = document.getElementById(id);
     if (!el) continue;
     const card = el.closest('.chart-card');
-    // Hide pending card entirely if no pending data has been provided yet
-    if (id === 'chartEhPending' && (!view.pending_home_sales || view.pending_home_sales.length === 0)) {
-      if (card) card.style.display = 'none';
-      continue;
-    }
     if (card) card.style.display = '';
     makeChart(id, builder(view));
   }
@@ -1143,10 +1117,6 @@ function registerAllCsvsExistingHomes(view) {
     ['Month', 'Case-Shiller HPI YoY (%)'], view.case_shiller_hpi_yoy);
   registerCsv('chartEhMortgage', '30-year-fixed-mortgage-rate.csv',
     ['Month', '30-Year Fixed Mortgage Rate (%, monthly avg)'], view.mortgage_30y);
-  if (view.pending_home_sales && view.pending_home_sales.length) {
-    registerCsv('chartEhPending', 'pending-home-sales-index.csv',
-      ['Month', 'Pending Home Sales Index (NAR PHSI, 2001=100)'], view.pending_home_sales);
-  }
 }
 
 // =========================================================
@@ -1695,7 +1665,7 @@ window.EG = {
     attachDownloadHandlers(); wireRangeToggle();
   },
 
-  // Embed mode for Existing Homes: chartKey ∈ 'sales' | 'price' | 'cslevel' | 'inventory' | 'csyoy' | 'mortgage' | 'pending'
+  // Embed mode for Existing Homes: chartKey ∈ 'sales' | 'price' | 'cslevel' | 'inventory' | 'csyoy' | 'mortgage'
   renderExistingHomesEmbed(chartKey, data, range) {
     CURRENT_PAGE = 'existing-homes';
     RAW_DATA = data;
@@ -1708,7 +1678,6 @@ window.EG = {
       inventory:'chartEhInventory',
       csyoy:    'chartEhCsYoy',
       mortgage: 'chartEhMortgage',
-      pending:  'chartEhPending',
     };
     const id = map[chartKey] || 'chartEhSales';
     if (EXISTING_HOMES_BUILDERS[id]) makeChart(id, EXISTING_HOMES_BUILDERS[id](view));
