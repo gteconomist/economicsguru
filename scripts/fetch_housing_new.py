@@ -41,12 +41,14 @@ NAHB Housing Market Index (CSV baseline + monthly scrape)
   All columns except date are optional (empty cell = no data for that month).
   See `data/historical/nahb_hmi.csv` for the template.
 
-Seasonal adjustment
--------------------
-Census doesn't publish a SA median sales price (just NSA). The script computes
-one in-house using multiplicative ratio-to-12-month-MA, the same method
-fetch_housing_existing.py uses for the existing-home median. This tracks
-X-13-based SA outputs to within ~1% at the chart-visible scale.
+A note on seasonal adjustment
+-----------------------------
+Census doesn't publish a SA median sales price for new homes — and it turns out
+not to matter. New-home sales lack the spring/summer mix-shift that drives
+existing-home median seasonality, so the empirical seasonal factors are all
+within ±1% of neutral and a computed SA series is visually indistinguishable
+from NSA. We therefore show NSA only for the median price (paired on the same
+chart with the average price for upper-tail context).
 
 Environment variables
 ---------------------
@@ -395,43 +397,6 @@ def kpi_from_pairs(pairs, decimals=2):
     return {"value": round(last_v, decimals), "delta": delta, "label": last_d[:7]}
 
 
-def compute_sa_multiplicative(nsa_pairs, window=12):
-    """
-    Multiplicative seasonal adjustment via classical ratio-to-12-month-MA.
-    Same approach used by fetch_housing_existing.py for the existing-home
-    median price. Returns [] if the series is too short (< 3 years).
-    """
-    if len(nsa_pairs) < window * 3:
-        return []
-    values = [v for _, v in nsa_pairs]
-    half = window // 2
-    trend = [None] * len(values)
-    for i in range(half, len(values) - half):
-        ma1 = sum(values[i-half:i+half]) / window
-        ma2 = sum(values[i-half+1:i+half+1]) / window
-        trend[i] = (ma1 + ma2) / 2
-    by_month = {m: [] for m in range(1, 13)}
-    for i, (d, v) in enumerate(nsa_pairs):
-        if trend[i] is None or trend[i] == 0:
-            continue
-        try:
-            month = int(d[5:7])
-        except (ValueError, IndexError):
-            continue
-        by_month[month].append(v / trend[i])
-    sf = {m: (sum(rs) / len(rs)) if rs else 1.0 for m, rs in by_month.items()}
-    correction = sum(sf.values()) / 12 if sum(sf.values()) > 0 else 1.0
-    sf = {m: v / correction for m, v in sf.items()}
-    out = []
-    for d, v in nsa_pairs:
-        try:
-            month = int(d[5:7])
-        except (ValueError, IndexError):
-            continue
-        out.append((d, v / sf[month]))
-    return out
-
-
 # ---------- Main ----------
 def main():
     # 1. Census ressales — full history per series
@@ -464,15 +429,12 @@ def main():
     nahb = load_nahb_baseline()
     nahb_pairs = {col: sorted(d.items()) for col, d in nahb.items()}
 
-    # 4. Compute SA median price
-    median_price_sa_pairs = compute_sa_multiplicative(census["median_price_nsa"])
-    sa_method = "computed_ratio_to_ma" if median_price_sa_pairs else "unavailable"
-
-    # 5. Build chart-ready output series ([YYYY-MM, value] pairs)
+    # 4. Build chart-ready output series ([YYYY-MM, value] pairs).
+    #    Median + average are both NSA — we render them on a single chart for
+    #    upper-tail context (see docstring on why we don't compute SA here).
     sales_saar      = to_label_pairs(census["sales_saar"], 0)
     sales_nsa       = to_label_pairs(census["sales_nsa"], 0)
     median_nsa      = to_label_pairs(census["median_price_nsa"], 0)
-    median_sa       = to_label_pairs(median_price_sa_pairs, 0) if median_price_sa_pairs else []
     average_nsa     = to_label_pairs(census["average_price_nsa"], 0)
     inv_total_sa    = to_label_pairs(census["for_sale_total_sa"], 0)
     inv_total_nsa   = to_label_pairs(census["for_sale_total_nsa"], 0)
@@ -509,9 +471,8 @@ def main():
         "sales_saar":      sales_saar,
         "sales_nsa":       sales_nsa,
         "sales_yoy":       sales_yoy_,
-        # Prices
+        # Prices (both NSA — see docstring on why no SA series here)
         "median_price":     median_nsa,
-        "median_price_sa":  median_sa,
         "average_price":    average_nsa,
         # Inventory (we render SA on the chart; NSA available via download)
         "inventory_total_sa":   inv_total_sa,
@@ -549,7 +510,6 @@ def main():
         "latest_label":     latest_label,
         "nahb_latest":      nahb_hmi[-1][0] if nahb_hmi else None,
         "build_time":       dt.datetime.utcnow().isoformat(timespec="seconds") + "Z",
-        "sa_method":        sa_method,
         "nahb_csv_present": NAHB_CSV.exists(),
         "nahb_csv_changed_this_run": nahb_csv_changed,
         "nahb_scrape_succeeded": scraped is not None,
