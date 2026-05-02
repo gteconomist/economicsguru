@@ -88,13 +88,19 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_gdp.py
 
+      - name: Refresh Consumer data from FRED + manual CSVs
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        continue-on-error: true
+        run: python scripts/fetch_consumer.py
+
       # Show data summary, but don't fail the workflow if some files are missing
       # (a fetch step may have hit a quota or rate-limit). Each line is wrapped
       # so a missing/empty JSON prints a warning and we keep going.
       - name: Show generated data summary
         run: |
           set +e
-          for f in inflation ppi labor pce housing_existing housing_new housing_permits gdp; do
+          for f in inflation ppi labor pce housing_existing housing_new housing_permits gdp consumer; do
             if [[ -s "data/${f}.json" ]]; then
               echo "OK  data/${f}.json ($(stat -c%s data/${f}.json) bytes)"
             else
@@ -110,6 +116,7 @@ jobs:
           python -c "import json; d=json.load(open('data/housing_new.json')); print('New Homes latest:', d['latest_label']); print('Sales kpi:', d['kpis']['sales']); print('NAHB kpi:', d['kpis']['nahb_hmi']); print('NAHB scrape ok:', d.get('nahb_scrape_succeeded')); print('NAHB CSV changed this run:', d.get('nahb_csv_changed_this_run'))" 2>/dev/null || echo "skip new-homes summary"
           python -c "import json; d=json.load(open('data/housing_permits.json')); print('Permits & Starts latest:', d['latest_label']); print('Total permits kpi:', d['kpis']['permits_total']); print('Total starts kpi:', d['kpis']['starts_total'])" 2>/dev/null || echo "skip permits summary"
           python -c "import json; d=json.load(open('data/gdp.json')); print('GDP latest:', d['latest_label']); print('GDP QoQ ann kpi:', d['kpis']['gdp_qoq_ann']); print('Productivity kpi:', d['kpis']['productivity'])" 2>/dev/null || echo "skip GDP summary"
+          python -c "import json; d=json.load(open('data/consumer.json')); print('Consumer latest:', d['latest_label']); print('Retail MoM kpi:', d['kpis']['retail_mom']); print('PI MoM kpi:', d['kpis']['pi_mom']); print('UMich kpi:', d['kpis']['umich_sentiment']); print('CB CCI kpi:', d['kpis']['cb_confidence']); print('UMich components loaded:', d.get('umich_components_loaded')); print('CB CSV loaded:', d.get('cb_loaded'))" 2>/dev/null || echo "skip consumer summary"
           exit 0
 
       # Auto-commit fresh data files + CSV baselines if their content materially
@@ -119,8 +126,8 @@ jobs:
       #     today (BLS quota etc.), checkout brings yesterday's file forward
       #     and the corresponding page renders yesterday's numbers instead of
       #     going blank.
-      #  2. The historical CSV baselines (NAR existing-homes, NAHB HMI) keep
-      #     auto-extending as before.
+      #  2. The historical CSV baselines (NAR existing-homes, NAHB HMI, UMich
+      #     sentiment, Conference Board) keep auto-extending as before.
       # The [skip ci] tag prevents the bot's commit from re-triggering this
       # workflow.
       - name: Commit fresh data files + CSV baselines (if changed)
@@ -145,8 +152,8 @@ jobs:
             fi
           done
 
-          # CSV baselines — commit on any change (they're append-only)
-          for f in data/historical/nar_existing_homes.csv data/historical/nahb_hmi.csv; do
+          # CSV baselines — commit on any change (they're append-only / hand-edited)
+          for f in data/historical/nar_existing_homes.csv data/historical/nahb_hmi.csv data/historical/umich_sentiment.csv data/historical/conference_board.csv; do
             if [[ -f "$f" && -n "$(git status --porcelain "$f")" ]]; then
               changed="$changed $f"
             fi
