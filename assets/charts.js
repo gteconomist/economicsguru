@@ -2371,6 +2371,9 @@ function applyRange(range) {
   } else if (CURRENT_PAGE === 'treasuries') {
     const view = rangedViewTreasuries(RAW_DATA, range);
     renderAllTreasuries(view); registerAllCsvsTreasuries(view);
+  } else if (CURRENT_PAGE === 'commodities') {
+    const view = rangedViewCommodities(RAW_DATA, range);
+    renderAllCommodities(view); registerAllCsvsCommodities(view);
   } else {
     const view = rangedView(RAW_DATA, range);
     renderAll(view); registerAllCsvs(view);
@@ -2671,6 +2674,289 @@ function renderKpisTreasuries(data) {
 }
 
 // =========================================================
+// Commodities (Metals + Energy) page (DAILY data)
+// =========================================================
+// Same daily-cadence pattern as treasuries: YYYY-MM-DD labels, RANGE_DAYS
+// for the slider. Six charts: gold + silver dual-axis, gold/silver ratio,
+// WTI vs Brent, Henry Hub natgas, copper, and an energy-vs-metals composite
+// rebased to 100 at the start of the visible window.
+function rangedViewCommodities(data, range) {
+  const n = RANGE_DAYS[range] || Infinity;
+  return {
+    gold:     tail(data.gold || [], n),
+    silver:   tail(data.silver || [], n),
+    platinum: tail(data.platinum || [], n),
+    wti:      tail(data.wti || [], n),
+    brent:    tail(data.brent || [], n),
+    natgas:   tail(data.natgas || [], n),
+    gs_ratio: tail(data.gs_ratio || [], n),
+    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+  };
+}
+
+// Currency / unit formatters
+function fmtUsd(v)        { return v == null ? 'n/a' : '$' + v.toLocaleString('en-US', { maximumFractionDigits: 2 }); }
+function fmtUsdSilver(v)  { return v == null ? 'n/a' : '$' + v.toFixed(2); }
+function fmtUsdNatgas(v)  { return v == null ? 'n/a' : '$' + v.toFixed(2); }
+function fmtRatio2(v)     { return v == null ? 'n/a' : v.toFixed(2); }
+function fmtIndex100(v)   { return v == null ? 'n/a' : v.toFixed(1); }
+
+function buildCmGoldSilver(view) {
+  // Dual-axis: gold left ($/oz, ~$300-5000), silver right ($/oz, ~$5-100).
+  // Without dual axis, silver would be a flat line near zero on a gold-scaled chart.
+  const labels = view.gold.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const sMap = new Map((view.silver || []).map(r => [r[0], r[1]]));
+  const sAligned = view.gold.map(r => sMap.has(r[0]) ? sMap.get(r[0]) : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Gold ($/oz, left axis)', data: view.gold.map(r => r[1]),
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false, yAxisID: 'y' },
+        { label: 'Silver ($/oz, right axis)', data: sAligned,
+          borderColor: BRAND.silver, backgroundColor: BRAND.silver,
+          tension: 0.15, borderWidth: 2.2, pointRadius: pr, fill: false,
+          spanGaps: true, yAxisID: 'y2' },
+      ],
+    },
+    options: {
+      ...baseOptions(fmtUsd),
+      scales: {
+        x: {
+          grid: { display: false, drawBorder: true, color: BRAND.navy },
+          ticks: { color: BRAND.navy, font: { size: 11, weight: 'bold' }, maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 14 },
+          border: { color: BRAND.navy, width: 1 },
+        },
+        y:  axisSpec(fmtUsd,       'left'),
+        y2: axisSpec(fmtUsdSilver, 'right'),
+      }
+    }
+  };
+}
+
+function buildCmGsRatio(view) {
+  // Gold-to-silver ratio with reference bands at 60 (low / silver-strong)
+  // and 80 (high / risk-off). Both reference lines are flat dashes.
+  const labels = view.gs_ratio.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Gold / Silver Ratio', data: view.gs_ratio.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Silver-strong (60)', data: labels.map(()=>60),
+          borderColor: BRAND.green, borderWidth: 1.2, borderDash: [4,4], pointRadius: 0, fill: false },
+        { label: 'Risk-off (80)', data: labels.map(()=>80),
+          borderColor: BRAND.coral, borderWidth: 1.2, borderDash: [4,4], pointRadius: 0, fill: false },
+      ],
+    },
+    options: baseOptions(fmtRatio2),
+  };
+}
+
+function buildCmCrude(view) {
+  // WTI vs Brent. Brent is typically $5-10 above WTI on average; both move
+  // together. Diverging spreads signal U.S. supply / pipeline anomalies.
+  const labels = view.wti.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const bMap = new Map((view.brent || []).map(r => [r[0], r[1]]));
+  const bAligned = view.wti.map(r => bMap.has(r[0]) ? bMap.get(r[0]) : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'WTI Crude ($/bbl)', data: view.wti.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Brent Crude ($/bbl)', data: bAligned,
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.15, borderWidth: 2.2, pointRadius: pr, fill: false, spanGaps: true },
+      ],
+    },
+    options: baseOptions(fmtUsd),
+  };
+}
+
+function buildCmNatgas(view) {
+  // Henry Hub natural gas spot price ($/MMBtu). Highly volatile, weather-driven.
+  const labels = view.natgas.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Henry Hub Natural Gas ($/MMBtu)', data: view.natgas.map(r => r[1]),
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
+      ],
+    },
+    options: baseOptions(fmtUsdNatgas),
+  };
+}
+
+function buildCmPlatinum(view) {
+  // Platinum spot, $/oz. London PM Fix via Kitco. Heavy industrial demand
+  // (catalytic converters) makes platinum more cyclical than gold and
+  // historically it traded above gold; flipped below gold around 2015.
+  const labels = view.platinum.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Platinum Spot ($/oz)', data: view.platinum.map(r => r[1]),
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
+      ],
+    },
+    options: baseOptions(fmtUsd),
+  };
+}
+
+function buildCmComposite(view) {
+  // Energy vs Precious Metals: each rebased to 100 at the start of the visible window.
+  // - Energy = average of WTI and Brent (both $/bbl, comparable scales).
+  // - Precious Metals = (Gold + 50*Silver + 2*Platinum) / 3, where silver and
+  //   platinum are pre-scaled so each metal contributes meaningfully despite
+  //   the ~50x and ~2x absolute-price differences vs gold. Multipliers chosen
+  //   to roughly equalize current levels (~2026 prices); the final rebase to
+  //   100 means the absolute scaling doesn't change the qualitative story.
+  const labels = view.wti.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+
+  const wtiMap   = new Map(view.wti.map(r => [r[0], r[1]]));
+  const brentMap = new Map(view.brent.map(r => [r[0], r[1]]));
+  const goldMap  = new Map(view.gold.map(r => [r[0], r[1]]));
+  const silverMap   = new Map(view.silver.map(r => [r[0], r[1]]));
+  const platinumMap = new Map(view.platinum.map(r => [r[0], r[1]]));
+
+  function avg(...xs) {
+    const vals = xs.filter(v => v != null && Number.isFinite(v));
+    return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
+  }
+  function rebase(arr) {
+    let base = null;
+    for (const v of arr) { if (v != null && Number.isFinite(v)) { base = v; break; } }
+    if (base == null || base === 0) return arr.map(_ => null);
+    return arr.map(v => (v == null || !Number.isFinite(v)) ? null : +(v / base * 100).toFixed(2));
+  }
+
+  const energyRaw = view.wti.map(r => avg(wtiMap.get(r[0]), brentMap.get(r[0])));
+  const metalsRaw = view.wti.map(r => {
+    const g = goldMap.get(r[0]);
+    const s = silverMap.get(r[0]);
+    const p = platinumMap.get(r[0]);
+    const parts = [];
+    if (g != null) parts.push(g);
+    if (s != null) parts.push(s * 50);
+    if (p != null) parts.push(p * 2);
+    return parts.length ? parts.reduce((a,b) => a+b, 0) / parts.length : null;
+  });
+
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Energy (WTI/Brent avg)', data: rebase(energyRaw),
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false, spanGaps: true },
+        { label: 'Precious Metals (Gold/Silver/Platinum)', data: rebase(metalsRaw),
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false, spanGaps: true },
+      ],
+    },
+    options: baseOptions(fmtIndex100),
+  };
+}
+
+const COMMODITIES_BUILDERS = {
+  chartCmGoldSilver: buildCmGoldSilver,
+  chartCmGsRatio:    buildCmGsRatio,
+  chartCmCrude:      buildCmCrude,
+  chartCmNatgas:     buildCmNatgas,
+  chartCmPlatinum:   buildCmPlatinum,
+  chartCmComposite:  buildCmComposite,
+};
+
+function renderAllCommodities(view) {
+  Object.entries(COMMODITIES_BUILDERS).forEach(([id, builder]) => {
+    const cfg = builder(view);
+    if (cfg) makeChart(id, cfg);
+  });
+}
+
+function registerAllCsvsCommodities(view) {
+  registerCsv('chartCmGoldSilver', 'gold-silver-spot.csv',
+    ['Date', 'Gold ($/oz)', 'Silver ($/oz)'],
+    mergeSeries([view.gold, view.silver]));
+  registerCsv('chartCmGsRatio', 'gold-silver-ratio.csv',
+    ['Date', 'Gold/Silver Ratio'], view.gs_ratio);
+  registerCsv('chartCmCrude', 'crude-oil-wti-brent.csv',
+    ['Date', 'WTI ($/bbl)', 'Brent ($/bbl)'],
+    mergeSeries([view.wti, view.brent]));
+  registerCsv('chartCmNatgas', 'natural-gas-henry-hub.csv',
+    ['Date', 'Henry Hub Natural Gas ($/MMBtu)'], view.natgas);
+  registerCsv('chartCmPlatinum', 'platinum-spot.csv',
+    ['Date', 'Platinum Spot ($/oz)'], view.platinum);
+  registerCsv('chartCmComposite', 'commodities-composite-rebased.csv',
+    ['Date', 'WTI ($/bbl)', 'Brent ($/bbl)', 'Gold ($/oz)', 'Silver ($/oz)', 'Platinum ($/oz)'],
+    mergeSeries([view.wti, view.brent, view.gold, view.silver, view.platinum]));
+}
+
+function renderKpisCommodities(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const fmtVal = (v, decimals=2, units='') => {
+    if (v == null) return 'n/a';
+    return '$' + v.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) +
+           (units ? ` <span style="font-size:11px; font-weight:600; color:var(--ink-soft);">${units}</span>` : '');
+  };
+  const fmtPct = v => v == null ? 'no prior data'
+                                : (v >= 0 ? '+' : '') + v.toFixed(2) + '% vs prior day';
+
+  // For commodities, "rising" is neutral (depends on context). The site uses
+  // green for up, coral for down -- intuitive for a market-watcher view.
+  const KPI_DEFS = [
+    { key: 'gold',     label: 'Gold',           accent: BRAND.mustard, decimals: 2, units: '/oz',  unitsBare: '$/oz' },
+    { key: 'silver',   label: 'Silver',         accent: BRAND.silver,  decimals: 2, units: '/oz',  unitsBare: '$/oz' },
+    { key: 'platinum', label: 'Platinum',       accent: BRAND.teal,    decimals: 2, units: '/oz',  unitsBare: '$/oz' },
+    { key: 'gs_ratio', label: 'Gold/Silver Ratio', accent: BRAND.navy, decimals: 2, units: ':1',   unitsBare: ':1', noDollar: true },
+    { key: 'wti',      label: 'WTI Crude',      accent: BRAND.coral,   decimals: 2, units: '/bbl', unitsBare: '$/bbl' },
+    { key: 'brent',    label: 'Brent Crude',    accent: BRAND.coral,   decimals: 2, units: '/bbl', unitsBare: '$/bbl' },
+  ];
+
+  kpiHost.innerHTML = KPI_DEFS.map(def => {
+    const k = data.kpis[def.key] || { value: null, delta: null, delta_pct: null, label: null };
+    let dCls = 'flat';
+    if (k.delta_pct != null && k.delta_pct !== 0) dCls = (k.delta_pct > 0 ? 'up' : 'down');
+    const arrow = k.delta_pct == null ? '-' : (k.delta_pct > 0 ? '▲' : (k.delta_pct < 0 ? '▼' : '▬'));
+    let valHtml;
+    if (def.noDollar) {
+      valHtml = (k.value == null ? 'n/a' : k.value.toFixed(def.decimals)) +
+                ` <span style="font-size:11px; font-weight:600; color:var(--ink-soft);">${def.units}</span>`;
+    } else {
+      valHtml = fmtVal(k.value, def.decimals, def.units);
+    }
+    return `
+      <div class="kpi" style="border-top-color:${def.accent}">
+        <div class="label">${def.label}</div>
+        <div class="value">${valHtml}</div>
+        <div class="delta-pct ${dCls}">${arrow} ${fmtPct(k.delta_pct)}</div>
+      </div>`;
+  }).join('');
+}
+
+// =========================================================
 // Public API
 // =========================================================
 window.EG = {
@@ -2948,5 +3234,35 @@ window.EG = {
     };
     const id = map[chartKey] || 'chartTrCurve';
     if (TREASURIES_BUILDERS[id]) makeChart(id, TREASURIES_BUILDERS[id](view));
+  },
+
+  renderCommodities(data) {
+    CURRENT_PAGE = 'commodities';
+    RAW_DATA = data;
+    const m = document.getElementById('latest-month');
+    if (m) m.textContent = formatLabelLongD(data.latest_label);
+    renderKpisCommodities(data);
+    const view = rangedViewCommodities(data, CURRENT_RANGE);
+    renderAllCommodities(view); registerAllCsvsCommodities(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  // Embed mode for Commodities:
+  // chartKey ∈ 'goldsilver' | 'gsratio' | 'crude' | 'natgas' | 'platinum' | 'composite'
+  renderCommoditiesEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'commodities';
+    RAW_DATA = data;
+    if (range && RANGE_DAYS[range]) CURRENT_RANGE = range;
+    const view = rangedViewCommodities(data, CURRENT_RANGE);
+    const map = {
+      goldsilver: 'chartCmGoldSilver',
+      gsratio:    'chartCmGsRatio',
+      crude:      'chartCmCrude',
+      natgas:     'chartCmNatgas',
+      platinum:   'chartCmPlatinum',
+      composite:  'chartCmComposite',
+    };
+    const id = map[chartKey] || 'chartCmGoldSilver';
+    if (COMMODITIES_BUILDERS[id]) makeChart(id, COMMODITIES_BUILDERS[id](view));
   },
 };
