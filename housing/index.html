@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Housing Market &mdash; Economics Guru</title>
+<meta name="description" content="US housing market indicators: existing home sales, new home sales, building permits and starts. Sourced live from FRED and the Census Bureau.">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/assets/styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  .hub-hero { padding: 24px 0 12px; }
+  .hub-hero h1 { font-family: var(--font-display); color: var(--ink-on-navy); font-weight: 800; font-size: 32px; letter-spacing: -0.01em; margin: 0 0 6px; }
+  .hub-hero p { font-size: 15px; color: var(--ink-on-navy-soft); max-width: 760px; margin: 0; }
+  .topic-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 22px; }
+  @media (max-width: 800px) { .topic-grid { grid-template-columns: 1fr; } }
+  .topic-card {
+    background: var(--panel-bg); border: 1px solid var(--border);
+    border-top: 4px solid var(--navy); padding: 18px;
+    text-decoration: none; color: var(--ink); display: block;
+  }
+  .topic-card:hover { border-color: var(--navy); text-decoration: none; }
+  .topic-card.coming { opacity: 0.55; cursor: not-allowed; }
+  .topic-card h3 { margin: 0 0 6px; font-family: var(--font-display); color: var(--navy); font-size: 19px; }
+  .topic-card p { margin: 0; color: var(--ink-soft); font-size: 14px; }
+  .topic-card .badge {
+    display: inline-block; margin-bottom: 8px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--mustard);
+  }
+  .topic-card.coming .badge { color: var(--silver); }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">Economics<span class="tag">Guru</span></div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/inflation/">Inflation</a>
+      <a href="/labor/">Labor</a>
+      <a href="/housing/" class="active">Housing</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hub-hero">
+    <h1>Housing Market</h1>
+    <p>Three windows on US housing activity: the existing-home market (resales make up most home turnover), the new-construction market (the part that adds to housing supply), and the leading indicators &mdash; permits and starts &mdash; that signal what builders plan to bring online next.</p>
+  </section>
+
+  <div class="topic-grid">
+    <a class="topic-card" href="/housing/existing/">
+      <div class="badge">Available</div>
+      <h3>Existing Homes</h3>
+      <p>Existing home sales, median price, inventory, Case-Shiller HPI, and 30-year mortgage rate. Source: FRED.</p>
+    </a>
+    <div class="topic-card coming">
+      <div class="badge">Coming soon</div>
+      <h3>New Homes</h3>
+      <p>New home sales, median new-home price, months supply of new homes. Source: U.S. Census Bureau.</p>
+    </div>
+    <div class="topic-card coming">
+      <div class="badge">Coming soon</div>
+      <h3>Permits &amp; Starts</h3>
+      <p>Building permits issued and housing starts &mdash; leading indicators of future construction activity. Source: U.S. Census Bureau.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, BEA, and Census. <a href="/about/">Methodology</a></div>
+    <div>Data refreshes nightly.</div>
+  </div>
+</footer>
+
+<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+</body>
+</html>
