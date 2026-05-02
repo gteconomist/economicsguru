@@ -991,6 +991,9 @@ function buildEhInventory(view) {
 function buildEhCsYoy(view) {
   const labels = view.case_shiller_hpi_yoy.map(r => shortLabel(r[0]));
   const pr = pointSizeForLength(labels.length);
+  const opts = baseOptions(v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`);
+  // Hide the zero reference line from the legend (it's just a visual aid)
+  opts.plugins.legend.labels.filter = (item) => item.text !== 'Zero';
   return {
     type: 'line',
     data: {
@@ -1003,7 +1006,7 @@ function buildEhCsYoy(view) {
           borderColor: BRAND.silver, borderWidth: 1, pointRadius: 0, borderDash: [4,4] },
       ],
     },
-    options: baseOptions(v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`),
+    options: opts,
   };
 }
 
