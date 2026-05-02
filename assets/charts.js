@@ -2022,6 +2022,310 @@ function renderKpisGdp(data) {
 // =========================================================
 // Range / dispatch
 // =========================================================
+// =========================================================
+// Consumer: chart builders
+// =========================================================
+function rangedViewConsumer(data, range) {
+  const n = RANGE_MONTHS[range];
+  return {
+    retail_total_mom:   tail(data.retail_total_mom || [], n),
+    retail_ex_mv_mom:   tail(data.retail_ex_mv_mom || [], n),
+    retail_control_mom: tail(data.retail_control_mom || [], n),
+    retail_total_yoy:   tail(data.retail_total_yoy || [], n),
+    retail_sectors:     (data.retail_sectors || []).map(s => ({
+      key: s.key, label: s.label,
+      contribution: tail(s.contribution || [], n),
+    })),
+    pi_mom:    tail(data.pi_mom || [], n),
+    dspi_mom:  tail(data.dspi_mom || [], n),
+    pce_mom:   tail(data.pce_mom || [], n),
+    rpi_mom:   tail(data.rpi_mom || [], n),
+    rdspi_mom: tail(data.rdspi_mom || [], n),
+    rpce_mom:  tail(data.rpce_mom || [], n),
+    umich_total:   tail(data.umich_total || [], n),
+    umich_expect:  tail(data.umich_expect || [], n),
+    umich_current: tail(data.umich_current || [], n),
+    cb_total:   tail(data.cb_total || [], n),
+    cb_expect:  tail(data.cb_expect || [], n),
+    cb_present: tail(data.cb_present || [], n),
+    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+  };
+}
+
+// Chart 1: Retail MoM bars (Total / ex-MV / Control) + Total YoY line on right axis.
+function buildCsRetailMom(view) {
+  const labels = view.retail_total_mom.map(r => shortLabel(r[0]));
+  const total  = view.retail_total_mom.map(r => r[1]);
+  const exmv   = view.retail_ex_mv_mom.map(r => r[1]);
+  const ctrl   = view.retail_control_mom.map(r => r[1]);
+  const yoyMap = new Map(view.retail_total_yoy.map(r => [r[0], r[1]]));
+  const yoy    = view.retail_total_mom.map(r => yoyMap.has(r[0]) ? yoyMap.get(r[0]) : null);
+  const pr = pointSizeForLength(labels.length);
+  return {
+    data: {
+      labels,
+      datasets: [
+        { type: 'bar', label: 'Total Retail MoM',     data: total,
+          backgroundColor: BRAND.navy,    borderColor: BRAND.navy,
+          barPercentage: 0.9, categoryPercentage: 0.85, yAxisID: 'yMom' },
+        { type: 'bar', label: 'Ex Motor Vehicles',    data: exmv,
+          backgroundColor: BRAND.teal,    borderColor: BRAND.teal,
+          barPercentage: 0.9, categoryPercentage: 0.85, yAxisID: 'yMom' },
+        { type: 'bar', label: 'Control Group (core)', data: ctrl,
+          backgroundColor: BRAND.mustard, borderColor: BRAND.mustard,
+          barPercentage: 0.9, categoryPercentage: 0.85, yAxisID: 'yMom' },
+        { type: 'line', label: 'Total Retail YoY (right axis)', data: yoy,
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.2, borderWidth: 2.4, pointRadius: pr,
+          fill: false, yAxisID: 'yYoy' },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 8, right: 16, bottom: 4, left: 4 } },
+      interaction: { mode: 'index', intersect: false },
+      animation: { duration: 350 },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, boxHeight: 12, padding: 12, color: BRAND.navy, font: { size: 12, weight: '600' } } },
+        tooltip: {
+          backgroundColor: BRAND.navy, titleColor: '#fff', bodyColor: '#fff',
+          borderColor: BRAND.mustard, borderWidth: 1, padding: 10, cornerRadius: 4,
+          callbacks: {
+            label: ctx => {
+              if (ctx.parsed.y == null) return `${ctx.dataset.label}: n/a`;
+              return `${ctx.dataset.label}: ${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)}%`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: baseScales(v => v).x,
+        yMom: axisSpec(v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`, 'left'),
+        yYoy: axisSpec(v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`, 'right'),
+      },
+    }
+  };
+}
+
+// Chart 2: Sector contributions stacked bar (12 NAICS categories) + total MoM line.
+function buildCsRetailSectors(view) {
+  // 12-color palette ordered to roughly track the user's reference image
+  // (441 navy, 442 grey, 444 light teal, 445 medium teal, 446 royal blue,
+  //  447 plum, 448 lime-green, 451 lilac, 452 coral-red, 453 forest, 454 mustard,
+  //  722 khaki).
+  const SECTOR_COLORS = [
+    '#1e2a4a', '#5b6470', '#7fc7c7', '#3a8d8d', '#2e4a8d',
+    '#7d2e7d', '#a8d05f', '#9b8b6a', '#d4624a', '#3a6e3a',
+    '#d4a017', '#a89b6a',
+  ];
+  const labels = view.retail_total_mom.map(r => shortLabel(r[0]));
+  const datasets = view.retail_sectors.map((sec, idx) => {
+    const lookup = new Map(sec.contribution.map(r => [r[0], r[1]]));
+    const data = view.retail_total_mom.map(r => lookup.has(r[0]) ? lookup.get(r[0]) : null);
+    return {
+      label: sec.label, data,
+      backgroundColor: SECTOR_COLORS[idx % SECTOR_COLORS.length],
+      borderColor:     SECTOR_COLORS[idx % SECTOR_COLORS.length],
+      stack: 'sec',
+      barPercentage: 0.92, categoryPercentage: 0.92,
+    };
+  });
+  // Overlay: total MoM% as a thin line (the bars sum to this, modulo rounding).
+  datasets.push({
+    type: 'line', label: 'Total Retail MoM (sum)',
+    data: view.retail_total_mom.map(r => r[1]),
+    borderColor: '#000', backgroundColor: '#000',
+    borderWidth: 1.6, pointRadius: 0, fill: false, tension: 0.15,
+  });
+  const cfg = {
+    type: 'bar',
+    data: { labels, datasets },
+    options: baseOptions(v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`, { scales: { beginAtZero: false } })
+  };
+  cfg.options.scales.x.stacked = true;
+  cfg.options.scales.y.stacked = true;
+  // 13 entries (12 sectors + total line) — keep legend tight.
+  cfg.options.plugins.legend.labels.boxWidth  = 10;
+  cfg.options.plugins.legend.labels.padding   = 8;
+  cfg.options.plugins.legend.labels.font      = { size: 11, weight: '600' };
+  cfg.options.plugins.tooltip.callbacks.label = ctx =>
+    ctx.parsed.y == null ? `${ctx.dataset.label}: n/a`
+                         : `${ctx.dataset.label}: ${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(2)} pp`;
+  return cfg;
+}
+
+// Charts 3 & 4: Income & Consumption MoM (3 grouped bars, nominal or real).
+function _buildCsIncomeBars(view, keys, labels3) {
+  const labels = view[keys[0]].map(r => shortLabel(r[0]));
+  return {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: labels3[0], data: view[keys[0]].map(r => r[1]),
+          backgroundColor: BRAND.navy,    borderColor: BRAND.navy,
+          barPercentage: 0.9, categoryPercentage: 0.85 },
+        { label: labels3[1], data: view[keys[1]].map(r => r[1]),
+          backgroundColor: BRAND.teal,    borderColor: BRAND.teal,
+          barPercentage: 0.9, categoryPercentage: 0.85 },
+        { label: labels3[2], data: view[keys[2]].map(r => r[1]),
+          backgroundColor: BRAND.mustard, borderColor: BRAND.mustard,
+          barPercentage: 0.9, categoryPercentage: 0.85 },
+      ]
+    },
+    options: baseOptions(v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`, { scales: { beginAtZero: false } })
+  };
+}
+function buildCsIncomeNominal(view) {
+  return _buildCsIncomeBars(view,
+    ['pi_mom', 'dspi_mom', 'pce_mom'],
+    ['Personal Income', 'Disposable Personal Income', 'Personal Consumption']);
+}
+function buildCsIncomeReal(view) {
+  return _buildCsIncomeBars(view,
+    ['rpi_mom', 'rdspi_mom', 'rpce_mom'],
+    ['Real Personal Income', 'Real Disposable PI', 'Real Personal Consumption']);
+}
+
+// Charts 5 & 6: 3-line consumer-survey index.
+function _buildCs3Line(totalKey, expectKey, currentKey, totalLabel, expectLabel, currentLabel, view) {
+  const total = view[totalKey] || [];
+  const labels = total.map(r => shortLabel(r[0]));
+  const expectMap = new Map((view[expectKey] || []).map(r => [r[0], r[1]]));
+  const currMap   = new Map((view[currentKey] || []).map(r => [r[0], r[1]]));
+  const expectAlign = total.map(r => expectMap.has(r[0]) ? expectMap.get(r[0]) : null);
+  const currAlign   = total.map(r => currMap.has(r[0])   ? currMap.get(r[0])   : null);
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: totalLabel,   data: total.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: expectLabel,  data: expectAlign,
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr, spanGaps: false },
+        { label: currentLabel, data: currAlign,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr, spanGaps: false },
+      ]
+    },
+    options: baseOptions(v => v == null ? 'n/a' : v.toFixed(1))
+  };
+}
+function buildCsUmich(view) {
+  return _buildCs3Line('umich_total', 'umich_expect', 'umich_current',
+    'Total (ICS)', 'Expectations (ICE)', 'Current Conditions (ICC)', view);
+}
+function buildCsConfBoard(view) {
+  // Graceful empty state if no Conference Board CSV data has been loaded yet.
+  if (!view.cb_total || !view.cb_total.length) {
+    return {
+      type: 'line',
+      data: {
+        labels: ['—'],
+        datasets: [{
+          label: 'No data — populate data/historical/conference_board.csv',
+          data: [null],
+          borderColor: BRAND.silver, backgroundColor: BRAND.silver,
+        }],
+      },
+      options: baseOptions(v => v == null ? 'n/a' : v.toFixed(1))
+    };
+  }
+  return _buildCs3Line('cb_total', 'cb_expect', 'cb_present',
+    'CCI (Total)', 'Expectations Index', 'Present Situation Index', view);
+}
+
+const CONSUMER_BUILDERS = {
+  chartCsRetailMom:     buildCsRetailMom,
+  chartCsRetailSectors: buildCsRetailSectors,
+  chartCsIncomeNominal: buildCsIncomeNominal,
+  chartCsIncomeReal:    buildCsIncomeReal,
+  chartCsUmich:         buildCsUmich,
+  chartCsConfBoard:     buildCsConfBoard,
+};
+
+function renderAllConsumer(view) {
+  for (const [id, builder] of Object.entries(CONSUMER_BUILDERS)) {
+    if (document.getElementById(id)) makeChart(id, builder(view));
+  }
+}
+
+function renderKpisConsumer(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const fmtPct1 = v => (v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%');
+  const fmtPct2 = v => (v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%');
+  const fmtIdx  = v => (v == null ? 'n/a' : v.toFixed(1));
+  const KPI_DEFS = [
+    { key: 'retail_mom', label: 'Retail Sales (m/m)', accent: BRAND.navy,
+      valueFmt: k => fmtPct2(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
+      goodDir: 'up' },
+    { key: 'retail_yoy', label: 'Retail Sales (y/y)', accent: BRAND.coral,
+      valueFmt: k => fmtPct1(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
+      goodDir: 'up' },
+    { key: 'pi_mom', label: 'Personal Income (m/m)', accent: BRAND.teal,
+      valueFmt: k => fmtPct2(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
+      goodDir: 'up' },
+    { key: 'pce_mom', label: 'Pers. Consumption (m/m)', accent: BRAND.mustard,
+      valueFmt: k => fmtPct2(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
+      goodDir: 'up' },
+    { key: 'umich_sentiment', label: 'UMich Sentiment', accent: BRAND.green,
+      valueFmt: k => fmtIdx(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(1)} vs prior month`,
+      goodDir: 'up' },
+    { key: 'cb_confidence', label: 'CB Consumer Confidence', accent: BRAND.khaki,
+      valueFmt: k => fmtIdx(k.value),
+      deltaFmt: k => k.delta == null
+        ? (k.note ? '— add CSV data —' : 'no prior data')
+        : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(1)} vs prior month`,
+      goodDir: 'up' },
+  ];
+  kpiHost.innerHTML = KPI_DEFS.map(def => {
+    const k = data.kpis[def.key] || { value: null, delta: null };
+    let dCls = 'flat';
+    if (k.delta != null && k.delta !== 0) {
+      const isGood = (k.delta > 0 && def.goodDir === 'up') || (k.delta < 0 && def.goodDir === 'down');
+      dCls = isGood ? 'down' : 'up';
+    }
+    const arrow = k.delta == null ? '–' : (k.delta > 0 ? '▲' : (k.delta < 0 ? '▼' : '▬'));
+    return `
+      <div class="kpi" style="border-top-color:${def.accent}">
+        <div class="label">${def.label}</div>
+        <div class="value">${def.valueFmt(k)}</div>
+        <div class="delta ${dCls}">${arrow} ${def.deltaFmt(k)}</div>
+      </div>`;
+  }).join('');
+}
+
+function registerAllCsvsConsumer(view) {
+  registerCsv('chartCsRetailMom', 'retail-sales-mom-and-yoy.csv',
+    ['Month', 'Total MoM (%)', 'Ex-MV MoM (%)', 'Control Group MoM (%)', 'Total YoY (%)'],
+    mergeSeries([view.retail_total_mom, view.retail_ex_mv_mom, view.retail_control_mom, view.retail_total_yoy]));
+  registerCsv('chartCsRetailSectors', 'retail-sales-sector-contributions.csv',
+    ['Month', 'Total MoM (%)', ...view.retail_sectors.map(s => s.label + ' (pp)')],
+    mergeSeries([view.retail_total_mom, ...view.retail_sectors.map(s => s.contribution)]));
+  registerCsv('chartCsIncomeNominal', 'income-and-consumption-nominal-mom.csv',
+    ['Month', 'Personal Income MoM (%)', 'Disposable PI MoM (%)', 'PCE MoM (%)'],
+    mergeSeries([view.pi_mom, view.dspi_mom, view.pce_mom]));
+  registerCsv('chartCsIncomeReal', 'income-and-consumption-real-mom.csv',
+    ['Month', 'Real PI MoM (%)', 'Real DPI MoM (%)', 'Real PCE MoM (%)'],
+    mergeSeries([view.rpi_mom, view.rdspi_mom, view.rpce_mom]));
+  registerCsv('chartCsUmich', 'umich-consumer-sentiment.csv',
+    ['Month', 'Total ICS', 'Expectations ICE', 'Current Conditions ICC'],
+    mergeSeries([view.umich_total, view.umich_expect, view.umich_current]));
+  registerCsv('chartCsConfBoard', 'conference-board-consumer-confidence.csv',
+    ['Month', 'CCI', 'Expectations Index', 'Present Situation Index'],
+    mergeSeries([view.cb_total, view.cb_expect, view.cb_present]));
+}
+
 function applyRange(range) {
   CURRENT_RANGE = range;
   if (!RAW_DATA) return;
@@ -2046,6 +2350,9 @@ function applyRange(range) {
   } else if (CURRENT_PAGE === 'gdp') {
     const view = rangedViewGdp(RAW_DATA, range);
     renderAllGdp(view); registerAllCsvsGdp(view);
+  } else if (CURRENT_PAGE === 'consumer') {
+    const view = rangedViewConsumer(RAW_DATA, range);
+    renderAllConsumer(view); registerAllCsvsConsumer(view);
   } else {
     const view = rangedView(RAW_DATA, range);
     renderAll(view); registerAllCsvs(view);
@@ -2281,5 +2588,35 @@ window.EG = {
     };
     const id = map[chartKey] || 'chartGdpHeadline';
     if (GDP_BUILDERS[id]) makeChart(id, GDP_BUILDERS[id](view));
+  },
+
+  renderConsumer(data) {
+    CURRENT_PAGE = 'consumer';
+    RAW_DATA = data;
+    const m = document.getElementById('latest-month');
+    if (m) m.textContent = formatLabelLong(data.latest_label);
+    renderKpisConsumer(data);
+    const view = rangedViewConsumer(data, CURRENT_RANGE);
+    renderAllConsumer(view); registerAllCsvsConsumer(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  // Embed mode for Consumer:
+  // chartKey ∈ 'retail' | 'sectors' | 'incomenom' | 'incomereal' | 'umich' | 'confboard'
+  renderConsumerEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'consumer';
+    RAW_DATA = data;
+    if (range && RANGE_MONTHS[range]) CURRENT_RANGE = range;
+    const view = rangedViewConsumer(data, CURRENT_RANGE);
+    const map = {
+      retail:     'chartCsRetailMom',
+      sectors:    'chartCsRetailSectors',
+      incomenom:  'chartCsIncomeNominal',
+      incomereal: 'chartCsIncomeReal',
+      umich:      'chartCsUmich',
+      confboard:  'chartCsConfBoard',
+    };
+    const id = map[chartKey] || 'chartCsRetailMom';
+    if (CONSUMER_BUILDERS[id]) makeChart(id, CONSUMER_BUILDERS[id](view));
   },
 };
