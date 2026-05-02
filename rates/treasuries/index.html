@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Treasury Yields, Fed Funds &amp; Credit Spreads &mdash; Economics Guru</title>
+<meta name="description" content="Live US Treasury yields dashboard: yield curve snapshot today vs. one year ago, 10-year yield history, 2s10s spread (recession indicator), Fed Funds vs 10-year, real yields and breakeven inflation, investment-grade vs high-yield credit spreads. Updated daily from FRED.">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/assets/styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  .interactivity-hint { margin: 10px 0 16px; font-size: 12.5px; font-style: italic; color: var(--ink-on-navy-soft); }
+  .chart-card .source { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; }
+  .chart-card .csv-link { font-size: 11px; font-weight: 700; color: var(--mustard); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; text-decoration: none; }
+  .chart-card .csv-link::before { content: '\2193  '; }
+  .chart-card .csv-link:hover { text-decoration: underline; }
+  .controls { display: flex; gap: 12px; align-items: center; margin: 4px 0 0; flex-wrap: wrap; }
+  .controls .label-text { font-size: 12px; color: var(--ink-on-navy-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* treasuries KPI card: render daily change in basis points instead of MoM/YoY */
+  .kpi .delta-bps {
+    display: block; margin-top: 2px;
+    font-size: 11.5px; font-weight: 600;
+    color: var(--ink-soft); letter-spacing: 0.02em;
+  }
+  .kpi .delta-bps.up   { color: #b94a3a; }   /* yield rising = coral */
+  .kpi .delta-bps.down { color: #5a7a30; }   /* yield falling = green */
+  .kpi .delta-bps.flat { color: var(--ink-soft); }
+  /* spread KPI: inversion (negative) is the red signal, not direction */
+  .kpi .spread-flag {
+    display: block; margin-top: 2px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .kpi .spread-flag.invert { color: #b94a3a; }
+  .kpi .spread-flag.steep  { color: #5a7a30; }
+
+  .subnav {
+    display: flex; gap: 0; align-items: stretch; flex-wrap: wrap;
+    margin: 8px 0 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+  }
+  .subnav a, .subnav span {
+    padding: 8px 14px; font-size: 12.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: #f3ecd0; text-decoration: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    opacity: 0.7;
+  }
+  .subnav a:hover { opacity: 1; text-decoration: none; }
+  .subnav a.active { color: var(--mustard); border-bottom-color: var(--mustard); opacity: 1; }
+  .subnav .disabled { color: #9ba3ab; cursor: not-allowed; opacity: 0.7; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">Economics<span class="tag">Guru</span></div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/inflation/">Inflation</a>
+      <a href="/labor/">Labor</a>
+      <a href="/housing/">Housing</a>
+      <a href="/gdp/">GDP</a>
+      <a href="/consumer/">Consumer</a>
+      <a href="/rates/" class="active">Rates</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <nav class="subnav">
+    <a href="/rates/treasuries/" class="active">Treasuries</a>
+    <span class="disabled">Equities</span>
+    <span class="disabled">Commodities</span>
+    <span class="disabled">FX &amp; Crypto</span>
+  </nav>
+  <div class="page-header">
+    <h1>US Treasury Yields, Fed Funds &amp; Credit Spreads</h1>
+    <div class="subtitle">The shape of the yield curve, the level of policy rates, the market&rsquo;s read on inflation, and the price of corporate credit &mdash; the four lenses on the rate environment. Sourced live from the Federal Reserve Bank of St. Louis (FRED). All series are daily and quoted in percent unless noted.</div>
+    <div class="latest">Latest data: <strong id="latest-month">&hellip;</strong></div>
+  </div>
+
+  <div class="notice" id="notice" style="display:none">
+    <strong>Data note:</strong> <span id="notice-text"></span>
+  </div>
+
+  <div id="kpis" class="kpi-grid"></div>
+
+  <div class="controls">
+    <span class="label-text">Time range:</span>
+    <div class="range-toggle">
+      <button data-range="12m" class="active">12 mo</button>
+      <button data-range="5y">5 yr</button>
+      <button data-range="10y">10 yr</button>
+      <button data-range="20y">20 yr</button>
+      <button data-range="max">Max</button>
+    </div>
+  </div>
+
+  <div class="interactivity-hint">
+    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post. The time range applies to all six charts at once.
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="title">Yield Curve &mdash; Today vs. One Year Ago</div>
+      <div class="subtitle">(Treasury Constant-Maturity Yields, %; Steeper Curve = Stronger Growth Expectations)</div>
+      <div class="chart-wrap"><canvas id="chartTrCurve"></canvas></div>
+      <div class="source">
+        <span>Source: U.S. Treasury via FRED &mdash; DGS3MO, DGS2, DGS5, DGS10, DGS30.</span>
+        <a href="#" class="csv-link" data-chart="chartTrCurve">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">10-Year Treasury Yield</div>
+      <div class="subtitle">(Constant-Maturity Yield, %; The Single Most-Watched Rate in Markets)</div>
+      <div class="chart-wrap"><canvas id="chartTr10y"></canvas></div>
+      <div class="source">
+        <span>Source: U.S. Treasury via FRED &mdash; DGS10.</span>
+        <a href="#" class="csv-link" data-chart="chartTr10y">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">10-Year Minus 2-Year Spread</div>
+      <div class="subtitle">(Recession Indicator &mdash; Below Zero = Inverted Curve, a Reliable Pre-Recession Signal Since 1980)</div>
+      <div class="chart-wrap"><canvas id="chartTrSpread"></canvas></div>
+      <div class="source">
+        <span>Source: FRED &mdash; T10Y2Y (publishable spread), DGS10 minus DGS2.</span>
+        <a href="#" class="csv-link" data-chart="chartTrSpread">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Fed Funds vs. 10-Year Treasury</div>
+      <div class="subtitle">(Policy Rate vs. Long-Term Market Yield; Fed Funds Above 10Y = Restrictive Stance)</div>
+      <div class="chart-wrap"><canvas id="chartTrFfrVs10y"></canvas></div>
+      <div class="source">
+        <span>Source: FRED &mdash; DFF (Fed Funds Effective), DGS10.</span>
+        <a href="#" class="csv-link" data-chart="chartTrFfrVs10y">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Real 10-Year Yield &amp; Inflation Expectations</div>
+      <div class="subtitle">(Decomposing the Nominal 10Y into Real Yield + 10Y Breakeven Inflation; Available 2003-)</div>
+      <div class="chart-wrap"><canvas id="chartTrReal"></canvas></div>
+      <div class="source">
+        <span>Source: FRED &mdash; DGS10 (nominal), DFII10 (TIPS / real), T10YIE (breakeven).</span>
+        <a href="#" class="csv-link" data-chart="chartTrReal">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Corporate Credit Spreads (IG vs. HY)</div>
+      <div class="subtitle">(Option-Adjusted Spread to Treasuries, %; Widening = Stress, Tightening = Risk-On)</div>
+      <div class="chart-wrap"><canvas id="chartTrCredit"></canvas></div>
+      <div class="source">
+        <span>Source: FRED &mdash; ICE BofA US Corporate (BAMLC0A0CM) and US High Yield (BAMLH0A0HYM2). Public-API history is licensed-limited to ~3 years.</span>
+        <a href="#" class="csv-link" data-chart="chartTrCredit">Download CSV</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, BEA, Census, UMich, Conference Board, and ICE BofA. <a href="/about/">Methodology</a></div>
+    <div>Data refreshes nightly. Last successful build: <span id="build-time">&hellip;</span></div>
+  </div>
+</footer>
+
+<script src="/assets/charts.js"></script>
+<script>
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+fetch('/data/treasuries.json', { cache: 'no-cache' })
+  .then(r => r.json())
+  .then(data => {
+    EG.renderTreasuries(data);
+    if (data.notice) {
+      document.getElementById('notice').style.display = '';
+      document.getElementById('notice-text').textContent = data.notice;
+    }
+    if (data.build_time) {
+      document.getElementById('build-time').textContent =
+        new Date(data.build_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    document.querySelector('main').insertAdjacentHTML('afterbegin',
+      '<div class="notice"><strong>Could not load data.</strong> Try refreshing in a moment.</div>');
+  });
+</script>
+
+</body>
+</html>
