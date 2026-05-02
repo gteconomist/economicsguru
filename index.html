@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Economics Guru &mdash; Live US Economic Data</title>
-<meta name="description" content="Live US economic data dashboards: inflation (CPI, PPI, PCE), labor market, housing, GDP, consumer spending, manufacturing, and rates. Updated daily from BLS, FRED, BEA, and Census.">
+<meta name="description" content="Live US economic data dashboards: inflation (CPI, PPI, PCE), labor market, housing, GDP, consumer (retail sales, sentiment), manufacturing, and rates. Updated daily from BLS, FRED, BEA, and Census.">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/assets/styles.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -48,6 +48,7 @@
       <a href="/labor/">Labor</a>
       <a href="/housing/">Housing</a>
       <a href="/gdp/">GDP</a>
+      <a href="/consumer/">Consumer</a>
       <a href="/about/">About</a>
     </nav>
   </div>
@@ -80,11 +81,11 @@
       <h3>Gross Domestic Product</h3>
       <p>Real GDP, component contributions, corporate profits, productivity, and GDP vs GDI.</p>
     </a>
-    <div class="topic-card coming">
-      <div class="badge">Coming soon</div>
+    <a class="topic-card" href="/consumer/">
+      <div class="badge">Available</div>
       <h3>Consumer</h3>
-      <p>Retail sales, consumer sentiment, real personal income.</p>
-    </div>
+      <p>Retail sales (total / ex-MV / control), sector contributions, personal income &amp; consumption (nominal &amp; real), UMich sentiment, Conference Board confidence.</p>
+    </a>
     <div class="topic-card coming">
       <div class="badge">Coming soon</div>
       <h3>Manufacturing</h3>
@@ -100,7 +101,7 @@
 
 <footer class="site-footer">
   <div class="wrap">
-    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, BEA, and Census. <a href="/about/">Methodology</a></div>
+    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, BEA, Census, UMich, and the Conference Board. <a href="/about/">Methodology</a></div>
     <div>Data refreshes nightly.</div>
   </div>
 </footer>
