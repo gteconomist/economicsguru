@@ -26,6 +26,21 @@ function formatLabelLong(s){
   return new Date(y, m-1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
 }
 
+// Daily-date helpers (treasuries / rates pages emit YYYY-MM-DD labels).
+// Trading-day buckets for the time-range slider on those pages.
+const RANGE_DAYS = { '12m': 252, '5y': 1260, '10y': 2520, '20y': 5040, 'max': Infinity };
+function shortLabelD(s){
+  // 'YYYY-MM-DD' -> "MMM 'YY" so 12m of daily data shows ~12 unique tick labels
+  // and Chart.js autoSkip handles density naturally for longer ranges.
+  const [y,m] = s.split('-').map(Number);
+  return new Date(y, m-1, 1).toLocaleString('en-US', { month: 'short', year: '2-digit' });
+}
+function formatLabelLongD(s){
+  // 'YYYY-MM-DD' -> "May 1, 2026" for the latest-data line in the page header
+  const [y,m,d] = s.split('-').map(Number);
+  return new Date(y, m-1, d).toLocaleString('en-US', { dateStyle: 'long' });
+}
+
 // Quarterly-aware label helpers (GDP/profits/productivity series use "YYYYQN").
 function shortLabelQ(s){
   // "2026Q1" -> "Q1 '26"
@@ -2353,6 +2368,9 @@ function applyRange(range) {
   } else if (CURRENT_PAGE === 'consumer') {
     const view = rangedViewConsumer(RAW_DATA, range);
     renderAllConsumer(view); registerAllCsvsConsumer(view);
+  } else if (CURRENT_PAGE === 'treasuries') {
+    const view = rangedViewTreasuries(RAW_DATA, range);
+    renderAllTreasuries(view); registerAllCsvsTreasuries(view);
   } else {
     const view = rangedView(RAW_DATA, range);
     renderAll(view); registerAllCsvs(view);
@@ -2368,6 +2386,288 @@ function wireRangeToggle() {
     b.dataset.bound = '1';
     b.addEventListener('click', () => applyRange(b.dataset.range));
   });
+}
+
+// =========================================================
+// US Treasuries / Rates / Credit page (DAILY data)
+// =========================================================
+// Series are daily closes from FRED. Date labels are YYYY-MM-DD; the time-range
+// slider uses RANGE_DAYS (trading-day buckets) instead of RANGE_MONTHS. KPIs
+// show level + 1-day change in basis points; the spread KPI also flags when
+// the curve is inverted (level < 0).
+function rangedViewTreasuries(data, range) {
+  const n = RANGE_DAYS[range] || Infinity;
+  // Treasury series (DGS*) and credit spreads publish on trading days only;
+  // tail them by n trading days. fed_funds / fed_target_* / tips / breakeven
+  // publish on a 7-day cadence (DFF includes weekends), so the literal tail
+  // would cover fewer calendar days than the trading-day series. We don't
+  // pre-tail those: their builders do date-keyed Map lookups against the
+  // trading-day axis and slice implicitly. The CSV downloader uses mergeSeries
+  // which also keys by date, so the full vector is fine there too.
+  return {
+    yields_3m:        tail(data.yields_3m || [], n),
+    yields_2y:        tail(data.yields_2y || [], n),
+    yields_5y:        tail(data.yields_5y || [], n),
+    yields_10y:       tail(data.yields_10y || [], n),
+    yields_30y:       tail(data.yields_30y || [], n),
+    fed_funds:             data.fed_funds        || [],
+    fed_target_upper:      data.fed_target_upper || [],
+    fed_target_lower:      data.fed_target_lower || [],
+    tips_5y:               data.tips_5y          || [],
+    tips_10y:              data.tips_10y         || [],
+    spread_2s10s:     tail(data.spread_2s10s || [], n),
+    spread_3m10y:     tail(data.spread_3m10y || [], n),
+    breakeven_10y:         data.breakeven_10y    || [],
+    spread_ig_oas:    tail(data.spread_ig_oas || [], n),
+    spread_hy_oas:    tail(data.spread_hy_oas || [], n),
+    yield_curve_today:    data.yield_curve_today    || [],
+    yield_curve_year_ago: data.yield_curve_year_ago || [],
+    yield_curve_today_date:    data.yield_curve_today_date,
+    yield_curve_year_ago_date: data.yield_curve_year_ago_date,
+    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+  };
+}
+
+// "%" tick / tooltip formatters (one for yields, one for percent spreads).
+function fmtPct2(v) { return v == null ? 'n/a' : v.toFixed(2) + '%'; }
+function fmtPctSpread(v) {
+  // Used on the 2s10s / 3m10y axis. Show sign for clarity (negative = inverted).
+  if (v == null) return 'n/a';
+  return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+}
+
+function buildTrCurve(view) {
+  // Snapshot chart: today's full curve vs. ~1y ago. X-axis is categorical
+  // (3M/2Y/5Y/10Y/30Y). Two line datasets, no time slicing applies.
+  const labels   = (view.yield_curve_today || []).map(p => p.maturity);
+  const today    = (view.yield_curve_today || []).map(p => p.value);
+  const yearAgo  = (view.yield_curve_year_ago || []).map(p => p.value);
+  const todayLbl = view.yield_curve_today_date    ? formatLabelLongD(view.yield_curve_today_date)    : 'today';
+  const yaLbl    = view.yield_curve_year_ago_date ? formatLabelLongD(view.yield_curve_year_ago_date) : '~1Y ago';
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Today (' + todayLbl + ')', data: today,
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.0, borderWidth: 2.8, pointRadius: 4.5, fill: false },
+        { label: '~1 Year Ago (' + yaLbl + ')', data: yearAgo,
+          borderColor: BRAND.khaki, backgroundColor: BRAND.khaki,
+          tension: 0.0, borderWidth: 2.4, pointRadius: 4, fill: false, borderDash: [4,3] },
+      ],
+    },
+    options: baseOptions(fmtPct2),
+  };
+}
+
+function buildTr10y(view) {
+  // 10-year Treasury history.
+  const labels = view.yields_10y.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '10-Year Treasury Yield', data: view.yields_10y.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
+      ],
+    },
+    options: baseOptions(fmtPct2),
+  };
+}
+
+function buildTrSpread(view) {
+  // 2s10s spread with reference line at 0. Below 0 = inverted curve.
+  const labels = view.spread_2s10s.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '10Y minus 2Y (% pts)', data: view.spread_2s10s.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Inversion threshold (0)', data: labels.map(()=>0),
+          borderColor: BRAND.coral, borderWidth: 1.4, borderDash: [5,4], pointRadius: 0, fill: false },
+      ],
+    },
+    options: baseOptions(fmtPctSpread),
+  };
+}
+
+function buildTrFfrVs10y(view) {
+  // Align Fed Funds (daily, may include weekends) to the trading-day axis of DGS10
+  // by joining on YYYY-MM-DD; FRED publishes both, so most days line up exactly.
+  const labels = view.yields_10y.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const ffrMap = new Map((view.fed_funds || []).map(r => [r[0], r[1]]));
+  const ffrAligned = view.yields_10y.map(r => ffrMap.has(r[0]) ? ffrMap.get(r[0]) : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '10-Year Treasury', data: view.yields_10y.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Fed Funds (Effective)', data: ffrAligned,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.15, borderWidth: 2.2, pointRadius: pr, fill: false, spanGaps: true },
+      ],
+    },
+    options: baseOptions(fmtPct2),
+  };
+}
+
+function buildTrReal(view) {
+  // Three lines: nominal 10Y, real 10Y (TIPS), 10Y breakeven inflation.
+  // TIPS / breakeven only start in 2003; longer ranges naturally show what's available.
+  const labels = view.yields_10y.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const tipsMap = new Map((view.tips_10y || []).map(r => [r[0], r[1]]));
+  const beMap   = new Map((view.breakeven_10y || []).map(r => [r[0], r[1]]));
+  const tipsAligned = view.yields_10y.map(r => tipsMap.has(r[0]) ? tipsMap.get(r[0]) : null);
+  const beAligned   = view.yields_10y.map(r => beMap.has(r[0])   ? beMap.get(r[0])   : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Nominal 10Y Treasury', data: view.yields_10y.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Real 10Y (TIPS)', data: tipsAligned,
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.15, borderWidth: 2.2, pointRadius: pr, fill: false, spanGaps: true },
+        { label: '10Y Breakeven Inflation', data: beAligned,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.15, borderWidth: 2.2, pointRadius: pr, fill: false, spanGaps: true },
+      ],
+    },
+    options: baseOptions(fmtPct2),
+  };
+}
+
+function buildTrCredit(view) {
+  // IG vs HY OAS. IG runs ~1% and HY ~3-6%, so dual y-axis makes both visible.
+  // FRED's public API for these BofA series is licensed-limited to ~3 years.
+  const labels = view.spread_hy_oas.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const igMap = new Map((view.spread_ig_oas || []).map(r => [r[0], r[1]]));
+  const igAligned = view.spread_hy_oas.map(r => igMap.has(r[0]) ? igMap.get(r[0]) : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'High Yield OAS', data: view.spread_hy_oas.map(r => r[1]),
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false, yAxisID: 'y' },
+        { label: 'Investment Grade OAS', data: igAligned,
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.15, borderWidth: 2.4, pointRadius: pr, fill: false,
+          spanGaps: true, yAxisID: 'y2' },
+      ],
+    },
+    options: {
+      ...baseOptions(fmtPct2),
+      scales: {
+        x: {
+          grid: { display: false, drawBorder: true, color: BRAND.navy },
+          ticks: { color: BRAND.navy, font: { size: 11, weight: 'bold' }, maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 14 },
+          border: { color: BRAND.navy, width: 1 },
+        },
+        y:  axisSpec(fmtPct2, 'left'),
+        y2: axisSpec(fmtPct2, 'right'),
+      }
+    }
+  };
+}
+
+const TREASURIES_BUILDERS = {
+  chartTrCurve:    buildTrCurve,
+  chartTr10y:      buildTr10y,
+  chartTrSpread:   buildTrSpread,
+  chartTrFfrVs10y: buildTrFfrVs10y,
+  chartTrReal:     buildTrReal,
+  chartTrCredit:   buildTrCredit,
+};
+
+function renderAllTreasuries(view) {
+  Object.entries(TREASURIES_BUILDERS).forEach(([id, builder]) => {
+    const cfg = builder(view);
+    if (cfg) makeChart(id, cfg);
+  });
+}
+
+function registerAllCsvsTreasuries(view) {
+  // Yield curve snapshot CSV: a small two-column comparison.
+  const curveRows = (view.yield_curve_today || []).map((p, i) => {
+    const ya = (view.yield_curve_year_ago || [])[i];
+    return [p.maturity, p.value, ya ? ya.value : null];
+  });
+  registerCsv('chartTrCurve', 'yield-curve-today-vs-1y-ago.csv',
+    ['Maturity', 'Today (%)', '~1 Year Ago (%)'], curveRows);
+  registerCsv('chartTr10y', '10y-treasury-yield.csv',
+    ['Date', '10Y Treasury Yield (%)'], view.yields_10y);
+  registerCsv('chartTrSpread', '10y-2y-spread.csv',
+    ['Date', '10Y minus 2Y (% pts)'], view.spread_2s10s);
+  registerCsv('chartTrFfrVs10y', 'fedfunds-vs-10y.csv',
+    ['Date', '10Y Treasury (%)', 'Fed Funds Effective (%)'],
+    mergeSeries([view.yields_10y, view.fed_funds]));
+  registerCsv('chartTrReal', 'real-yield-and-breakeven.csv',
+    ['Date', 'Nominal 10Y (%)', 'Real 10Y TIPS (%)', '10Y Breakeven (%)'],
+    mergeSeries([view.yields_10y, view.tips_10y, view.breakeven_10y]));
+  registerCsv('chartTrCredit', 'credit-spreads-ig-hy.csv',
+    ['Date', 'High Yield OAS (%)', 'Investment Grade OAS (%)'],
+    mergeSeries([view.spread_hy_oas, view.spread_ig_oas]));
+}
+
+function renderKpisTreasuries(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const fmtPct = v => (v == null ? 'n/a' : v.toFixed(2) + '%');
+  const fmtBps = v => {
+    if (v == null) return 'no prior data';
+    if (v === 0)   return 'unchanged from prior day';
+    const sign = v > 0 ? '+' : '';
+    return sign + v.toFixed(0) + ' bps vs prior day';
+  };
+
+  // For yields, "rising" is neutral (depends on context) but we still color
+  // by direction so the eye picks up the move at a glance: up = coral, down = green.
+  const KPI_DEFS = [
+    { key: 'y3m',    label: '3-Month Treasury',  accent: BRAND.silver },
+    { key: 'y2y',    label: '2-Year Treasury',   accent: BRAND.khaki  },
+    { key: 'y10y',   label: '10-Year Treasury',  accent: BRAND.navy   },
+    { key: 'y30y',   label: '30-Year Treasury',  accent: BRAND.teal   },
+    { key: 'spread', label: '10Y - 2Y Spread',   accent: BRAND.mustard, spread: true },
+    { key: 'ffr',    label: 'Fed Funds Effective', accent: BRAND.coral },
+  ];
+
+  kpiHost.innerHTML = KPI_DEFS.map(def => {
+    const k = data.kpis[def.key] || { value: null, delta_bps: null, label: null };
+    const arrow = k.delta_bps == null ? '-' : (k.delta_bps > 0 ? '▲' : (k.delta_bps < 0 ? '▼' : '▬'));
+    let dCls = 'flat';
+    if (k.delta_bps != null && k.delta_bps !== 0) dCls = (k.delta_bps > 0 ? 'up' : 'down');
+    let extra = '';
+    if (def.spread && k.value != null) {
+      if (k.value < 0)       extra = '<div class="spread-flag invert">Curve inverted</div>';
+      else if (k.value < 0.25) extra = '<div class="spread-flag">Near-flat curve</div>';
+      else                   extra = '<div class="spread-flag steep">Positively-sloped</div>';
+    }
+    return `
+      <div class="kpi" style="border-top-color:${def.accent}">
+        <div class="label">${def.label}</div>
+        <div class="value">${fmtPct(k.value)}</div>
+        <div class="delta-bps ${dCls}">${arrow} ${fmtBps(k.delta_bps)}</div>
+        ${extra}
+      </div>`;
+  }).join('');
 }
 
 // =========================================================
@@ -2618,5 +2918,35 @@ window.EG = {
     };
     const id = map[chartKey] || 'chartCsRetailMom';
     if (CONSUMER_BUILDERS[id]) makeChart(id, CONSUMER_BUILDERS[id](view));
+  },
+
+  renderTreasuries(data) {
+    CURRENT_PAGE = 'treasuries';
+    RAW_DATA = data;
+    const m = document.getElementById('latest-month');
+    if (m) m.textContent = formatLabelLongD(data.latest_label);
+    renderKpisTreasuries(data);
+    const view = rangedViewTreasuries(data, CURRENT_RANGE);
+    renderAllTreasuries(view); registerAllCsvsTreasuries(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  // Embed mode for Treasuries:
+  // chartKey ∈ 'curve' | '10y' | 'spread' | 'ffrvs10y' | 'real' | 'credit'
+  renderTreasuriesEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'treasuries';
+    RAW_DATA = data;
+    if (range && RANGE_DAYS[range]) CURRENT_RANGE = range;
+    const view = rangedViewTreasuries(data, CURRENT_RANGE);
+    const map = {
+      curve:    'chartTrCurve',
+      '10y':    'chartTr10y',
+      spread:   'chartTrSpread',
+      ffrvs10y: 'chartTrFfrVs10y',
+      real:     'chartTrReal',
+      credit:   'chartTrCredit',
+    };
+    const id = map[chartKey] || 'chartTrCurve';
+    if (TREASURIES_BUILDERS[id]) makeChart(id, TREASURIES_BUILDERS[id](view));
   },
 };
