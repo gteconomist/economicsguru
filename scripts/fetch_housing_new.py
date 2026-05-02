@@ -242,24 +242,223 @@ def _date_for(month_num, ref_year):
     return f"{ref_year:04d}-{month_num:02d}-01"
 
 
-# We can't reach NAHB from a sandbox, but the GH Action runner can. The scraper
-# below uses a few different patterns to be resilient to small layout changes.
-# If everything fails, we just rely on the CSV (the page still works, it just
-# won't reflect this month until the user adds it manually).
-#
-# RETURNS A LIST OF ROWS: [{"date":..., "hmi":..., ...}, ...]
-# - Always includes the current-month row if any value was found.
-# - Additionally tries to capture a prior-month headline HMI revision if NAHB's
-#   prose says something like "down from a revised reading of 38 in March".
-#   NAHB rarely repeats the sub-indices and regional values for the prior month
-#   in prose, so the prior-month row will typically only carry an updated `hmi`.
-# - Older revisions (2+ months back) are NOT captured here — for those, do the
-#   periodic full-refresh ritual (see INSTRUCTIONS.md).
+NAHB_BASE = "https://www.nahb.org"
+
+_NAHB_REGIONS  = {'Northeast':'hmi_ne', 'Midwest':'hmi_mw', 'South':'hmi_s', 'West':'hmi_w'}
+_NAHB_MONTHMAP = {'Jan':1,'Feb':2,'Mar':3,'Apr':4,'May':5,'Jun':6,
+                  'Jul':7,'Aug':8,'Sep':9,'Oct':10,'Nov':11,'Dec':12}
+
+# Table 3 section header → CSV column. Section headers contain phrases like
+# "Single-Family: Present Sales", "Single-Family: Next Six Months", and
+# "Traffic of Prospective Buyers".
+_T3_SECTION_MARKERS = [
+    ('present',  'current_sales'),
+    ('next six', 'next_6mo_sales'),
+    ('traffic',  'traffic'),
+]
+
+
+def _parse_table_4_rows(rows):
+    """
+    Table 4 (Regional HMI History): blocks of [year-header, month-header,
+    optional annotation, 4 region rows]. Year columns carry forward across
+    columns until another year column appears.
+    Returns {YYYY-MM-01: {hmi_ne, hmi_mw, hmi_s, hmi_w}}.
+    """
+    current_year_cols = {}
+    current_month_cols = {}
+    data = {}
+    for cells in rows:
+        cells = [str(c).strip() if c not in (None, "") else "" for c in cells]
+        found_year_in = {}
+        for ci, c in enumerate(cells):
+            try:
+                f = float(c); y = int(f)
+                if 1980 <= y <= 2100 and abs(f - y) < 0.001 and len(c.split('.')[0]) == 4:
+                    found_year_in[ci] = y
+            except (ValueError, IndexError):
+                pass
+        found_month_in = {ci: _NAHB_MONTHMAP[c[:3]] for ci, c in enumerate(cells)
+                          if c[:3] in _NAHB_MONTHMAP and len(c) <= 4}
+        if found_year_in and not found_month_in:
+            current_year_cols = found_year_in; continue
+        if found_month_in:
+            current_month_cols = found_month_in; continue
+        region_key = _NAHB_REGIONS.get(cells[0]) if cells else None
+        if not region_key: continue
+        for ci in range(1, len(cells)):
+            v = cells[ci]
+            if not v or v in ('Revised','Prelim','R','P','revised','prelim'):
+                continue
+            try:
+                val = int(float(v))
+                if not (0 <= val <= 100): continue
+            except ValueError:
+                continue
+            mo = current_month_cols.get(ci)
+            if mo is None: continue
+            yr = None
+            for yc in sorted(current_year_cols.keys()):
+                if yc <= ci: yr = current_year_cols[yc]
+                else: break
+            if yr is None: continue
+            data.setdefault(f"{yr:04d}-{mo:02d}-01", {})[region_key] = val
+    return data
+
+
+def _parse_table_2_rows(rows):
+    """
+    Table 2 (National HMI History): Years are rows, months are columns.
+    R3-ish: month header row (Jan..Dec in cols 1..12).
+    R4+: each row is one year, with year in col 0 and 12 monthly values.
+    Returns {YYYY-MM-01: int_hmi}.
+    """
+    month_cols = {}
+    data = {}
+    for cells in rows:
+        cells = [str(c).strip() if c not in (None, "") else "" for c in cells]
+        # Month-header row?
+        mo_in_row = {ci: _NAHB_MONTHMAP[c[:3]] for ci, c in enumerate(cells)
+                     if c[:3] in _NAHB_MONTHMAP and len(c) <= 4}
+        if mo_in_row and not month_cols:
+            month_cols = mo_in_row; continue
+        # Year-data row?
+        if not cells: continue
+        try:
+            f = float(cells[0]); y = int(f)
+            if not (1980 <= y <= 2100 and abs(f-y) < 0.001): continue
+        except (ValueError, IndexError):
+            continue
+        for ci, mo in month_cols.items():
+            if ci >= len(cells): continue
+            v = cells[ci]
+            if not v or v in ('Revised','Prelim','R','P','revised','prelim'): continue
+            try:
+                val = int(float(v))
+                if 0 <= val <= 100:
+                    data[f"{y:04d}-{mo:02d}-01"] = val
+            except ValueError:
+                pass
+    return data
+
+
+def _parse_table_3_rows(rows):
+    """
+    Table 3 (National HMI Components): three transposed sections, one per
+    sub-index. Each section header (e.g., 'Single-Family: Present Sales') is
+    followed by a year-header row (years in cols 1..N), then 12 month rows
+    (Jan..Dec in col 0, monthly values in cols 1..N matching the year header).
+    Returns {YYYY-MM-01: {current_sales, next_6mo_sales, traffic}}.
+    """
+    data = {}
+    current_section = None
+    year_cols = {}
+    in_data_block = False
+    for cells in rows:
+        cells = [str(c).strip() if c not in (None, "") else "" for c in cells]
+        first = cells[0] if cells else ""
+        first_lc = first.lower()
+        # Section header?
+        section_hit = False
+        for marker, col_name in _T3_SECTION_MARKERS:
+            if marker in first_lc and ('single' in first_lc or 'traffic' in first_lc):
+                current_section = col_name
+                year_cols = {}; in_data_block = False
+                section_hit = True
+                break
+        if section_hit: continue
+        # Year-header row?
+        yr_in_row = {}
+        for ci, c in enumerate(cells):
+            try:
+                f = float(c); y = int(f)
+                if 1980 <= y <= 2100 and abs(f-y) < 0.001 and len(c.split('.')[0]) == 4:
+                    yr_in_row[ci] = y
+            except (ValueError, IndexError):
+                pass
+        if yr_in_row and current_section:
+            year_cols = yr_in_row; in_data_block = True; continue
+        # Month-data row?
+        if in_data_block and current_section and first[:3] in _NAHB_MONTHMAP:
+            mo = _NAHB_MONTHMAP[first[:3]]
+            for ci, yr in year_cols.items():
+                if ci >= len(cells): continue
+                v = cells[ci]
+                if not v or v in ('Revised','Prelim','R','P','revised','prelim'): continue
+                try:
+                    val = int(float(v))
+                    if 0 <= val <= 100:
+                        data.setdefault(f"{yr:04d}-{mo:02d}-01", {})[current_section] = val
+                except ValueError:
+                    pass
+    return data
+
+
+def _parse_nahb_xls(xls_bytes, parser_fn, label):
+    """
+    Generic .xls parser that tries xlrd first (preferred for legacy .xls), then
+    falls back to a libreoffice headless conversion + openpyxl. `parser_fn`
+    receives an iterable of cell-tuples (one per row) and returns a dict.
+    """
+    try:
+        import xlrd
+        book = xlrd.open_workbook(file_contents=xls_bytes)
+        sheet = book.sheet_by_index(0)
+        rows = [tuple(sheet.cell_value(ri, ci) for ci in range(sheet.ncols))
+                for ri in range(sheet.nrows)]
+        return parser_fn(rows)
+    except ImportError:
+        pass
+    except Exception as e:
+        print(f"NAHB {label}: xlrd parse failed: {e}; trying libreoffice fallback",
+              file=sys.stderr)
+    try:
+        import subprocess, tempfile, openpyxl
+        with tempfile.TemporaryDirectory() as tmpdir:
+            xls_path = Path(tmpdir) / f"{label}.xls"
+            xls_path.write_bytes(xls_bytes)
+            r = subprocess.run(
+                ["libreoffice", "--headless", "--convert-to", "xlsx",
+                 "--outdir", tmpdir, str(xls_path)],
+                capture_output=True, text=True, timeout=60,
+            )
+            xlsx_path = Path(tmpdir) / f"{label}.xlsx"
+            if not xlsx_path.exists():
+                print(f"NAHB {label}: libreoffice convert failed: {r.stderr[:200]}",
+                      file=sys.stderr)
+                return {}
+            wb = openpyxl.load_workbook(xlsx_path, data_only=True)
+            return parser_fn(wb.active.iter_rows(values_only=True))
+    except Exception as e:
+        print(f"NAHB {label}: libreoffice fallback failed: {e}", file=sys.stderr)
+        return {}
+
+
 def scrape_nahb_recent():
     """
-    Returns a list of dicts (newest first). Each dict has at least a `date`
-    field plus any of: hmi, current_sales, next_6mo_sales, traffic,
-    hmi_ne/mw/s/w. Returns [] if nothing usable could be scraped.
+    Returns list of dicts, one per month with values found. Always sorted with
+    the current month first.
+
+    Strategy:
+    1. Fetch the HMI landing page.
+    2. Locate the 'Key Findings: <Month> <Year>' paragraph and extract the
+       current-month headline + 3 sub-indices from the narrative. (Also gives
+       us the canonical release date.)
+    3. Find URLs for Tables 2, 3, 4 in the HTML and download each .xls:
+       - Table 2: National HMI history (full headline series, all revisions)
+       - Table 3: National HMI components (full sub-indices, all revisions)
+       - Table 4: Regional HMI history (full regional, all revisions)
+    4. Merge: for each date present in any table, build a row dict. The
+       landing-page narrative wins for the current month (most authoritative
+       same-day source); tables fill in everything else and any revisions.
+    5. Return current-month row first, then historical rows in date order.
+       The CSV upserter handles per-field deltas — fields not in this run's
+       scrape (which would be none, given Tables 2/3/4 cover everything)
+       remain untouched in the CSV.
+
+    Every value NAHB publishes for any month is captured every nightly run, so
+    revisions flow through automatically. Daily delta is small because most
+    values don't change.
     """
     try:
         html = _http_get(NAHB_INDEX_URL, retries=3, timeout=30,
@@ -269,98 +468,94 @@ def scrape_nahb_recent():
         print(f"NAHB scrape: page fetch failed: {e}", file=sys.stderr)
         return []
 
-    # Strip tags into a flat string for regex matching
     plain = re.sub(r"<[^>]+>", " ", html)
     plain = re.sub(r"\s+", " ", plain).strip()
 
     current = {}
 
-    # Patterns for the CURRENT month's values
-    patterns = [
-        (r"(?:NAHB[\s/]*Wells Fargo\s+)?Housing Market Index[^\d]{0,80}?(\d{2,3})",  "hmi"),
-        (r"(?:Current\s+(?:Single[\s\-]*Family\s+)?Sales|Present\s+Sales)[^\d]{0,40}?(\d{1,3})",
-         "current_sales"),
-        (r"(?:Sales\s+Expectations|Future\s+Sales|Next\s+Six\s+Months)[^\d]{0,40}?(\d{1,3})",
-         "next_6mo_sales"),
-        (r"(?:Buyer\s+)?Traffic(?:\s+of\s+Prospective\s+Buyers)?[^\d]{0,40}?(\d{1,3})",
-         "traffic"),
-        # \b word boundary on regional names so "West" doesn't match inside "Midwest"
-        (r"\bNortheast\b[^\d]{0,40}?(\d{1,3})", "hmi_ne"),
-        (r"\bMidwest\b[^\d]{0,40}?(\d{1,3})",   "hmi_mw"),
-        (r"\bSouth\b[^\d]{0,40}?(\d{1,3})",     "hmi_s"),
-        (r"\bWest\b[^\d]{0,40}?(\d{1,3})",      "hmi_w"),
-    ]
-    for pat, key in patterns:
-        m = re.search(pat, plain, flags=re.IGNORECASE)
-        if m:
-            try:
-                v = int(m.group(1))
-                if 0 <= v <= 100:
-                    current[key] = v
-            except ValueError:
-                pass
-
-    if "hmi" not in current:
-        print("NAHB scrape: could not locate headline HMI in page text.", file=sys.stderr)
+    # 1. Release month from "Key Findings: <Month> <Year>"
+    m = re.search(rf"Key\s+Findings[:\s]+({MONTH_ALT})\s+(\d{{4}})", plain, re.IGNORECASE)
+    if not m:
+        print("NAHB scrape: could not find 'Key Findings: <Month> <Year>' header.", file=sys.stderr)
         return []
-
-    # Find the current-release month. NAHB usually says e.g. "April 2026".
-    m = re.search(rf"({MONTH_ALT})\s+(\d{{4}})", plain)
-    if m:
-        cur_month = _month_to_num(m.group(1))
-        cur_year  = int(m.group(2))
-    else:
-        # Fallback: NAHB releases mid-month for the same month. Before 17th, use prior month.
-        today = dt.date.today()
-        if today.day < 17:
-            ref = today.replace(day=1) - dt.timedelta(days=1)
-            cur_month, cur_year = ref.month, ref.year
-        else:
-            cur_month, cur_year = today.month, today.year
+    cur_month = _month_to_num(m.group(1))
+    cur_year  = int(m.group(2))
     current["date"] = _date_for(cur_month, cur_year)
 
-    rows = [current]
+    # 2. Restrict value extraction to ~1000 chars after "Key Findings" — that's
+    #    where NAHB writes the narrative summary. Avoids matches in unrelated
+    #    explanatory text further down the page.
+    kf_text = plain[m.end():m.end() + 1000]
+    # Each pattern looks for '... (?:to|at) NN' to handle both "fell four points
+    # to 34", "rose three points to 56", and "unchanged at 50" / "held at 47".
+    for name, pat in [
+        ("hmi",            r"Builder\s+confidence[^.]*?(?:to|at)\s+(\d{1,3})"),
+        ("current_sales",  r"Current\s+sales(?:\s+conditions)?[^.]*?(?:to|at)\s+(\d{1,3})"),
+        ("next_6mo_sales", r"Sales\s+expectations[^.]*?(?:to|at)\s+(\d{1,3})"),
+        ("traffic",        r"Traffic[^.]*?(?:to|at)\s+(\d{1,3})"),
+    ]:
+        fm = re.search(pat, kf_text, re.IGNORECASE)
+        if fm:
+            v = int(fm.group(1))
+            if 0 <= v <= 100:
+                current[name] = v
 
-    # Try to find a PRIOR-MONTH revision. NAHB prose typically reads:
-    #   "down from a revised reading of 38 in March"
-    #   "compared to March's revised reading of 38"
-    #   "the March HMI was revised to 38 from a preliminary 37"
-    #   "from a revised 38 in March"
-    revision_patterns = [
-        rf"revised\s+(?:reading\s+of\s+)?(\d{{1,3}})\s+in\s+({MONTH_ALT})",
-        rf"({MONTH_ALT})['’]s?\s+revised\s+(?:reading\s+of\s+)?(\d{{1,3}})",
-        rf"revised\s+to\s+(\d{{1,3}})\s+(?:in\s+)?({MONTH_ALT})",
-        rf"from\s+(?:a\s+)?revised\s+(\d{{1,3}})\s+(?:reading\s+)?in\s+({MONTH_ALT})",
+    if "hmi" not in current:
+        print("NAHB scrape: 'Key Findings' found but headline HMI value not extractable.",
+              file=sys.stderr)
+
+    # 3. Download Tables 2, 3, 4 from the URLs embedded in the landing page.
+    #    Each table's URL has the year-month + a Sitecore rev/hash query string
+    #    that changes every release — we extract the live URL from the HTML so
+    #    we never have to guess the cache-buster params.
+    table_data = {2: {}, 3: {}, 4: {}}
+    table_specs = [
+        (2, _parse_table_2_rows, "Table 2 (headline HMI history)"),
+        (3, _parse_table_3_rows, "Table 3 (sub-indices history)"),
+        (4, _parse_table_4_rows, "Table 4 (regional history)"),
     ]
-    prior_match = None
-    for pat in revision_patterns:
-        m = re.search(pat, plain, flags=re.IGNORECASE)
-        if not m:
+    for n, parser_fn, label in table_specs:
+        url_match = re.search(rf'href="(/[^"]*?/t{n}-[^"]*?\.xls[^"]*?)"', html)
+        if not url_match:
+            print(f"NAHB scrape: {label} URL not found in landing page HTML.", file=sys.stderr)
             continue
-        # Some patterns put the value first, others the month — detect by group types
-        g1, g2 = m.group(1), m.group(2)
-        if g1.isdigit():
-            val = int(g1); month_name = g2
-        else:
-            month_name = g1; val = int(g2)
-        if not (0 <= val <= 100):
-            continue
+        url = NAHB_BASE + url_match.group(1).replace("&amp;", "&")
         try:
-            month_num = _month_to_num(month_name)
-        except ValueError:
-            continue
-        prior_match = (month_num, val)
-        break
+            xls_bytes = _http_get(url, retries=2, timeout=30,
+                                  ua="Mozilla/5.0 (compatible; economicsguru-bot/1.0)")
+            parsed = _parse_nahb_xls(xls_bytes, parser_fn, f"t{n}")
+            table_data[n] = parsed
+            print(f"NAHB scrape: parsed {label} — {len(parsed)} months", file=sys.stderr)
+        except Exception as e:
+            print(f"NAHB scrape: {label} download/parse failed: {e}", file=sys.stderr)
 
-    if prior_match:
-        pm, pval = prior_match
-        # Compute the prior-month year: walk back from current
-        py = cur_year if pm < cur_month else cur_year - 1
-        prior_date = _date_for(pm, py)
-        if prior_date != current["date"]:  # avoid dup
-            rows.append({"date": prior_date, "hmi": pval})
-            print(f"NAHB scrape: also captured prior-month revision {prior_date}: hmi={pval}",
-                  file=sys.stderr)
+    # 4. Merge: build {date -> row_dict} combining everything we found.
+    #    Table 2 is {date: int}; Tables 3 & 4 are {date: dict}.
+    by_date = {}
+    for date, hmi_val in table_data[2].items():
+        by_date.setdefault(date, {})['hmi'] = hmi_val
+    for date, vals in table_data[3].items():
+        by_date.setdefault(date, {}).update(vals)
+    for date, vals in table_data[4].items():
+        by_date.setdefault(date, {}).update(vals)
+
+    # Landing-page narrative wins for the current month (most authoritative
+    # same-day source — Tables 2/3 sometimes lag the landing page by an hour
+    # or two on release day). If the table data already has the same value,
+    # this is a no-op.
+    if current.get("date"):
+        cur_d = current["date"]
+        narrative_only = {k: v for k, v in current.items() if k != "date"}
+        by_date.setdefault(cur_d, {}).update(narrative_only)
+
+    # 5. Convert to list of row dicts, current month first, then date-descending.
+    rows = []
+    cur_d = current.get("date")
+    if cur_d and cur_d in by_date:
+        rows.append({"date": cur_d, **by_date[cur_d]})
+    for d in sorted(by_date.keys(), reverse=True):
+        if d == cur_d: continue
+        rows.append({"date": d, **by_date[d]})
 
     return rows
 
