@@ -29,9 +29,10 @@ jobs:
 
       # Each fetch step is `continue-on-error: true` so a single source going
       # down (e.g. BLS daily-quota exhausted, FRED 5xx storm, Census outage)
-      # does not block the rest of the pipeline. Failed fetches keep yesterday's
-      # data in the repo (the JSON file is just not regenerated) and the site
-      # still redeploys with whatever fresh data the surviving sources produced.
+      # does not block the rest of the pipeline. Combined with the data/*.json
+      # auto-commit at the end of the build job, a failed fetch just means
+      # yesterday's committed JSON rides through to deploy — the corresponding
+      # page shows yesterday's numbers for one day instead of going blank.
 
       - name: Refresh CPI data from BLS
         env:
@@ -111,23 +112,53 @@ jobs:
           python -c "import json; d=json.load(open('data/gdp.json')); print('GDP latest:', d['latest_label']); print('GDP QoQ ann kpi:', d['kpis']['gdp_qoq_ann']); print('Productivity kpi:', d['kpis']['productivity'])" 2>/dev/null || echo "skip GDP summary"
           exit 0
 
-      - name: Commit auto-appended CSV rows (if any)
+      # Auto-commit fresh data files + CSV baselines if their content materially
+      # changed (i.e. anything besides the build_time timestamp). This serves
+      # two purposes:
+      #  1. Yesterday's good JSONs persist in the repo, so when a fetch fails
+      #     today (BLS quota etc.), checkout brings yesterday's file forward
+      #     and the corresponding page renders yesterday's numbers instead of
+      #     going blank.
+      #  2. The historical CSV baselines (NAR existing-homes, NAHB HMI) keep
+      #     auto-extending as before.
+      # The [skip ci] tag prevents the bot's commit from re-triggering this
+      # workflow.
+      - name: Commit fresh data files + CSV baselines (if changed)
         run: |
+          set -e
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           changed=""
+
+          # data/*.json — only commit if content (excluding build_time) changed
+          for f in data/*.json; do
+            [[ -f "$f" ]] || continue
+            [[ -n "$(git status --porcelain "$f")" ]] || continue
+            prev_norm=$(git show "HEAD:$f" 2>/dev/null \
+              | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); d.pop('build_time',None); print(json.dumps(d, sort_keys=True))" 2>/dev/null \
+              || echo "__no_prior__")
+            new_norm=$(python3 -c "import sys,json; d=json.loads(open('$f').read()); d.pop('build_time',None); print(json.dumps(d, sort_keys=True))" 2>/dev/null \
+              || echo "__parse_fail__")
+            if [[ "$prev_norm" != "$new_norm" ]]; then
+              changed="$changed $f"
+            fi
+          done
+
+          # CSV baselines — commit on any change (they're append-only)
           for f in data/historical/nar_existing_homes.csv data/historical/nahb_hmi.csv; do
             if [[ -f "$f" && -n "$(git status --porcelain "$f")" ]]; then
               changed="$changed $f"
             fi
           done
+
           if [[ -n "$changed" ]]; then
-            git config user.name  "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git add $changed
-            git commit -m "data: auto-append latest months to CSV baselines [skip ci]"
+            git commit -m "data: refresh JSON snapshots + CSV baselines [skip ci]"
             git push
-            echo "Committed CSV updates:$changed"
+            echo "Committed:$changed"
           else
-            echo "No CSV changes to commit."
+            echo "No material data changes to commit."
           fi
 
       - name: Upload site as Pages artifact
