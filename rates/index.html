@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Rates &amp; Markets &mdash; Economics Guru</title>
+<meta name="description" content="US rates and markets dashboards: Treasury yields and credit spreads, equity indices and volatility, commodities (gold, silver, oil), and FX & crypto. Sourced live from FRED, MetalPriceAPI, Alpha Vantage, and Finnhub.">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/assets/styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  .hub-hero { padding: 24px 0 12px; }
+  .hub-hero h1 { font-family: var(--font-display); color: var(--ink-on-navy); font-weight: 800; font-size: 32px; letter-spacing: -0.01em; margin: 0 0 6px; }
+  .hub-hero p { font-size: 15px; color: var(--ink-on-navy-soft); max-width: 760px; margin: 0; }
+  .topic-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 22px; }
+  @media (max-width: 700px) { .topic-grid { grid-template-columns: 1fr; } }
+  .topic-card {
+    background: var(--panel-bg); border: 1px solid var(--border);
+    border-top: 4px solid var(--navy); padding: 18px;
+    text-decoration: none; color: var(--ink); display: block;
+  }
+  .topic-card:hover { border-color: var(--navy); text-decoration: none; }
+  .topic-card.coming { opacity: 0.55; cursor: not-allowed; }
+  .topic-card h3 { margin: 0 0 6px; font-family: var(--font-display); color: var(--navy); font-size: 19px; }
+  .topic-card p { margin: 0; color: var(--ink-soft); font-size: 14px; }
+  .topic-card .badge {
+    display: inline-block; margin-bottom: 8px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--mustard);
+  }
+  .topic-card.coming .badge { color: var(--silver); }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">Economics<span class="tag">Guru</span></div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/inflation/">Inflation</a>
+      <a href="/labor/">Labor</a>
+      <a href="/housing/">Housing</a>
+      <a href="/gdp/">GDP</a>
+      <a href="/consumer/">Consumer</a>
+      <a href="/rates/" class="active">Rates</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hub-hero">
+    <h1>Rates &amp; Markets</h1>
+    <p>Four windows on the financial markets: Treasury yields and credit spreads (the rate environment that prices everything else), equities (the market&rsquo;s read on growth and risk), commodities (real-economy price signals), and currencies + crypto (the cross-border lens). Treasuries is live now; the rest are on the way.</p>
+  </section>
+
+  <div class="topic-grid">
+    <a class="topic-card" href="/rates/treasuries/">
+      <div class="badge">Available</div>
+      <h3>Treasuries, Fed Funds &amp; Credit</h3>
+      <p>Yield curve today vs. one year ago, 10-year Treasury history, 2s10s recession indicator, Fed Funds vs. 10-year, real yields and breakeven inflation, investment-grade vs. high-yield credit spreads. Source: FRED.</p>
+    </a>
+    <div class="topic-card coming">
+      <div class="badge">Coming soon</div>
+      <h3>Equities &amp; Volatility</h3>
+      <p>S&amp;P 500, Nasdaq, Dow and Russell 2000 indices, drawdown from peak, and the VIX. Source: Alpha Vantage + FRED.</p>
+    </div>
+    <div class="topic-card coming">
+      <div class="badge">Coming soon</div>
+      <h3>Commodities</h3>
+      <p>Gold and silver on a single chart, the gold/silver ratio, WTI vs. Brent crude, copper, and an energy-vs-metals indexed comparison. Source: MetalPriceAPI + FRED.</p>
+    </div>
+    <div class="topic-card coming">
+      <div class="badge">Coming soon</div>
+      <h3>FX &amp; Crypto</h3>
+      <p>Dollar index, EUR/USD, USD/JPY, and Bitcoin (with a BTC vs. gold rebased comparison). Source: FRED + Finnhub.</p>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, BEA, Census, UMich, Conference Board, and ICE BofA. <a href="/about/">Methodology</a></div>
+    <div>Data refreshes nightly.</div>
+  </div>
+</footer>
+
+<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+</body>
+</html>
