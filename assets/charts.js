@@ -857,6 +857,7 @@ function rangedViewExistingHomes(data, range) {
   return {
     sales_level:            tail(data.sales_level || [], n),
     median_price:           tail(data.median_price || [], n),
+    median_price_sa:        tail(data.median_price_sa || [], n),
     months_supply:          tail(data.months_supply || [], n),
     active_inventory:       tail(data.active_inventory || [], n),
     case_shiller_hpi_level: tail(data.case_shiller_hpi_level || [], n),
@@ -898,18 +899,30 @@ function buildEhSales(view) {
 }
 
 function buildEhMedianPrice(view) {
-  const labels = view.median_price.map(r => shortLabel(r[0]));
+  // Use NSA series as canonical x-axis (FRED-extended; always >= SA in length).
+  // SA values aligned by month; missing months -> null so Chart.js shows a gap.
+  const nsa = view.median_price;
+  const labels = nsa.map(r => shortLabel(r[0]));
   const pr = pointSizeForLength(labels.length);
+  const saMap = new Map((view.median_price_sa || []).map(r => [r[0], r[1]]));
+  const saAligned = nsa.map(r => saMap.has(r[0]) ? saMap.get(r[0]) : null);
+  const datasets = [
+    { label: 'Median Sales Price (NSA — NAR via FRED)',
+      data: nsa.map(r => r[1]),
+      borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+      tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+  ];
+  if (view.median_price_sa && view.median_price_sa.length) {
+    datasets.push({
+      label: 'Median Sales Price (SA — Computed)',
+      data: saAligned,
+      borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+      tension: 0.2, borderWidth: 2.5, pointRadius: pr, spanGaps: false,
+    });
+  }
   return {
     type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Median Sales Price (NAR, NSA)', data: view.median_price.map(r => r[1]),
-          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
-          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
-      ],
-    },
+    data: { labels, datasets },
     options: baseOptions(fmtUsdK),
   };
 }
@@ -1110,8 +1123,14 @@ function renderKpisExistingHomes(data) {
 function registerAllCsvsExistingHomes(view) {
   registerCsv('chartEhSales', 'existing-home-sales.csv',
     ['Month', 'Existing Home Sales (SAAR units)'], view.sales_level);
-  registerCsv('chartEhMedianPrice', 'existing-home-median-price.csv',
-    ['Month', 'Median Sales Price (USD)'], view.median_price);
+  if (view.median_price_sa && view.median_price_sa.length) {
+    registerCsv('chartEhMedianPrice', 'existing-home-median-price.csv',
+      ['Month', 'Median Sales Price NSA (USD)', 'Median Sales Price SA (USD, Computed)'],
+      mergeSeries([view.median_price, view.median_price_sa]));
+  } else {
+    registerCsv('chartEhMedianPrice', 'existing-home-median-price.csv',
+      ['Month', 'Median Sales Price (USD)'], view.median_price);
+  }
   registerCsv('chartEhCsLevel', 'case-shiller-us-national-hpi.csv',
     ['Month', 'Case-Shiller US National HPI (Jan 2000 = 100)'], view.case_shiller_hpi_level);
   registerCsv('chartEhInventory', 'existing-home-inventory-and-months-supply.csv',
