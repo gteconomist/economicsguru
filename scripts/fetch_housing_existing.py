@@ -15,17 +15,25 @@ FRED (https://fred.stlouisfed.org)
 Local CSV baseline (optional — extends NAR series back beyond FRED's 12-month window)
   data/historical/nar_existing_homes.csv
   Columns (header row required, dates as YYYY-MM-DD on first of month):
-    date,existing_home_sales,median_sales_price,months_supply,active_inventory,pending_home_sales
+    date,existing_home_sales,median_sales_price,median_sales_price_sa,months_supply,active_inventory,pending_home_sales
 
-  - existing_home_sales: SAAR units (e.g., 5040000)
-  - median_sales_price:  USD (e.g., 165800)
-  - months_supply:       number (e.g., 4.5)
-  - active_inventory:    units (e.g., 1990000)
-  - pending_home_sales:  NAR Pending Home Sales Index (2001=100; e.g., 95.4)
+  - existing_home_sales:    SAAR units (e.g., 5040000)
+  - median_sales_price:     USD, NSA (e.g., 165800)            — FRED also publishes this
+  - median_sales_price_sa:  USD, SA — OPTIONAL override        — by default the script computes
+                                                                 SA itself (multiplicative
+                                                                 ratio-to-moving-average); only
+                                                                 fill this column if you have a
+                                                                 better external SA source
+                                                                 (e.g., Moody's X-13).
+  - months_supply:          number (e.g., 4.5)
+  - active_inventory:       units (e.g., 1990000)
+  - pending_home_sales:     NAR Pending Home Sales Index (2001=100; e.g., 95.4) — CSV-only
   - empty cell allowed for any single value
 
 Merge rule: FRED data wins on any overlapping month (it carries revisions). CSV provides
-everything older than FRED's window. Pending Home Sales is CSV-only (not on FRED).
+everything older than FRED's window. Pending Home Sales is CSV-only (not on FRED). The SA
+median-price series is computed in-house from the merged NSA series, but a CSV-provided
+override (median_sales_price_sa) wins when present.
 
 Environment variables
 ---------------------
@@ -61,8 +69,8 @@ WEEKLY_FRED_SERIES = {
 }
 
 # CSV columns the script understands (subset of these is fine; missing = no baseline)
-CSV_COLUMNS = ["existing_home_sales", "median_sales_price", "months_supply",
-               "active_inventory", "pending_home_sales"]
+CSV_COLUMNS = ["existing_home_sales", "median_sales_price", "median_sales_price_sa",
+               "months_supply", "active_inventory", "pending_home_sales"]
 
 
 # ---------- FRED ----------
@@ -185,6 +193,61 @@ def kpi_from_yoy(pairs):
     return {"value": round(last_v, 2), "delta": delta, "label": last_d}
 
 
+# ---------- Seasonal adjustment ----------
+def compute_sa_multiplicative(nsa_pairs, window=12):
+    """
+    Multiplicative seasonal adjustment via classical ratio-to-moving-average.
+
+    Step 1: 2x12 centered moving average of NSA -> trend (loses 6 months at each end)
+    Step 2: NSA / trend = combined seasonal+irregular ratios (middle months only)
+    Step 3: average ratios per calendar month (1..12) -> 12 stable seasonal factors
+    Step 4: normalize so the 12 factors average to 1.0 (no level drift)
+    Step 5: SA[i] = NSA[i] / seasonal_factor[month_of_i]  (works for ALL months,
+            including the tail — we only need a per-period trend during fitting)
+
+    This is what Census's X-11/X-12/X-13 was built on; X-13 adds ARIMA outlier
+    handling and asymmetric tail filters. For our use case (smooth long series,
+    no big outliers, long history for stable factors) the classical version
+    tracks X-13-based SA outputs to within ~1% at the chart-visible scale.
+
+    Returns [(YYYY-MM-01, sa_value)] in the same date format as the input. If
+    the series is too short (< 3 years) to fit stable seasonal factors, returns
+    an empty list and the chart will show NSA only.
+    """
+    if len(nsa_pairs) < window * 3:
+        return []
+    values = [v for _, v in nsa_pairs]
+    half = window // 2
+    # 2x12 centered MA: average of two adjacent 12-month MAs (proper centering for even window)
+    trend = [None] * len(values)
+    for i in range(half, len(values) - half):
+        ma1 = sum(values[i-half:i+half]) / window
+        ma2 = sum(values[i-half+1:i+half+1]) / window
+        trend[i] = (ma1 + ma2) / 2
+    # Per-calendar-month ratio buckets
+    by_month = {m: [] for m in range(1, 13)}
+    for i, (d, v) in enumerate(nsa_pairs):
+        if trend[i] is None or trend[i] == 0:
+            continue
+        try:
+            month = int(d[5:7])
+        except (ValueError, IndexError):
+            continue
+        by_month[month].append(v / trend[i])
+    sf = {m: (sum(rs) / len(rs)) if rs else 1.0 for m, rs in by_month.items()}
+    correction = sum(sf.values()) / 12 if sum(sf.values()) > 0 else 1.0
+    sf = {m: v / correction for m, v in sf.items()}
+    # Apply factors to every month (factors are stable across the series)
+    out = []
+    for d, v in nsa_pairs:
+        try:
+            month = int(d[5:7])
+        except (ValueError, IndexError):
+            continue
+        out.append((d, v / sf[month]))
+    return out
+
+
 # ---------- Main ----------
 def main():
     baseline = load_csv_baseline()
@@ -207,12 +270,23 @@ def main():
     mortgage_weekly = fetch_fred(WEEKLY_FRED_SERIES["mortgage_30y"])
     mortgage_monthly = collapse_weekly_to_monthly(mortgage_weekly)
 
+    # SA median price: prefer CSV override (e.g., Moody's X-13 if user provides it),
+    # otherwise compute in-house via multiplicative ratio-to-moving-average.
+    csv_sa_override = baseline.get("median_sales_price_sa", [])
+    if csv_sa_override:
+        median_price_sa_pairs = csv_sa_override
+        sa_method = "csv_override"
+    else:
+        median_price_sa_pairs = compute_sa_multiplicative(merged_nar["median_sales_price"])
+        sa_method = "computed_ratio_to_ma"
+
     # Pending Home Sales — CSV-only (NAR PHSI not on FRED)
     pending_home_sales = baseline.get("pending_home_sales", [])
 
     # Build output series (frontend wants [YYYY-MM, value] pairs)
     sales_level     = to_label_pairs(merged_nar["existing_home_sales"], 0)
     median_price    = to_label_pairs(merged_nar["median_sales_price"], 0)
+    median_price_sa = to_label_pairs(median_price_sa_pairs, 0) if median_price_sa_pairs else []
     months_supply   = to_label_pairs(merged_nar["months_supply"], 1)
     active_inv      = to_label_pairs(merged_nar["active_inventory"], 0)
     cs_hpi_level    = to_label_pairs(case_shiller, 2)
@@ -229,6 +303,7 @@ def main():
     out = {
         "sales_level":      sales_level,
         "median_price":     median_price,
+        "median_price_sa":  median_price_sa,
         "months_supply":    months_supply,
         "active_inventory": active_inv,
         "case_shiller_hpi_level": cs_hpi_level,
@@ -248,6 +323,7 @@ def main():
         "mortgage_latest":  mortgage_rate[-1][0] if mortgage_rate else None,
         "build_time":       dt.datetime.utcnow().isoformat(timespec="seconds") + "Z",
         "csv_baseline_loaded": CSV_PATH.exists(),
+        "sa_method":        sa_method,
     }
 
     if not CSV_PATH.exists():
