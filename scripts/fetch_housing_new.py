@@ -229,17 +229,37 @@ def load_nahb_baseline():
 # ---------- NAHB scrape ----------
 NAHB_INDEX_URL = "https://www.nahb.org/news-and-economics/housing-economics/indices/housing-market-index"
 
+MONTH_NAMES = ["january","february","march","april","may","june","july","august",
+               "september","october","november","december"]
+MONTH_ALT = "January|February|March|April|May|June|July|August|September|October|November|December"
+
+def _month_to_num(name):
+    return MONTH_NAMES.index(name.lower()) + 1
+
+def _date_for(month_num, ref_year):
+    """Convert a month number to a YYYY-MM-01 date, picking the most recent
+    occurrence on or before ref_year+ref_month."""
+    return f"{ref_year:04d}-{month_num:02d}-01"
+
+
 # We can't reach NAHB from a sandbox, but the GH Action runner can. The scraper
 # below uses a few different patterns to be resilient to small layout changes.
 # If everything fails, we just rely on the CSV (the page still works, it just
 # won't reflect this month until the user adds it manually).
-def scrape_nahb_current():
+#
+# RETURNS A LIST OF ROWS: [{"date":..., "hmi":..., ...}, ...]
+# - Always includes the current-month row if any value was found.
+# - Additionally tries to capture a prior-month headline HMI revision if NAHB's
+#   prose says something like "down from a revised reading of 38 in March".
+#   NAHB rarely repeats the sub-indices and regional values for the prior month
+#   in prose, so the prior-month row will typically only carry an updated `hmi`.
+# - Older revisions (2+ months back) are NOT captured here — for those, do the
+#   periodic full-refresh ritual (see INSTRUCTIONS.md).
+def scrape_nahb_recent():
     """
-    Try to scrape the current-month NAHB HMI plus components. Returns a dict like:
-        {"date": "YYYY-MM-01",
-         "hmi": 51, "current_sales": 56, "next_6mo_sales": 61, "traffic": 35,
-         "hmi_ne": 49, "hmi_mw": 47, "hmi_s": 53, "hmi_w": 50}
-    or None if nothing usable could be parsed. Missing components are simply omitted.
+    Returns a list of dicts (newest first). Each dict has at least a `date`
+    field plus any of: hmi, current_sales, next_6mo_sales, traffic,
+    hmi_ne/mw/s/w. Returns [] if nothing usable could be scraped.
     """
     try:
         html = _http_get(NAHB_INDEX_URL, retries=3, timeout=30,
@@ -247,31 +267,28 @@ def scrape_nahb_current():
             "utf-8", errors="replace")
     except Exception as e:
         print(f"NAHB scrape: page fetch failed: {e}", file=sys.stderr)
-        return None
+        return []
 
     # Strip tags into a flat string for regex matching
     plain = re.sub(r"<[^>]+>", " ", html)
     plain = re.sub(r"\s+", " ", plain).strip()
 
-    out = {}
+    current = {}
 
-    # Look for "HMI ... XX" with the headline value typically right after the index name
-    # Patterns we try, in order of specificity:
+    # Patterns for the CURRENT month's values
     patterns = [
-        # "Housing Market Index ... [Month YYYY] ... 51"
         (r"(?:NAHB[\s/]*Wells Fargo\s+)?Housing Market Index[^\d]{0,80}?(\d{2,3})",  "hmi"),
-        # Component lines: "Current Single-Family Sales 56", "Sales Expectations Next Six Months 61",
-        # "Buyer Traffic 35", "Northeast 49", etc. The exact wording varies, so we match loosely.
         (r"(?:Current\s+(?:Single[\s\-]*Family\s+)?Sales|Present\s+Sales)[^\d]{0,40}?(\d{1,3})",
          "current_sales"),
         (r"(?:Sales\s+Expectations|Future\s+Sales|Next\s+Six\s+Months)[^\d]{0,40}?(\d{1,3})",
          "next_6mo_sales"),
         (r"(?:Buyer\s+)?Traffic(?:\s+of\s+Prospective\s+Buyers)?[^\d]{0,40}?(\d{1,3})",
          "traffic"),
-        (r"Northeast[^\d]{0,40}?(\d{1,3})", "hmi_ne"),
-        (r"Midwest[^\d]{0,40}?(\d{1,3})",   "hmi_mw"),
-        (r"South[^\d]{0,40}?(\d{1,3})",     "hmi_s"),
-        (r"West[^\d]{0,40}?(\d{1,3})",      "hmi_w"),
+        # \b word boundary on regional names so "West" doesn't match inside "Midwest"
+        (r"\bNortheast\b[^\d]{0,40}?(\d{1,3})", "hmi_ne"),
+        (r"\bMidwest\b[^\d]{0,40}?(\d{1,3})",   "hmi_mw"),
+        (r"\bSouth\b[^\d]{0,40}?(\d{1,3})",     "hmi_s"),
+        (r"\bWest\b[^\d]{0,40}?(\d{1,3})",      "hmi_w"),
     ]
     for pat, key in patterns:
         m = re.search(pat, plain, flags=re.IGNORECASE)
@@ -279,41 +296,82 @@ def scrape_nahb_current():
             try:
                 v = int(m.group(1))
                 if 0 <= v <= 100:
-                    out[key] = v
+                    current[key] = v
             except ValueError:
                 pass
 
-    if "hmi" not in out:
+    if "hmi" not in current:
         print("NAHB scrape: could not locate headline HMI in page text.", file=sys.stderr)
-        return None
+        return []
 
-    # Try to find the release month. NAHB usually says e.g. "April 2026".
-    months = "January|February|March|April|May|June|July|August|September|October|November|December"
-    m = re.search(rf"({months})\s+(\d{{4}})", plain)
+    # Find the current-release month. NAHB usually says e.g. "April 2026".
+    m = re.search(rf"({MONTH_ALT})\s+(\d{{4}})", plain)
     if m:
-        month_name, year = m.group(1), int(m.group(2))
-        month_num = ["january","february","march","april","may","june","july","august",
-                     "september","october","november","december"].index(month_name.lower()) + 1
-        out["date"] = f"{year:04d}-{month_num:02d}-01"
+        cur_month = _month_to_num(m.group(1))
+        cur_year  = int(m.group(2))
     else:
-        # Fall back to last completed month — NAHB's index covers the same month it's released in
+        # Fallback: NAHB releases mid-month for the same month. Before 17th, use prior month.
         today = dt.date.today()
-        # Their release is typically mid-month for the same month. If today is before the 17th, use prior month.
         if today.day < 17:
-            ref = (today.replace(day=1) - dt.timedelta(days=1))
-            out["date"] = f"{ref.year:04d}-{ref.month:02d}-01"
+            ref = today.replace(day=1) - dt.timedelta(days=1)
+            cur_month, cur_year = ref.month, ref.year
         else:
-            out["date"] = f"{today.year:04d}-{today.month:02d}-01"
+            cur_month, cur_year = today.month, today.year
+    current["date"] = _date_for(cur_month, cur_year)
 
-    return out
+    rows = [current]
+
+    # Try to find a PRIOR-MONTH revision. NAHB prose typically reads:
+    #   "down from a revised reading of 38 in March"
+    #   "compared to March's revised reading of 38"
+    #   "the March HMI was revised to 38 from a preliminary 37"
+    #   "from a revised 38 in March"
+    revision_patterns = [
+        rf"revised\s+(?:reading\s+of\s+)?(\d{{1,3}})\s+in\s+({MONTH_ALT})",
+        rf"({MONTH_ALT})['’]s?\s+revised\s+(?:reading\s+of\s+)?(\d{{1,3}})",
+        rf"revised\s+to\s+(\d{{1,3}})\s+(?:in\s+)?({MONTH_ALT})",
+        rf"from\s+(?:a\s+)?revised\s+(\d{{1,3}})\s+(?:reading\s+)?in\s+({MONTH_ALT})",
+    ]
+    prior_match = None
+    for pat in revision_patterns:
+        m = re.search(pat, plain, flags=re.IGNORECASE)
+        if not m:
+            continue
+        # Some patterns put the value first, others the month — detect by group types
+        g1, g2 = m.group(1), m.group(2)
+        if g1.isdigit():
+            val = int(g1); month_name = g2
+        else:
+            month_name = g1; val = int(g2)
+        if not (0 <= val <= 100):
+            continue
+        try:
+            month_num = _month_to_num(month_name)
+        except ValueError:
+            continue
+        prior_match = (month_num, val)
+        break
+
+    if prior_match:
+        pm, pval = prior_match
+        # Compute the prior-month year: walk back from current
+        py = cur_year if pm < cur_month else cur_year - 1
+        prior_date = _date_for(pm, py)
+        if prior_date != current["date"]:  # avoid dup
+            rows.append({"date": prior_date, "hmi": pval})
+            print(f"NAHB scrape: also captured prior-month revision {prior_date}: hmi={pval}",
+                  file=sys.stderr)
+
+    return rows
 
 
-def append_nahb_to_csv(csv_path, scraped):
+def append_nahb_to_csv(csv_path, scraped_rows):
     """
-    Insert/upsert one scraped row into the NAHB CSV. Returns True if the file
-    changed. Preserves the user's column order and any extra columns.
+    Upsert one or more scraped rows into the NAHB CSV. Each row is a dict with
+    a `date` field plus any subset of the column values. Returns True if the
+    file changed. Preserves the user's column order and any extra columns.
     """
-    if not scraped or "date" not in scraped:
+    if not scraped_rows:
         return False
     if not csv_path.exists():
         # Bootstrap: create with the canonical columns
@@ -341,21 +399,24 @@ def append_nahb_to_csv(csv_path, scraped):
         elif len(d) == 10: d = f"{d[:7]}-01"
         by_date[d] = dict(zip(header, r))
 
-    target_date = scraped["date"]
-    row_now = by_date.get(target_date, {"date": target_date})
     changed = body_changed_initially
-    for k, v in scraped.items():
-        if k == "date":
-            continue
-        if k not in header:
-            continue  # CSV doesn't have this column — silently skip rather than break user's schema
-        old = (row_now.get(k) or "")
-        if isinstance(old, str): old = old.strip()
-        new = str(int(v))
-        if str(old) != new:
-            row_now[k] = new
-            changed = True
-    by_date[target_date] = row_now
+    for scraped in scraped_rows:
+        target_date = scraped["date"]
+        row_now = by_date.get(target_date, {"date": target_date})
+        if target_date not in by_date:
+            changed = True   # new row added
+        for k, v in scraped.items():
+            if k == "date":
+                continue
+            if k not in header:
+                continue  # CSV doesn't have this column — silently skip rather than break user's schema
+            old = (row_now.get(k) or "")
+            if isinstance(old, str): old = old.strip()
+            new = str(int(v))
+            if str(old) != new:
+                row_now[k] = new
+                changed = True
+        by_date[target_date] = row_now
 
     if not changed:
         return False
@@ -417,13 +478,14 @@ def main():
               f"({pairs[0][0] if pairs else 'n/a'} -> "
               f"{pairs[-1][0] if pairs else 'n/a'})", file=sys.stderr)
 
-    # 3. NAHB: scrape current month, append to CSV, reload baseline
-    print("Scraping NAHB current month...", file=sys.stderr)
-    scraped = scrape_nahb_current()
+    # 3. NAHB: scrape current + (if available) prior-month revision, append to CSV, reload
+    print("Scraping NAHB recent...", file=sys.stderr)
+    scraped_rows = scrape_nahb_recent()
     nahb_csv_changed = False
-    if scraped:
-        print(f"  NAHB scraped: {scraped}", file=sys.stderr)
-        nahb_csv_changed = append_nahb_to_csv(NAHB_CSV, scraped)
+    if scraped_rows:
+        for r in scraped_rows:
+            print(f"  NAHB scraped: {r}", file=sys.stderr)
+        nahb_csv_changed = append_nahb_to_csv(NAHB_CSV, scraped_rows)
     else:
         print("  NAHB scrape returned no usable data; CSV-only this run.", file=sys.stderr)
     nahb = load_nahb_baseline()
@@ -512,7 +574,8 @@ def main():
         "build_time":       dt.datetime.utcnow().isoformat(timespec="seconds") + "Z",
         "nahb_csv_present": NAHB_CSV.exists(),
         "nahb_csv_changed_this_run": nahb_csv_changed,
-        "nahb_scrape_succeeded": scraped is not None,
+        "nahb_scrape_succeeded": bool(scraped_rows),
+        "nahb_rows_scraped_this_run": len(scraped_rows) if scraped_rows else 0,
     }
 
     # Notice surfaced to the page when something's missing
@@ -522,7 +585,7 @@ def main():
             "NAHB Housing Market Index charts are empty — upload your historical "
             "values to data/historical/nahb_hmi.csv (template in repo). The monthly "
             "scraper will fill in new months as they're released.")
-    elif not scraped:
+    elif not scraped_rows:
         notices.append(
             "Could not auto-scrape this month's NAHB Housing Market Index from nahb.org. "
             "The chart shows whatever's in the CSV; add the new month manually if needed.")
@@ -534,7 +597,7 @@ def main():
     print(
         f"Wrote {OUT_PATH} ({OUT_PATH.stat().st_size} bytes); "
         f"latest={latest_label}; sales history={len(sales_saar)} months; "
-        f"NAHB rows={len(nahb_hmi)}; NAHB scraped this run={scraped is not None}; "
+        f"NAHB rows={len(nahb_hmi)}; NAHB rows scraped this run={len(scraped_rows) if scraped_rows else 0}; "
         f"NAHB CSV changed this run={nahb_csv_changed}",
         file=sys.stderr,
     )
