@@ -1159,7 +1159,6 @@ function rangedViewNewHomes(data, range) {
     sales_nsa:            tail(data.sales_nsa || [], n),
     sales_yoy:            tail(data.sales_yoy || [], n),
     median_price:         tail(data.median_price || [], n),
-    median_price_sa:      tail(data.median_price_sa || [], n),
     average_price:        tail(data.average_price || [], n),
     inventory_total_sa:   tail(data.inventory_total_sa || [], n),
     inventory_total_nsa:  tail(data.inventory_total_nsa || [], n),
@@ -1203,39 +1202,26 @@ function buildNhSales(view) {
 }
 
 function buildNhMedianPrice(view) {
-  // Use NSA as canonical x-axis (always >= SA in length).
-  const nsa = view.median_price;
-  const labels = nsa.map(r => shortLabel(r[0]));
+  // Median + Average on one chart (both NSA, both USD). Median is the canonical
+  // headline; Average sits above it and the gap tracks upper-tail pricing.
+  // Use Median's dates as the x-axis basis since it has the longer history.
+  const med = view.median_price;
+  const labels = med.map(r => shortLabel(r[0]));
   const pr = pointSizeForLength(labels.length);
-  const saMap = new Map((view.median_price_sa || []).map(r => [r[0], r[1]]));
-  const saAligned = nsa.map(r => saMap.has(r[0]) ? saMap.get(r[0]) : null);
-  const datasets = [
-    { label: 'Median Sales Price (NSA — Census)',
-      data: nsa.map(r => r[1]),
-      borderColor: BRAND.coral, backgroundColor: BRAND.coral,
-      tension: 0.2, borderWidth: 2.5, pointRadius: pr },
-  ];
-  if (view.median_price_sa && view.median_price_sa.length) {
-    datasets.push({
-      label: 'Median Sales Price (SA — Computed)',
-      data: saAligned,
-      borderColor: BRAND.navy, backgroundColor: BRAND.navy,
-      tension: 0.2, borderWidth: 2.5, pointRadius: pr, spanGaps: false,
-    });
-  }
-  return { type: 'line', data: { labels, datasets }, options: baseOptions(fmtUsdK) };
-}
-
-function buildNhAveragePrice(view) {
-  const labels = view.average_price.map(r => shortLabel(r[0]));
-  const pr = pointSizeForLength(labels.length);
+  const avgMap = new Map((view.average_price || []).map(r => [r[0], r[1]]));
+  const avgAligned = med.map(r => avgMap.has(r[0]) ? avgMap.get(r[0]) : null);
   return {
     type: 'line',
     data: {
       labels,
       datasets: [
-        { label: 'Average Sales Price (NSA, USD)', data: view.average_price.map(r => r[1]),
+        { label: 'Average Sales Price (NSA)',
+          data: avgAligned,
           borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.2, borderWidth: 2, pointRadius: pr, spanGaps: false },
+        { label: 'Median Sales Price (NSA)',
+          data: med.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
           tension: 0.2, borderWidth: 2.5, pointRadius: pr },
       ],
     },
@@ -1438,7 +1424,6 @@ function buildNhNahbRegional(view) {
 const NEW_HOMES_BUILDERS = {
   chartNhSales:        buildNhSales,
   chartNhMedianPrice:  buildNhMedianPrice,
-  chartNhAveragePrice: buildNhAveragePrice,
   chartNhInventory:    buildNhInventory,
   chartNhMonthsSupply: buildNhMonthsSupply,
   chartNhRegional:     buildNhRegional,
@@ -1535,16 +1520,9 @@ function renderKpisNewHomes(data) {
 function registerAllCsvsNewHomes(view) {
   registerCsv('chartNhSales', 'new-home-sales.csv',
     ['Month', 'New Home Sales (SAAR thousands)'], view.sales_saar);
-  if (view.median_price_sa && view.median_price_sa.length) {
-    registerCsv('chartNhMedianPrice', 'new-home-median-price.csv',
-      ['Month', 'Median Sales Price NSA (USD)', 'Median Sales Price SA (USD, Computed)'],
-      mergeSeries([view.median_price, view.median_price_sa]));
-  } else {
-    registerCsv('chartNhMedianPrice', 'new-home-median-price.csv',
-      ['Month', 'Median Sales Price NSA (USD)'], view.median_price);
-  }
-  registerCsv('chartNhAveragePrice', 'new-home-average-price.csv',
-    ['Month', 'Average Sales Price NSA (USD)'], view.average_price);
+  registerCsv('chartNhMedianPrice', 'new-home-prices.csv',
+    ['Month', 'Median Sales Price NSA (USD)', 'Average Sales Price NSA (USD)'],
+    mergeSeries([view.median_price, view.average_price]));
   registerCsv('chartNhInventory', 'new-home-inventory-by-stage.csv',
     ['Month', 'Total For Sale SA (thousands)', 'Completed SA', 'Under Construction SA'],
     mergeSeries([view.inventory_total_sa, view.inventory_comped_sa, view.inventory_underc_sa]));
@@ -1750,7 +1728,7 @@ window.EG = {
   },
 
   // Embed mode for New Homes:
-  // chartKey ∈ 'sales' | 'price' | 'avgprice' | 'inventory' | 'monthssupply'
+  // chartKey ∈ 'sales' | 'price' | 'inventory' | 'monthssupply'
   //          | 'regional' | 'salesyoy' | 'nahb' | 'nahbsub' | 'nahbregion'
   renderNewHomesEmbed(chartKey, data, range) {
     CURRENT_PAGE = 'new-homes';
@@ -1760,7 +1738,6 @@ window.EG = {
     const map = {
       sales:        'chartNhSales',
       price:        'chartNhMedianPrice',
-      avgprice:     'chartNhAveragePrice',
       inventory:    'chartNhInventory',
       monthssupply: 'chartNhMonthsSupply',
       regional:     'chartNhRegional',
