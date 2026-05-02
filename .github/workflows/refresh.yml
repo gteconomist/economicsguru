@@ -42,25 +42,28 @@ jobs:
           BLS_API_KEY: ${{ secrets.BLS_API_KEY }}
         run: python scripts/fetch_labor.py
 
-      - name: Refresh labor market data from BLS
-        env:
-          BLS_API_KEY: ${{ secrets.BLS_API_KEY }}
-        run: python scripts/fetch_labor.py
-
       - name: Refresh PCE data from BEA
         env:
           BEA_API_KEY: ${{ secrets.BEA_API_KEY }}
         run: python scripts/fetch_pce.py
+
+      - name: Refresh Existing Homes data from FRED
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: python scripts/fetch_housing_existing.py
+
       - name: Show generated data summary
         run: |
           test -s data/inflation.json
           test -s data/ppi.json
           test -s data/labor.json
           test -s data/pce.json
+          test -s data/housing_existing.json
           python -c "import json; d=json.load(open('data/inflation.json')); print('CPI latest:', d['latest_label']); print('CPI headline kpi:', d['kpis']['headline'])"
           python -c "import json; d=json.load(open('data/ppi.json')); print('PPI latest:', d['latest_label']); print('PPI headline kpi:', d['kpis']['headline'])"
           python -c "import json; d=json.load(open('data/labor.json')); print('Labor CPS:', d['cps_latest'], 'JOLTS:', d['jolts_latest']); print('UR kpi:', d['kpis']['unemployment'])"
           python -c "import json; d=json.load(open('data/pce.json')); print('PCE latest:', d['latest_label']); print('PCE headline kpi:', d['kpis']['headline']); print('PCE supercore kpi:', d['kpis']['supercore'])"
+          python -c "import json; d=json.load(open('data/housing_existing.json')); print('Existing Homes latest:', d['latest_label']); print('Sales kpi:', d['kpis']['sales']); print('Mortgage kpi:', d['kpis']['mortgage_30y']); print('CSV baseline loaded:', d.get('csv_baseline_loaded'))"
 
       - name: Upload site as Pages artifact
         uses: actions/upload-pages-artifact@v3
