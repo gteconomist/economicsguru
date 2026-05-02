@@ -52,6 +52,9 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: python scripts/fetch_housing_existing.py
 
+      - name: Install xlrd (for NAHB Table 4 .xls parsing)
+        run: pip install "xlrd==1.2.0"
+
       - name: Refresh New Homes data from Census + FRED + NAHB
         env:
           CENSUS_API_KEY: ${{ secrets.CENSUS_API_KEY }}
