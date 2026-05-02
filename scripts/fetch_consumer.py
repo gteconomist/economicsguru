@@ -310,6 +310,9 @@ UMICH_TABLES_URL_FALLBACKS = [
 # Files we want, by URL filename. UMich's monthly tables follow the convention
 # tb<period><index>.csv where period 'm' = monthly. The combined ICC+ICE file
 # has both components — we map both keys to the same URL with different cols.
+# Identity has to come from the URL path: every download anchor on tables.html
+# is labelled literally "PDF" / "Excel" / "CSV", so label-text matching is
+# useless here.
 UMICH_FILE_MAP = {
     "tbmics.csv":    {"ics": "ICS_ALL"},
     "tbmiccice.csv": {"icc": "ICC", "ice": "ICE"},
@@ -326,19 +329,22 @@ def _umich_discover_csvs(html):
     found = {}
     href_re = re.compile(r'href="([^"]+\.csv)"', re.IGNORECASE)
     for href in href_re.findall(html):
-        full = href if href.startswith(("http://", "https://")) else \
-               parse.urljoin(UMICH_TABLES_URL, href)
-        fname = full.rsplit("/", 1)[-1].lower()
+        full_url = href if href.startswith(("http://", "https://")) else \
+                   parse.urljoin(UMICH_TABLES_URL, href)
+        fname = full_url.rsplit("/", 1)[-1].lower()
         if fname in UMICH_FILE_MAP:
             for our_key, col_name in UMICH_FILE_MAP[fname].items():
                 if our_key not in found:
-                    found[our_key] = (full, col_name)
+                    found[our_key] = (full_url, col_name)
     return found
 
 
 def _umich_parse_csv(csv_text, value_col):
     """Parse a UMich monthly index CSV. Header is 'Month, YYYY, <one or more
-    value cols>'. Return sorted [(YYYY-MM, float)] for the requested column.
+    value cols>' (e.g. 'Month,YYYY,ICS_ALL' for tbmics.csv or
+    'Month,YYYY,ICC,ICE' for tbmiccice.csv). Returns sorted [(YYYY-MM, float)]
+    for the requested column. Tolerant of header rows, blank cells, and 'NA'
+    sentinels.
     """
     rows = list(csv.reader(csv_text.splitlines()))
     if not rows:
@@ -347,7 +353,7 @@ def _umich_parse_csv(csv_text, value_col):
     try:
         col_idx = header.index(value_col)
     except ValueError:
-        # Fallback: assume the third column (matches tbmics.csv shape)
+        # Fallback: assume the third column (matches tbmics.csv shape).
         col_idx = 2
     out = []
     for row in rows[1:]:
@@ -392,8 +398,8 @@ def scrape_umich():
     discovered = _umich_discover_csvs(html)
     print(f"  UMich CSVs discovered: {discovered}", file=sys.stderr)
     if not discovered:
-        print("  UMich scrape: no CSV anchors matched ICS/ICE/ICC labels — "
-              "skipping (UMich likely changed their tables page layout)",
+        print("  UMich scrape: no expected CSV filenames found on tables.html — "
+              "skipping (UMich likely changed their file naming)",
               file=sys.stderr)
         return []
 
@@ -402,8 +408,8 @@ def scrape_umich():
         try:
             text = _http_get_text(url)
             parsed = _umich_parse_csv(text, col)
-            print(f"  UMich {key}: parsed {len(parsed)} rows from {url}",
-                  file=sys.stderr)
+            print(f"  UMich {key}: parsed {len(parsed)} rows from {url} "
+                  f"(col={col})", file=sys.stderr)
             series[key] = parsed
         except Exception as e:
             print(f"  UMich {key} fetch/parse failed: {e}", file=sys.stderr)
