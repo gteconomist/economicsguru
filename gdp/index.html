@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gross Domestic Product &mdash; Economics Guru</title>
+<meta name="description" content="Live US GDP dashboard: real GDP growth, GDP component contributions, real corporate profits, productivity, and GDP vs GDI. Updated each release from BEA, BLS, and FRED.">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/assets/styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  .interactivity-hint { margin: 10px 0 16px; font-size: 12.5px; font-style: italic; color: var(--ink-on-navy-soft); }
+  .chart-card .source { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; }
+  .chart-card .csv-link { font-size: 11px; font-weight: 700; color: var(--mustard); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; text-decoration: none; }
+  .chart-card .csv-link::before { content: '\2193  '; }
+  .chart-card .csv-link:hover { text-decoration: underline; }
+  .controls { display: flex; gap: 12px; align-items: center; margin: 4px 0 0; flex-wrap: wrap; }
+  .controls .label-text { font-size: 12px; color: var(--ink-on-navy-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">Economics<span class="tag">Guru</span></div>
+    <nav>
+      <a href="/" >Home</a>
+      <a href="/inflation/">Inflation</a>
+      <a href="/labor/">Labor</a>
+      <a href="/housing/">Housing</a>
+      <a href="/gdp/" class="active">GDP</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="page-header">
+    <h1>US Gross Domestic Product Dashboard</h1>
+    <div class="subtitle">Real GDP, component contributions, corporate profits, productivity, and GDP vs GDI &mdash; sourced live from the U.S. Bureau of Economic Analysis, U.S. Bureau of Labor Statistics, and FRED.</div>
+    <div class="latest">Latest GDP release: <strong id="latest-month">&hellip;</strong></div>
+  </div>
+
+  <div class="notice" id="notice" style="display:none">
+    <strong>Data note:</strong> <span id="notice-text"></span>
+  </div>
+
+  <div id="kpis" class="kpi-grid"></div>
+
+  <div class="controls">
+    <span class="label-text">Time range:</span>
+    <div class="range-toggle">
+      <button data-range="12m">12 mo</button>
+      <button data-range="5y" class="active">5 yr</button>
+      <button data-range="10y">10 yr</button>
+      <button data-range="20y">20 yr</button>
+      <button data-range="max">Max</button>
+    </div>
+  </div>
+
+  <div class="interactivity-hint">
+    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post. GDI, corporate profits, and productivity typically lag headline GDP by one quarter (released later in the cycle).
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="title">Real GDP &mdash; Quarter-over-Quarter Growth</div>
+      <div class="subtitle">(% change from preceding quarter, seasonally adjusted at annual rate)</div>
+      <div class="chart-wrap"><canvas id="chartGdpHeadline"></canvas></div>
+      <div class="source">
+        <span>Source: BEA NIPA Table 1.1.1 &mdash; A191RL.</span>
+        <a href="#" class="csv-link" data-chart="chartGdpHeadline">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Components of GDP &mdash; Contributions to % Change</div>
+      <div class="subtitle">(Stacked bars sum to headline GDP growth; line shows total)</div>
+      <div class="chart-wrap"><canvas id="chartGdpComponents"></canvas></div>
+      <div class="source">
+        <span>Source: BEA NIPA Table 1.1.2 &mdash; PCE, Investment, Net Exports, Government.</span>
+        <a href="#" class="csv-link" data-chart="chartGdpComponents">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Real Corporate Profits &mdash; Quarter-over-Quarter Growth</div>
+      <div class="subtitle">(With IVA &amp; CCAdj, deflated by GDP price index; % change at annual rate)</div>
+      <div class="chart-wrap"><canvas id="chartGdpProfits"></canvas></div>
+      <div class="source">
+        <span>Source: BEA NIPA Table 1.12 &mdash; A051RC, deflated by FRED GDPDEF.</span>
+        <a href="#" class="csv-link" data-chart="chartGdpProfits">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Productivity &mdash; Output per Hour</div>
+      <div class="subtitle">(Non-farm business and Manufacturing; % change at annual rate)</div>
+      <div class="chart-wrap"><canvas id="chartGdpProductivity"></canvas></div>
+      <div class="source">
+        <span>Source: BLS &mdash; PRS85006092 (NF business), PRS30006092 (Manufacturing).</span>
+        <a href="#" class="csv-link" data-chart="chartGdpProductivity">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">GDP vs GDI &mdash; Year-over-Year % Change</div>
+      <div class="subtitle">(Real Gross Domestic Product vs Real Gross Domestic Income; gap is the statistical discrepancy)</div>
+      <div class="chart-wrap"><canvas id="chartGdpVsGdi"></canvas></div>
+      <div class="source">
+        <span>Source: FRED &mdash; GDPC1 (Real GDP), A261RX1Q020SBEA (Real GDI).</span>
+        <a href="#" class="csv-link" data-chart="chartGdpVsGdi">Download CSV</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BEA, BLS, and FRED. <a href="/about/">Methodology</a></div>
+    <div>Data refreshes nightly. Last successful build: <span id="build-time">&hellip;</span></div>
+  </div>
+</footer>
+
+<script src="/assets/charts.js"></script>
+<script>
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+fetch('/data/gdp.json', { cache: 'no-cache' })
+  .then(r => r.json())
+  .then(data => {
+    EG.renderGdp(data);
+    if (data.notice) {
+      document.getElementById('notice').style.display = '';
+      document.getElementById('notice-text').textContent = data.notice;
+    }
+    if (data.build_time) {
+      document.getElementById('build-time').textContent =
+        new Date(data.build_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    document.querySelector('main').insertAdjacentHTML('afterbegin',
+      '<div class="notice"><strong>Could not load data.</strong> Try refreshing in a moment.</div>');
+  });
+</script>
+
+</body>
+</html>
