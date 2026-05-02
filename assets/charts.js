@@ -25,6 +25,19 @@ function formatLabelLong(s){
   const [y,m] = s.split('-').map(Number);
   return new Date(y, m-1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
 }
+
+// Quarterly-aware label helpers (GDP/profits/productivity series use "YYYYQN").
+function shortLabelQ(s){
+  // "2026Q1" -> "Q1 '26"
+  const m = /^(\d{4})Q([1-4])$/.exec(s);
+  if (!m) return s;
+  return "Q" + m[2] + " '" + m[1].slice(2);
+}
+function formatLabelLongQ(s){
+  const m = /^(\d{4})Q([1-4])$/.exec(s);
+  if (!m) return s;
+  return m[1] + " Q" + m[2];
+}
 function tail(arr, n) { return n === Infinity ? arr.slice() : arr.slice(-n); }
 function rebaseToFirst(rows) {
   if (!rows.length) return [];
@@ -1782,6 +1795,230 @@ function renderKpisPermitsStarts(data) {
   }).join('');
 }
 
+
+// =========================================================
+// Gross Domestic Product page
+// =========================================================
+// All GDP-page series are quarterly with "YYYYQN" labels. Range buckets in
+// quarters map to the existing "12m / 5y / 10y / 20y / max" slider.
+const RANGE_QUARTERS = { '12m': 5, '5y': 20, '10y': 40, '20y': 80, 'max': Infinity };
+
+function rangedViewGdp(data, range) {
+  const n = RANGE_QUARTERS[range] || Infinity;
+  const comps = data.components || {};
+  return {
+    gdp_qoq_ann:     tail(data.gdp_qoq_ann || [], n),
+    components: {
+      gdp:         tail(comps.gdp || [], n),
+      pce:         tail(comps.pce || [], n),
+      investment:  tail(comps.investment || [], n),
+      net_exports: tail(comps.net_exports || [], n),
+      government:  tail(comps.government || [], n),
+    },
+    profits_qoq_ann: tail(data.profits_qoq_ann || [], n),
+    productivity: {
+      nfb: tail((data.productivity || {}).nfb || [], n),
+      mfg: tail((data.productivity || {}).mfg || [], n),
+    },
+    gdp_yoy:         tail(data.gdp_yoy || [], n),
+    gdi_yoy:         tail(data.gdi_yoy || [], n),
+    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+  };
+}
+
+function fmtPctSignedGdp(v) {
+  if (v == null) return 'n/a';
+  return (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+}
+
+// Color a bar series by sign — positive bars in posColor, negative in negColor.
+function barColorsBySign(rows, posColor, negColor) {
+  return rows.map(r => (r[1] != null && r[1] < 0) ? negColor : posColor);
+}
+
+function buildGdpHeadline(view) {
+  const labels = view.gdp_qoq_ann.map(r => shortLabelQ(r[0]));
+  const vals   = view.gdp_qoq_ann.map(r => r[1]);
+  const colors = barColorsBySign(view.gdp_qoq_ann, BRAND.navy, BRAND.coral);
+  return {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Real GDP, % change at annual rate',
+          data: vals, backgroundColor: colors, borderColor: colors, borderWidth: 1 },
+        { label: '0% line', type: 'line', data: labels.map(()=>0),
+          borderColor: BRAND.silver, borderWidth: 1.2, borderDash: [4,4], pointRadius: 0, fill: false },
+      ],
+    },
+    options: baseOptions(fmtPctSignedGdp),
+  };
+}
+
+function buildGdpComponents(view) {
+  const c = view.components || {};
+  const labels = (c.gdp || []).map(r => shortLabelQ(r[0]));
+  const seriesData = key => (c[key] || []).map(r => r[1]);
+  const cfg = {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Personal consumption (PCE)', data: seriesData('pce'),
+          backgroundColor: BRAND.navy, borderColor: BRAND.navy, stack: 'comp' },
+        { label: 'Private investment', data: seriesData('investment'),
+          backgroundColor: BRAND.mustard, borderColor: BRAND.mustard, stack: 'comp' },
+        { label: 'Net exports', data: seriesData('net_exports'),
+          backgroundColor: BRAND.coral, borderColor: BRAND.coral, stack: 'comp' },
+        { label: 'Government', data: seriesData('government'),
+          backgroundColor: BRAND.teal, borderColor: BRAND.teal, stack: 'comp' },
+        { label: 'Real GDP (sum)', type: 'line', data: seriesData('gdp'),
+          borderColor: BRAND.khaki, backgroundColor: BRAND.khaki,
+          borderWidth: 2.4, pointRadius: pointSizeForLength(labels.length),
+          fill: false, tension: 0.15 },
+      ],
+    },
+    options: baseOptions(fmtPctSignedGdp),
+  };
+  cfg.options.scales.x.stacked = true;
+  cfg.options.scales.y.stacked = true;
+  return cfg;
+}
+
+function buildGdpProfits(view) {
+  const labels = view.profits_qoq_ann.map(r => shortLabelQ(r[0]));
+  const vals   = view.profits_qoq_ann.map(r => r[1]);
+  const colors = barColorsBySign(view.profits_qoq_ann, BRAND.navy, BRAND.coral);
+  return {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Real corporate profits, % change at annual rate',
+          data: vals, backgroundColor: colors, borderColor: colors, borderWidth: 1 },
+        { label: '0% line', type: 'line', data: labels.map(()=>0),
+          borderColor: BRAND.silver, borderWidth: 1.2, borderDash: [4,4], pointRadius: 0, fill: false },
+      ],
+    },
+    options: baseOptions(fmtPctSignedGdp),
+  };
+}
+
+function buildGdpProductivity(view) {
+  const p = view.productivity || {};
+  const labels = (p.nfb || []).map(r => shortLabelQ(r[0]));
+  const mfgMap = new Map((p.mfg || []).map(r => [r[0], r[1]]));
+  const mfgAligned = (p.nfb || []).map(r => mfgMap.has(r[0]) ? mfgMap.get(r[0]) : null);
+  return {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Non-farm business', data: (p.nfb || []).map(r => r[1]),
+          backgroundColor: BRAND.navy, borderColor: BRAND.navy, borderWidth: 1 },
+        { label: 'Manufacturing', data: mfgAligned,
+          backgroundColor: BRAND.mustard, borderColor: BRAND.mustard, borderWidth: 1 },
+        { label: '0% line', type: 'line', data: labels.map(()=>0),
+          borderColor: BRAND.silver, borderWidth: 1.2, borderDash: [4,4], pointRadius: 0, fill: false },
+      ],
+    },
+    options: baseOptions(fmtPctSignedGdp),
+  };
+}
+
+function buildGdpVsGdi(view) {
+  const labels = view.gdp_yoy.map(r => shortLabelQ(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const gdiMap = new Map(view.gdi_yoy.map(r => [r[0], r[1]]));
+  const gdiAligned = view.gdp_yoy.map(r => gdiMap.has(r[0]) ? gdiMap.get(r[0]) : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Real GDP YoY %', data: view.gdp_yoy.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Real GDI YoY %', data: gdiAligned,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr, fill: false, spanGaps: false },
+        { label: '0% line', data: labels.map(()=>0),
+          borderColor: BRAND.silver, borderWidth: 1.2, borderDash: [4,4], pointRadius: 0, fill: false },
+      ],
+    },
+    options: baseOptions(fmtPctSignedGdp),
+  };
+}
+
+const GDP_BUILDERS = {
+  chartGdpHeadline:     buildGdpHeadline,
+  chartGdpComponents:   buildGdpComponents,
+  chartGdpProfits:      buildGdpProfits,
+  chartGdpProductivity: buildGdpProductivity,
+  chartGdpVsGdi:        buildGdpVsGdi,
+};
+
+function renderAllGdp(view) {
+  Object.entries(GDP_BUILDERS).forEach(([id, builder]) => {
+    const cfg = builder(view);
+    if (cfg) makeChart(id, cfg);
+  });
+}
+
+function registerAllCsvsGdp(view) {
+  const c = view.components || {};
+  registerCsv('chartGdpHeadline', 'real-gdp-qoq-annualized.csv',
+    ['Quarter', 'Real GDP, % change at annual rate'],
+    view.gdp_qoq_ann);
+  registerCsv('chartGdpComponents', 'real-gdp-component-contributions.csv',
+    ['Quarter', 'Real GDP (% chg ann.)', 'PCE contribution', 'Investment contribution', 'Net exports contribution', 'Government contribution'],
+    mergeSeries([c.gdp, c.pce, c.investment, c.net_exports, c.government]));
+  registerCsv('chartGdpProfits', 'real-corporate-profits-qoq-annualized.csv',
+    ['Quarter', 'Real Corporate Profits, % change at annual rate'],
+    view.profits_qoq_ann);
+  registerCsv('chartGdpProductivity', 'productivity-qoq-annualized.csv',
+    ['Quarter', 'Non-farm Business Productivity (% chg ann.)', 'Manufacturing Productivity (% chg ann.)'],
+    mergeSeries([view.productivity.nfb, view.productivity.mfg]));
+  registerCsv('chartGdpVsGdi', 'gdp-vs-gdi-yoy.csv',
+    ['Quarter', 'Real GDP YoY (%)', 'Real GDI YoY (%)'],
+    mergeSeries([view.gdp_yoy, view.gdi_yoy]));
+}
+
+function renderKpisGdp(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const fmtPct = v => (v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%');
+  // For growth-rate KPIs, "up" = good (more growth = teal/green).
+  // For the price deflator, "up" = bad (more inflation = coral).
+  const KPI_DEFS = [
+    { key: 'gdp_qoq_ann',     label: 'Real GDP (QoQ ann.)',           accent: BRAND.navy,    goodDir: 'up'   },
+    { key: 'gdp_yoy',         label: 'Real GDP (YoY)',                accent: BRAND.navy,    goodDir: 'up'   },
+    { key: 'gdi_yoy',         label: 'Real GDI (YoY)',                accent: BRAND.mustard, goodDir: 'up'   },
+    { key: 'profits_qoq_ann', label: 'Real Corp. Profits (QoQ ann.)', accent: BRAND.teal,    goodDir: 'up'   },
+    { key: 'productivity',    label: 'NFB Productivity (QoQ ann.)',   accent: BRAND.khaki,   goodDir: 'up'   },
+    { key: 'deflator_yoy',    label: 'GDP Price Deflator (YoY)',      accent: BRAND.coral,   goodDir: 'down' },
+  ];
+  kpiHost.innerHTML = KPI_DEFS.map(def => {
+    const k = data.kpis[def.key] || { value: null, delta: null, label: null };
+    const arrow = k.delta == null ? '–' : (k.delta > 0 ? '▲' : (k.delta < 0 ? '▼' : '▬'));
+    const deltaTxt = k.delta == null ? 'no prior data'
+                                     : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(1)} pp vs prior quarter`;
+    let cls = 'flat';
+    if (k.delta != null && k.delta !== 0) {
+      if (def.goodDir === 'up')   cls = (k.delta > 0 ? 'up' : 'down');
+      if (def.goodDir === 'down') cls = (k.delta > 0 ? 'down' : 'up');
+    }
+    const periodTxt = k.label ? `as of ${formatLabelLongQ(k.label)}` : '';
+    return `
+      <div class="kpi" style="border-top-color:${def.accent}">
+        <div class="label">${def.label}</div>
+        <div class="value">${fmtPct(k.value)}</div>
+        <div class="delta ${cls}">${arrow} ${deltaTxt}</div>
+        <div class="delta-yoy" style="color:var(--ink-soft); font-weight:600;">${periodTxt}</div>
+      </div>`;
+  }).join('');
+}
+
 // =========================================================
 // Range / dispatch
 // =========================================================
@@ -1806,6 +2043,9 @@ function applyRange(range) {
   } else if (CURRENT_PAGE === 'permits-starts') {
     const view = rangedViewPermitsStarts(RAW_DATA, range);
     renderAllPermitsStarts(view); registerAllCsvsPermitsStarts(view);
+  } else if (CURRENT_PAGE === 'gdp') {
+    const view = rangedViewGdp(RAW_DATA, range);
+    renderAllGdp(view); registerAllCsvsGdp(view);
   } else {
     const view = rangedView(RAW_DATA, range);
     renderAll(view); registerAllCsvs(view);
@@ -2009,5 +2249,37 @@ window.EG = {
     };
     const id = map[chartKey] || 'chartPsPermits';
     if (PERMITS_STARTS_BUILDERS[id]) makeChart(id, PERMITS_STARTS_BUILDERS[id](view));
+  },
+
+  renderGdp(data) {
+    CURRENT_PAGE = 'gdp';
+    RAW_DATA = data;
+    // Quarterly data with the default 12m window = 5 bars, which looks sparse.
+    // Bump the page default to 5y if the user hasn't picked something.
+    if (CURRENT_RANGE === '12m') CURRENT_RANGE = '5y';
+    const m = document.getElementById('latest-month');
+    if (m) m.textContent = formatLabelLongQ(data.latest_label);
+    renderKpisGdp(data);
+    const view = rangedViewGdp(data, CURRENT_RANGE);
+    renderAllGdp(view); registerAllCsvsGdp(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  // Embed mode for GDP:
+  // chartKey ∈ 'gdp' | 'components' | 'profits' | 'productivity' | 'gdpgdi'
+  renderGdpEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'gdp';
+    RAW_DATA = data;
+    if (range && RANGE_QUARTERS[range]) CURRENT_RANGE = range;
+    const view = rangedViewGdp(data, CURRENT_RANGE);
+    const map = {
+      gdp:          'chartGdpHeadline',
+      components:   'chartGdpComponents',
+      profits:      'chartGdpProfits',
+      productivity: 'chartGdpProductivity',
+      gdpgdi:       'chartGdpVsGdi',
+    };
+    const id = map[chartKey] || 'chartGdpHeadline';
+    if (GDP_BUILDERS[id]) makeChart(id, GDP_BUILDERS[id](view));
   },
 };
