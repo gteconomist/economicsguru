@@ -850,6 +850,284 @@ function registerAllCsvsPce(view) {
 }
 
 // =========================================================
+// Existing Homes: chart builders
+// =========================================================
+function rangedViewExistingHomes(data, range) {
+  const n = RANGE_MONTHS[range];
+  return {
+    sales_level:            tail(data.sales_level || [], n),
+    median_price:           tail(data.median_price || [], n),
+    months_supply:          tail(data.months_supply || [], n),
+    active_inventory:       tail(data.active_inventory || [], n),
+    case_shiller_hpi_level: tail(data.case_shiller_hpi_level || [], n),
+    case_shiller_hpi_yoy:   tail(data.case_shiller_hpi_yoy || [], n),
+    mortgage_30y:           tail(data.mortgage_30y || [], n),
+    pending_home_sales:     tail(data.pending_home_sales || [], n),
+    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+  };
+}
+
+function fmtUsdK(v) {
+  if (v == null) return 'n/a';
+  if (Math.abs(v) >= 1e6) return '$' + (v / 1e6).toFixed(2) + 'M';
+  if (Math.abs(v) >= 1e3) return '$' + Math.round(v / 1e3) + 'k';
+  return '$' + Math.round(v);
+}
+function fmtUnitsK(v) {
+  if (v == null) return 'n/a';
+  if (Math.abs(v) >= 1e6) return (v / 1e6).toFixed(2) + 'M';
+  if (Math.abs(v) >= 1e3) return Math.round(v / 1e3) + 'k';
+  return Math.round(v).toString();
+}
+
+function buildEhSales(view) {
+  const labels = view.sales_level.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Existing Home Sales (SAAR)', data: view.sales_level.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, fill: false },
+      ],
+    },
+    options: baseOptions(fmtUnitsK),
+  };
+}
+
+function buildEhMedianPrice(view) {
+  const labels = view.median_price.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Median Sales Price (NAR, NSA)', data: view.median_price.map(r => r[1]),
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+      ],
+    },
+    options: baseOptions(fmtUsdK),
+  };
+}
+
+function buildEhCsLevel(view) {
+  const labels = view.case_shiller_hpi_level.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Case-Shiller US National HPI', data: view.case_shiller_hpi_level.map(r => r[1]),
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+      ],
+    },
+    options: baseOptions(v => v == null ? 'n/a' : v.toFixed(1)),
+  };
+}
+
+function buildEhInventory(view) {
+  const labels = view.active_inventory.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Active Inventory (units, left)', data: view.active_inventory.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, yAxisID: 'yInv' },
+        { label: 'Months Supply (right)', data: view.months_supply.map(r => r[1]),
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, yAxisID: 'yMos' },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 8, right: 16, bottom: 4, left: 4 } },
+      interaction: { mode: 'index', intersect: false },
+      animation: { duration: 350 },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, boxHeight: 12, padding: 12, color: BRAND.navy, font: { size: 12, weight: '600' } } },
+        tooltip: {
+          backgroundColor: BRAND.navy, titleColor: '#fff', bodyColor: '#fff',
+          borderColor: BRAND.mustard, borderWidth: 1, padding: 10, cornerRadius: 4,
+          callbacks: {
+            label: ctx => {
+              if (ctx.parsed.y == null) return `${ctx.dataset.label}: n/a`;
+              if (ctx.dataset.yAxisID === 'yInv') return `${ctx.dataset.label}: ${fmtUnitsK(ctx.parsed.y)}`;
+              return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)} mo`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: baseScales(v=>v).x,
+        yInv: axisSpec(fmtUnitsK, 'left'),
+        yMos: axisSpec(v => v.toFixed(1), 'right'),
+      },
+    },
+  };
+}
+
+function buildEhCsYoy(view) {
+  const labels = view.case_shiller_hpi_yoy.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Case-Shiller HPI YoY', data: view.case_shiller_hpi_yoy.map(r => r[1]),
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: 'Zero', data: labels.map(()=>0),
+          borderColor: BRAND.silver, borderWidth: 1, pointRadius: 0, borderDash: [4,4] },
+      ],
+    },
+    options: baseOptions(v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`),
+  };
+}
+
+function buildEhMortgage(view) {
+  const labels = view.mortgage_30y.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '30-Year Fixed Mortgage Rate', data: view.mortgage_30y.map(r => r[1]),
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+      ],
+    },
+    options: baseOptions(v => `${v.toFixed(2)}%`),
+  };
+}
+
+function buildEhPending(view) {
+  const labels = view.pending_home_sales.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Pending Home Sales Index (NAR PHSI, 2001=100)', data: view.pending_home_sales.map(r => r[1]),
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: '2001 baseline (100)', data: labels.map(()=>100),
+          borderColor: BRAND.silver, borderWidth: 1, pointRadius: 0, borderDash: [4,4] },
+      ],
+    },
+    options: baseOptions(v => v == null ? 'n/a' : v.toFixed(1)),
+  };
+}
+
+const EXISTING_HOMES_BUILDERS = {
+  chartEhSales:      buildEhSales,
+  chartEhMedianPrice:buildEhMedianPrice,
+  chartEhCsLevel:    buildEhCsLevel,
+  chartEhInventory:  buildEhInventory,
+  chartEhCsYoy:      buildEhCsYoy,
+  chartEhMortgage:   buildEhMortgage,
+  chartEhPending:    buildEhPending,
+};
+
+function renderAllExistingHomes(view) {
+  for (const [id, builder] of Object.entries(EXISTING_HOMES_BUILDERS)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const card = el.closest('.chart-card');
+    // Hide pending card entirely if no pending data has been provided yet
+    if (id === 'chartEhPending' && (!view.pending_home_sales || view.pending_home_sales.length === 0)) {
+      if (card) card.style.display = 'none';
+      continue;
+    }
+    if (card) card.style.display = '';
+    makeChart(id, builder(view));
+  }
+}
+
+function renderKpisExistingHomes(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const fmtPct1 = v => (v == null ? 'n/a' : v.toFixed(1) + '%');
+  const fmtPct2 = v => (v == null ? 'n/a' : v.toFixed(2) + '%');
+  const fmtMos  = v => (v == null ? 'n/a' : v.toFixed(1));
+  const fmtUsd  = v => (v == null ? 'n/a' : '$' + Math.round(v).toLocaleString('en-US'));
+  const fmtNum  = v => (v == null ? 'n/a' : Math.round(v).toLocaleString('en-US'));
+
+  const KPI_DEFS = [
+    { key: 'sales', label: 'Existing Home Sales', accent: BRAND.navy,
+      valueFmt: k => fmtNum(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${fmtNum(k.delta)} vs prior month`,
+      goodDir: 'up' },
+    { key: 'median_price', label: 'Median Sales Price', accent: BRAND.coral,
+      valueFmt: k => fmtUsd(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${fmtUsd(k.delta).replace('$','$')} vs prior month`,
+      goodDir: 'neutral' },
+    { key: 'months_supply', label: 'Months Supply', accent: BRAND.mustard,
+      valueFmt: k => fmtMos(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(1)} mo vs prior month`,
+      goodDir: 'neutral' },
+    { key: 'inventory', label: 'Active Inventory', accent: BRAND.green,
+      valueFmt: k => fmtNum(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${fmtNum(k.delta)} vs prior month`,
+      goodDir: 'neutral' },
+    { key: 'case_shiller_yoy', label: 'Case-Shiller YoY', accent: BRAND.teal,
+      valueFmt: k => fmtPct1(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
+      goodDir: 'up' },
+    { key: 'mortgage_30y', label: '30-Yr Mortgage Rate', accent: BRAND.khaki,
+      valueFmt: k => fmtPct2(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
+      goodDir: 'down' },
+  ];
+  kpiHost.innerHTML = KPI_DEFS.map(def => {
+    const k = data.kpis[def.key] || { value: null, delta: null };
+    let dCls = 'flat';
+    if (k.delta != null && k.delta !== 0 && def.goodDir !== 'neutral') {
+      const isGood = (k.delta > 0 && def.goodDir === 'up') || (k.delta < 0 && def.goodDir === 'down');
+      dCls = isGood ? 'down' : 'up';
+    }
+    const arrow = k.delta == null ? '–' : (k.delta > 0 ? '▲' : (k.delta < 0 ? '▼' : '▬'));
+    return `
+      <div class="kpi" style="border-top-color:${def.accent}">
+        <div class="label">${def.label}</div>
+        <div class="value">${def.valueFmt(k)}</div>
+        <div class="delta ${dCls}">${arrow} ${def.deltaFmt(k)}</div>
+      </div>`;
+  }).join('');
+}
+
+function registerAllCsvsExistingHomes(view) {
+  registerCsv('chartEhSales', 'existing-home-sales.csv',
+    ['Month', 'Existing Home Sales (SAAR units)'], view.sales_level);
+  registerCsv('chartEhMedianPrice', 'existing-home-median-price.csv',
+    ['Month', 'Median Sales Price (USD)'], view.median_price);
+  registerCsv('chartEhCsLevel', 'case-shiller-us-national-hpi.csv',
+    ['Month', 'Case-Shiller US National HPI (Jan 2000 = 100)'], view.case_shiller_hpi_level);
+  registerCsv('chartEhInventory', 'existing-home-inventory-and-months-supply.csv',
+    ['Month', 'Active Inventory (units)', 'Months Supply'],
+    mergeSeries([view.active_inventory, view.months_supply]));
+  registerCsv('chartEhCsYoy', 'case-shiller-yoy.csv',
+    ['Month', 'Case-Shiller HPI YoY (%)'], view.case_shiller_hpi_yoy);
+  registerCsv('chartEhMortgage', '30-year-fixed-mortgage-rate.csv',
+    ['Month', '30-Year Fixed Mortgage Rate (%, monthly avg)'], view.mortgage_30y);
+  if (view.pending_home_sales && view.pending_home_sales.length) {
+    registerCsv('chartEhPending', 'pending-home-sales-index.csv',
+      ['Month', 'Pending Home Sales Index (NAR PHSI, 2001=100)'], view.pending_home_sales);
+  }
+}
+
+// =========================================================
 // Range / dispatch
 // =========================================================
 function applyRange(range) {
@@ -864,6 +1142,9 @@ function applyRange(range) {
   } else if (CURRENT_PAGE === 'pce') {
     const view = rangedViewPce(RAW_DATA, range);
     renderAllPce(view); registerAllCsvsPce(view);
+  } else if (CURRENT_PAGE === 'existing-homes') {
+    const view = rangedViewExistingHomes(RAW_DATA, range);
+    renderAllExistingHomes(view); registerAllCsvsExistingHomes(view);
   } else {
     const view = rangedView(RAW_DATA, range);
     renderAll(view); registerAllCsvs(view);
@@ -973,5 +1254,34 @@ window.EG = {
     const map = { headline: 'chartPceYoy', mom: 'chartPceMom', components: 'chartPceComp', spotlight: 'chartPceSpotlight' };
     const id = map[chartKey] || 'chartPceYoy';
     if (PCE_BUILDERS[id]) makeChart(id, PCE_BUILDERS[id](view));
+  },
+
+  renderExistingHomes(data) {
+    CURRENT_PAGE = 'existing-homes';
+    RAW_DATA = data;
+    document.getElementById('latest-month').textContent = formatLabelLong(data.latest_label);
+    renderKpisExistingHomes(data);
+    const view = rangedViewExistingHomes(data, CURRENT_RANGE);
+    renderAllExistingHomes(view); registerAllCsvsExistingHomes(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  // Embed mode for Existing Homes: chartKey ∈ 'sales' | 'price' | 'cslevel' | 'inventory' | 'csyoy' | 'mortgage' | 'pending'
+  renderExistingHomesEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'existing-homes';
+    RAW_DATA = data;
+    if (range && RANGE_MONTHS[range]) CURRENT_RANGE = range;
+    const view = rangedViewExistingHomes(data, CURRENT_RANGE);
+    const map = {
+      sales:    'chartEhSales',
+      price:    'chartEhMedianPrice',
+      cslevel:  'chartEhCsLevel',
+      inventory:'chartEhInventory',
+      csyoy:    'chartEhCsYoy',
+      mortgage: 'chartEhMortgage',
+      pending:  'chartEhPending',
+    };
+    const id = map[chartKey] || 'chartEhSales';
+    if (EXISTING_HOMES_BUILDERS[id]) makeChart(id, EXISTING_HOMES_BUILDERS[id](view));
   },
 };
