@@ -1150,6 +1150,432 @@ function registerAllCsvsExistingHomes(view) {
 }
 
 // =========================================================
+// New Homes — page builders
+// =========================================================
+function rangedViewNewHomes(data, range) {
+  const n = RANGE_MONTHS[range];
+  return {
+    sales_saar:           tail(data.sales_saar || [], n),
+    sales_nsa:            tail(data.sales_nsa || [], n),
+    sales_yoy:            tail(data.sales_yoy || [], n),
+    median_price:         tail(data.median_price || [], n),
+    median_price_sa:      tail(data.median_price_sa || [], n),
+    average_price:        tail(data.average_price || [], n),
+    inventory_total_sa:   tail(data.inventory_total_sa || [], n),
+    inventory_total_nsa:  tail(data.inventory_total_nsa || [], n),
+    inventory_comped_sa:  tail(data.inventory_comped_sa || [], n),
+    inventory_comped_nsa: tail(data.inventory_comped_nsa || [], n),
+    inventory_underc_sa:  tail(data.inventory_underc_sa || [], n),
+    inventory_underc_nsa: tail(data.inventory_underc_nsa || [], n),
+    months_supply:        tail(data.months_supply || [], n),
+    months_supply_nsa:    tail(data.months_supply_nsa || [], n),
+    sales_ne:             tail(data.sales_ne || [], n),
+    sales_mw:             tail(data.sales_mw || [], n),
+    sales_s:              tail(data.sales_s || [], n),
+    sales_w:              tail(data.sales_w || [], n),
+    nahb_hmi:             tail(data.nahb_hmi || [], n),
+    nahb_current:         tail(data.nahb_current || [], n),
+    nahb_next6:           tail(data.nahb_next6 || [], n),
+    nahb_traffic:         tail(data.nahb_traffic || [], n),
+    nahb_ne:              tail(data.nahb_ne || [], n),
+    nahb_mw:              tail(data.nahb_mw || [], n),
+    nahb_s:               tail(data.nahb_s || [], n),
+    nahb_w:               tail(data.nahb_w || [], n),
+    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+  };
+}
+
+function buildNhSales(view) {
+  const labels = view.sales_saar.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'New Home Sales (SAAR, thousands)', data: view.sales_saar.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, fill: false },
+      ],
+    },
+    options: baseOptions(fmtUnitsK),
+  };
+}
+
+function buildNhMedianPrice(view) {
+  // Use NSA as canonical x-axis (always >= SA in length).
+  const nsa = view.median_price;
+  const labels = nsa.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const saMap = new Map((view.median_price_sa || []).map(r => [r[0], r[1]]));
+  const saAligned = nsa.map(r => saMap.has(r[0]) ? saMap.get(r[0]) : null);
+  const datasets = [
+    { label: 'Median Sales Price (NSA — Census)',
+      data: nsa.map(r => r[1]),
+      borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+      tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+  ];
+  if (view.median_price_sa && view.median_price_sa.length) {
+    datasets.push({
+      label: 'Median Sales Price (SA — Computed)',
+      data: saAligned,
+      borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+      tension: 0.2, borderWidth: 2.5, pointRadius: pr, spanGaps: false,
+    });
+  }
+  return { type: 'line', data: { labels, datasets }, options: baseOptions(fmtUsdK) };
+}
+
+function buildNhAveragePrice(view) {
+  const labels = view.average_price.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Average Sales Price (NSA, USD)', data: view.average_price.map(r => r[1]),
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+      ],
+    },
+    options: baseOptions(fmtUsdK),
+  };
+}
+
+function buildNhInventory(view) {
+  // Use Total as canonical axis since it has the longest history (1963-).
+  // Completed and Under Construction SA series start 1999 - chart will simply
+  // begin lower lines later in time.
+  const total = view.inventory_total_sa;
+  const labels = total.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const compMap = new Map((view.inventory_comped_sa || []).map(r => [r[0], r[1]]));
+  const undMap  = new Map((view.inventory_underc_sa || []).map(r => [r[0], r[1]]));
+  const compAligned = total.map(r => compMap.has(r[0]) ? compMap.get(r[0]) : null);
+  const undAligned  = total.map(r => undMap.has(r[0])  ? undMap.get(r[0])  : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Total For Sale (SA, thousands)', data: total.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: 'Under Construction (SA)', data: undAligned,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.2, borderWidth: 2, pointRadius: pr, spanGaps: false },
+        { label: 'Completed (SA)', data: compAligned,
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.2, borderWidth: 2, pointRadius: pr, spanGaps: false },
+      ],
+    },
+    options: baseOptions(fmtUnitsK),
+  };
+}
+
+function buildNhMonthsSupply(view) {
+  const sa = view.months_supply;
+  const labels = sa.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const nsaMap = new Map((view.months_supply_nsa || []).map(r => [r[0], r[1]]));
+  const nsaAligned = sa.map(r => nsaMap.has(r[0]) ? nsaMap.get(r[0]) : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Months Supply (SA)', data: sa.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: 'Months Supply (NSA)', data: nsaAligned,
+          borderColor: BRAND.silver, backgroundColor: BRAND.silver,
+          tension: 0.2, borderWidth: 1.5, pointRadius: pr, spanGaps: false, borderDash: [4,3] },
+        { label: '6-mo balanced-market reference', data: labels.map(()=>6),
+          borderColor: BRAND.coral, borderWidth: 1, pointRadius: 0, borderDash: [4,4] },
+      ],
+    },
+    options: baseOptions(v => v == null ? 'n/a' : v.toFixed(1) + ' mo'),
+  };
+}
+
+function buildNhRegional(view) {
+  // Northeast historically has the smallest SAAR; use South as canonical axis
+  // since it's the longest and largest. All series are same FRED frequency.
+  const south = view.sales_s;
+  const labels = south.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const align = (series) => {
+    const m = new Map(series.map(r => [r[0], r[1]]));
+    return south.map(r => m.has(r[0]) ? m.get(r[0]) : null);
+  };
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'South (SAAR, thousands)',     data: south.map(r => r[1]),
+          borderColor: BRAND.navy,    backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr },
+        { label: 'West',                        data: align(view.sales_w),
+          borderColor: BRAND.teal,    backgroundColor: BRAND.teal,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr, spanGaps: false },
+        { label: 'Midwest',                     data: align(view.sales_mw),
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr, spanGaps: false },
+        { label: 'Northeast',                   data: align(view.sales_ne),
+          borderColor: BRAND.coral,   backgroundColor: BRAND.coral,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr, spanGaps: false },
+      ],
+    },
+    options: baseOptions(fmtUnitsK),
+  };
+}
+
+function buildNhSalesYoy(view) {
+  const labels = view.sales_yoy.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const opts = baseOptions(v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`);
+  opts.plugins.legend.labels.filter = (item) => item.text !== 'Zero';
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'New Home Sales YoY', data: view.sales_yoy.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: 'Zero', data: labels.map(()=>0),
+          borderColor: BRAND.silver, borderWidth: 1, pointRadius: 0, borderDash: [4,4] },
+      ],
+    },
+    options: opts,
+  };
+}
+
+function buildNhNahbHmi(view) {
+  const labels = view.nahb_hmi.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const opts = baseOptions(v => v == null ? 'n/a' : v.toFixed(0));
+  opts.plugins.legend.labels.filter = (item) => item.text !== 'Neutral (50)';
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'NAHB Housing Market Index', data: view.nahb_hmi.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: 'Neutral (50)', data: labels.map(()=>50),
+          borderColor: BRAND.coral, borderWidth: 1, pointRadius: 0, borderDash: [4,4] },
+      ],
+    },
+    options: opts,
+  };
+}
+
+function buildNhNahbSub(view) {
+  // Use whichever sub-series has the most points as the x-axis basis.
+  const series = [
+    { name: 'Current Sales',        data: view.nahb_current, color: BRAND.navy },
+    { name: 'Sales Expectations 6M', data: view.nahb_next6,   color: BRAND.teal },
+    { name: 'Buyer Traffic',        data: view.nahb_traffic, color: BRAND.mustard },
+  ];
+  const longest = series.reduce((a,b) => b.data.length > a.data.length ? b : a, series[0]);
+  const labels = longest.data.map(r => shortLabel(r[0]));
+  const baseDates = longest.data.map(r => r[0]);
+  const pr = pointSizeForLength(labels.length);
+  const align = (data) => {
+    const m = new Map(data.map(r => [r[0], r[1]]));
+    return baseDates.map(d => m.has(d) ? m.get(d) : null);
+  };
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: series.map(s => ({
+        label: s.name + ' (NAHB)',
+        data: align(s.data),
+        borderColor: s.color, backgroundColor: s.color,
+        tension: 0.2, borderWidth: 2.2, pointRadius: pr, spanGaps: false,
+      })),
+    },
+    options: baseOptions(v => v == null ? 'n/a' : v.toFixed(0)),
+  };
+}
+
+function buildNhNahbRegional(view) {
+  // Use HMI South as longest typical regional history; align others to it.
+  const series = [
+    { name: 'South',     data: view.nahb_s,  color: BRAND.navy },
+    { name: 'West',      data: view.nahb_w,  color: BRAND.teal },
+    { name: 'Midwest',   data: view.nahb_mw, color: BRAND.mustard },
+    { name: 'Northeast', data: view.nahb_ne, color: BRAND.coral },
+  ];
+  const longest = series.reduce((a,b) => b.data.length > a.data.length ? b : a, series[0]);
+  const labels = longest.data.map(r => shortLabel(r[0]));
+  const baseDates = longest.data.map(r => r[0]);
+  const pr = pointSizeForLength(labels.length);
+  const align = (data) => {
+    const m = new Map(data.map(r => [r[0], r[1]]));
+    return baseDates.map(d => m.has(d) ? m.get(d) : null);
+  };
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: series.map(s => ({
+        label: s.name + ' HMI',
+        data: align(s.data),
+        borderColor: s.color, backgroundColor: s.color,
+        tension: 0.2, borderWidth: 2.2, pointRadius: pr, spanGaps: false,
+      })),
+    },
+    options: baseOptions(v => v == null ? 'n/a' : v.toFixed(0)),
+  };
+}
+
+const NEW_HOMES_BUILDERS = {
+  chartNhSales:        buildNhSales,
+  chartNhMedianPrice:  buildNhMedianPrice,
+  chartNhAveragePrice: buildNhAveragePrice,
+  chartNhInventory:    buildNhInventory,
+  chartNhMonthsSupply: buildNhMonthsSupply,
+  chartNhRegional:     buildNhRegional,
+  chartNhSalesYoy:     buildNhSalesYoy,
+  chartNhNahbHmi:      buildNhNahbHmi,
+  chartNhNahbSub:      buildNhNahbSub,
+  chartNhNahbRegional: buildNhNahbRegional,
+};
+
+function renderAllNewHomes(view) {
+  // NAHB charts hide themselves if no data has been uploaded yet
+  const nahbAvailable = (view.nahb_hmi && view.nahb_hmi.length > 0);
+  const nahbSubAvailable = nahbAvailable && (
+    (view.nahb_current && view.nahb_current.length > 0) ||
+    (view.nahb_next6   && view.nahb_next6.length   > 0) ||
+    (view.nahb_traffic && view.nahb_traffic.length > 0)
+  );
+  const nahbRegAvailable = nahbAvailable && (
+    (view.nahb_ne && view.nahb_ne.length > 0) ||
+    (view.nahb_mw && view.nahb_mw.length > 0) ||
+    (view.nahb_s  && view.nahb_s.length  > 0) ||
+    (view.nahb_w  && view.nahb_w.length  > 0)
+  );
+  const hideMap = {
+    chartNhNahbHmi:      !nahbAvailable,
+    chartNhNahbSub:      !nahbSubAvailable,
+    chartNhNahbRegional: !nahbRegAvailable,
+  };
+  for (const [id, builder] of Object.entries(NEW_HOMES_BUILDERS)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const card = el.closest('.chart-card');
+    if (hideMap[id]) {
+      if (card) card.style.display = 'none';
+      continue;
+    }
+    if (card) card.style.display = '';
+    makeChart(id, builder(view));
+  }
+}
+
+function renderKpisNewHomes(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const fmtPct1 = v => (v == null ? 'n/a' : v.toFixed(1) + '%');
+  const fmtMos  = v => (v == null ? 'n/a' : v.toFixed(1));
+  const fmtUsd  = v => (v == null ? 'n/a' : '$' + Math.round(v).toLocaleString('en-US'));
+  const fmtNum  = v => (v == null ? 'n/a' : Math.round(v).toLocaleString('en-US'));
+  const fmtInt  = v => (v == null ? 'n/a' : Math.round(v).toString());
+
+  const KPI_DEFS = [
+    { key: 'sales', label: 'New Home Sales (SAAR k)', accent: BRAND.navy,
+      valueFmt: k => fmtNum(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${fmtNum(k.delta)} vs prior month`,
+      goodDir: 'up' },
+    { key: 'median_price', label: 'Median Sales Price', accent: BRAND.coral,
+      valueFmt: k => fmtUsd(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${fmtUsd(k.delta)} vs prior month`,
+      goodDir: 'neutral' },
+    { key: 'months_supply', label: 'Months Supply (SA)', accent: BRAND.mustard,
+      valueFmt: k => fmtMos(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(1)} mo vs prior month`,
+      goodDir: 'neutral' },
+    { key: 'inventory', label: 'Total For Sale (SA k)', accent: BRAND.green,
+      valueFmt: k => fmtNum(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${fmtNum(k.delta)} vs prior month`,
+      goodDir: 'neutral' },
+    { key: 'sales_yoy', label: 'Sales YoY', accent: BRAND.teal,
+      valueFmt: k => fmtPct1(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(1)} pp vs prior month`,
+      goodDir: 'up' },
+    { key: 'nahb_hmi', label: 'NAHB HMI', accent: BRAND.khaki,
+      valueFmt: k => fmtInt(k.value),
+      deltaFmt: k => k.delta == null ? 'CSV not uploaded' : `${k.delta > 0 ? '+' : ''}${Math.round(k.delta)} vs prior month`,
+      goodDir: 'up' },
+  ];
+  kpiHost.innerHTML = KPI_DEFS.map(def => {
+    const k = data.kpis[def.key] || { value: null, delta: null };
+    let dCls = 'flat';
+    if (k.delta != null && k.delta !== 0 && def.goodDir !== 'neutral') {
+      const isGood = (k.delta > 0 && def.goodDir === 'up') || (k.delta < 0 && def.goodDir === 'down');
+      dCls = isGood ? 'down' : 'up';
+    }
+    const arrow = k.delta == null ? '–' : (k.delta > 0 ? '▲' : (k.delta < 0 ? '▼' : '▬'));
+    return `
+      <div class="kpi" style="border-top-color:${def.accent}">
+        <div class="label">${def.label}</div>
+        <div class="value">${def.valueFmt(k)}</div>
+        <div class="delta ${dCls}">${arrow} ${def.deltaFmt(k)}</div>
+      </div>`;
+  }).join('');
+}
+
+function registerAllCsvsNewHomes(view) {
+  registerCsv('chartNhSales', 'new-home-sales.csv',
+    ['Month', 'New Home Sales (SAAR thousands)'], view.sales_saar);
+  if (view.median_price_sa && view.median_price_sa.length) {
+    registerCsv('chartNhMedianPrice', 'new-home-median-price.csv',
+      ['Month', 'Median Sales Price NSA (USD)', 'Median Sales Price SA (USD, Computed)'],
+      mergeSeries([view.median_price, view.median_price_sa]));
+  } else {
+    registerCsv('chartNhMedianPrice', 'new-home-median-price.csv',
+      ['Month', 'Median Sales Price NSA (USD)'], view.median_price);
+  }
+  registerCsv('chartNhAveragePrice', 'new-home-average-price.csv',
+    ['Month', 'Average Sales Price NSA (USD)'], view.average_price);
+  registerCsv('chartNhInventory', 'new-home-inventory-by-stage.csv',
+    ['Month', 'Total For Sale SA (thousands)', 'Completed SA', 'Under Construction SA'],
+    mergeSeries([view.inventory_total_sa, view.inventory_comped_sa, view.inventory_underc_sa]));
+  registerCsv('chartNhMonthsSupply', 'new-home-months-supply.csv',
+    ['Month', 'Months Supply SA', 'Months Supply NSA'],
+    mergeSeries([view.months_supply, view.months_supply_nsa]));
+  registerCsv('chartNhRegional', 'new-home-sales-by-region.csv',
+    ['Month', 'Northeast (SAAR k)', 'Midwest', 'South', 'West'],
+    mergeSeries([view.sales_ne, view.sales_mw, view.sales_s, view.sales_w]));
+  registerCsv('chartNhSalesYoy', 'new-home-sales-yoy.csv',
+    ['Month', 'New Home Sales YoY (%)'], view.sales_yoy);
+  if (view.nahb_hmi && view.nahb_hmi.length) {
+    registerCsv('chartNhNahbHmi', 'nahb-housing-market-index.csv',
+      ['Month', 'NAHB HMI'], view.nahb_hmi);
+  }
+  if (view.nahb_current && view.nahb_current.length ||
+      view.nahb_next6   && view.nahb_next6.length   ||
+      view.nahb_traffic && view.nahb_traffic.length) {
+    registerCsv('chartNhNahbSub', 'nahb-sub-indices.csv',
+      ['Month', 'Current Sales', 'Sales Expectations Next 6 Months', 'Buyer Traffic'],
+      mergeSeries([view.nahb_current, view.nahb_next6, view.nahb_traffic]));
+  }
+  if (view.nahb_ne && view.nahb_ne.length || view.nahb_mw && view.nahb_mw.length ||
+      view.nahb_s  && view.nahb_s.length  || view.nahb_w  && view.nahb_w.length) {
+    registerCsv('chartNhNahbRegional', 'nahb-hmi-by-region.csv',
+      ['Month', 'Northeast', 'Midwest', 'South', 'West'],
+      mergeSeries([view.nahb_ne, view.nahb_mw, view.nahb_s, view.nahb_w]));
+  }
+}
+
+// =========================================================
 // Range / dispatch
 // =========================================================
 function applyRange(range) {
@@ -1167,6 +1593,9 @@ function applyRange(range) {
   } else if (CURRENT_PAGE === 'existing-homes') {
     const view = rangedViewExistingHomes(RAW_DATA, range);
     renderAllExistingHomes(view); registerAllCsvsExistingHomes(view);
+  } else if (CURRENT_PAGE === 'new-homes') {
+    const view = rangedViewNewHomes(RAW_DATA, range);
+    renderAllNewHomes(view); registerAllCsvsNewHomes(view);
   } else {
     const view = rangedView(RAW_DATA, range);
     renderAll(view); registerAllCsvs(view);
@@ -1305,5 +1734,42 @@ window.EG = {
     };
     const id = map[chartKey] || 'chartEhSales';
     if (EXISTING_HOMES_BUILDERS[id]) makeChart(id, EXISTING_HOMES_BUILDERS[id](view));
+  },
+
+  renderNewHomes(data) {
+    CURRENT_PAGE = 'new-homes';
+    RAW_DATA = data;
+    const m  = document.getElementById('latest-month');
+    const nm = document.getElementById('latest-nahb');
+    if (m)  m.textContent  = formatLabelLong(data.latest_label);
+    if (nm) nm.textContent = data.nahb_latest ? formatLabelLong(data.nahb_latest) : 'no data uploaded yet';
+    renderKpisNewHomes(data);
+    const view = rangedViewNewHomes(data, CURRENT_RANGE);
+    renderAllNewHomes(view); registerAllCsvsNewHomes(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  // Embed mode for New Homes:
+  // chartKey ∈ 'sales' | 'price' | 'avgprice' | 'inventory' | 'monthssupply'
+  //          | 'regional' | 'salesyoy' | 'nahb' | 'nahbsub' | 'nahbregion'
+  renderNewHomesEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'new-homes';
+    RAW_DATA = data;
+    if (range && RANGE_MONTHS[range]) CURRENT_RANGE = range;
+    const view = rangedViewNewHomes(data, CURRENT_RANGE);
+    const map = {
+      sales:        'chartNhSales',
+      price:        'chartNhMedianPrice',
+      avgprice:     'chartNhAveragePrice',
+      inventory:    'chartNhInventory',
+      monthssupply: 'chartNhMonthsSupply',
+      regional:     'chartNhRegional',
+      salesyoy:     'chartNhSalesYoy',
+      nahb:         'chartNhNahbHmi',
+      nahbsub:      'chartNhNahbSub',
+      nahbregion:   'chartNhNahbRegional',
+    };
+    const id = map[chartKey] || 'chartNhSales';
+    if (NEW_HOMES_BUILDERS[id]) makeChart(id, NEW_HOMES_BUILDERS[id](view));
   },
 };
