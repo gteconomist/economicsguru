@@ -307,76 +307,64 @@ UMICH_TABLES_URL_FALLBACKS = [
     "http://www.sca.isr.umich.edu/tables.html",
     "https://data.sca.isr.umich.edu/tables.php",
 ]
-# Files we want, by what they cover. The UMich naming convention has been
-# consistent for years (tbm = table-monthly, ICS/ICE/ICC = the three indices).
-# But the canonical filenames sometimes change, so the scraper discovers them
-# from the tables.html anchor tags and matches loosely on display label.
-UMICH_INDEX_NAMES = {
-    "ics": [r"index of consumer sentiment", r"\bICS\b", r"consumer sentiment"],
-    "ice": [r"index of consumer expectations", r"\bICE\b", r"\bexpectation"],
-    "icc": [r"index of current economic conditions", r"\bICC\b",
-            r"current economic conditions", r"\bcurrent conditions"],
+# Files we want, by URL filename. UMich's monthly tables follow the convention
+# tb<period><index>.csv where period 'm' = monthly. The combined ICC+ICE file
+# has both components — we map both keys to the same URL with different cols.
+UMICH_FILE_MAP = {
+    "tbmics.csv":    {"ics": "ICS_ALL"},
+    "tbmiccice.csv": {"icc": "ICC", "ice": "ICE"},
 }
 
 
 def _umich_discover_csvs(html):
-    """Parse tables.html for CSV anchors, return {our_key: full_url}."""
-    # First pull all <a href="...csv">label</a> pairs (label may include nested tags).
-    anchor_re = re.compile(r'<a[^>]+href="([^"]+\.csv)"[^>]*>(.*?)</a>',
-                           re.IGNORECASE | re.DOTALL)
-    found = {}
-    for href, raw_label in anchor_re.findall(html):
-        # Strip HTML tags from the label
-        label = re.sub(r"<[^>]+>", " ", raw_label).strip()
-        # Some pages wrap label in another element next to the link — also try
-        # surrounding context: snip the 200 chars before this anchor as fallback
-        full_url = href if href.startswith(("http://", "https://")) else \
-                   parse.urljoin(UMICH_TABLES_URL, href)
+    """Parse tables.html for CSV anchors, return {our_key: (full_url, header_col)}.
 
-        # Match against each index's name regexes — first match wins per key
-        for key, patterns in UMICH_INDEX_NAMES.items():
-            if key in found:
-                continue
-            for pat in patterns:
-                if re.search(pat, label, re.IGNORECASE):
-                    found[key] = full_url
-                    break
+    Matches by URL filename rather than anchor label text — UMich labels every
+    download link literally 'CSV'/'PDF'/'Excel', so the identity of the index
+    has to come from the path (tbmics.csv = ICS, tbmiccice.csv = ICC + ICE).
+    """
+    found = {}
+    href_re = re.compile(r'href="([^"]+\.csv)"', re.IGNORECASE)
+    for href in href_re.findall(html):
+        full = href if href.startswith(("http://", "https://")) else \
+               parse.urljoin(UMICH_TABLES_URL, href)
+        fname = full.rsplit("/", 1)[-1].lower()
+        if fname in UMICH_FILE_MAP:
+            for our_key, col_name in UMICH_FILE_MAP[fname].items():
+                if our_key not in found:
+                    found[our_key] = (full, col_name)
     return found
 
 
-def _umich_parse_csv(csv_text):
-    """Parse a single UMich CSV. UMich's monthly index CSVs typically come as:
-
-        Month,Year,Index
-        Feb,1953,89.5
-        Mar,1953,...
-
-    or the variant 'YYYY-MM,Index'. Return a sorted list of (YYYY-MM, float).
-    Tolerant of header rows, blank cells, and 'NA' sentinels.
+def _umich_parse_csv(csv_text, value_col):
+    """Parse a UMich monthly index CSV. Header is 'Month, YYYY, <one or more
+    value cols>'. Return sorted [(YYYY-MM, float)] for the requested column.
     """
     rows = list(csv.reader(csv_text.splitlines()))
+    if not rows:
+        return []
+    header = [h.strip() for h in rows[0]]
+    try:
+        col_idx = header.index(value_col)
+    except ValueError:
+        # Fallback: assume the third column (matches tbmics.csv shape)
+        col_idx = 2
     out = []
-    for row in rows:
-        if not row: continue
+    for row in rows[1:]:
         cells = [c.strip() for c in row]
-        # Try variants:
-        # 1) ['Feb', '1953', '89.5']
-        if len(cells) >= 3 and cells[0][:3] in MONTHS_ABBR:
-            try:
-                y = int(cells[1]); v = float(cells[2])
-                out.append((f"{y:04d}-{MONTHS_ABBR[cells[0][:3]]:02d}", v))
-                continue
-            except ValueError:
-                pass
-        # 2) ['Feb 1953', '89.5'] / ['1953-02', '89.5']
-        if len(cells) >= 2:
-            m = _normalize_month(cells[0])
-            if m:
-                try:
-                    out.append((m, float(cells[1])))
-                    continue
-                except ValueError:
-                    pass
+        if len(cells) <= col_idx:
+            continue
+        mon, yr, val = cells[0], cells[1], cells[col_idx]
+        if not mon or not yr or not val:
+            continue
+        m_abbr = mon[:3].title()
+        if m_abbr not in MONTHS_ABBR:
+            continue
+        try:
+            y = int(yr); v = float(val)
+        except ValueError:
+            continue
+        out.append((f"{y:04d}-{MONTHS_ABBR[m_abbr]:02d}", v))
     out.sort(key=lambda x: x[0])
     return out
 
@@ -410,10 +398,10 @@ def scrape_umich():
         return []
 
     series = {}
-    for key, url in discovered.items():
+    for key, (url, col) in discovered.items():
         try:
             text = _http_get_text(url)
-            parsed = _umich_parse_csv(text)
+            parsed = _umich_parse_csv(text, col)
             print(f"  UMich {key}: parsed {len(parsed)} rows from {url}",
                   file=sys.stderr)
             series[key] = parsed
