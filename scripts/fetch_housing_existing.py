@@ -151,12 +151,85 @@ def load_csv_baseline():
 
 
 # ---------- Merge / transforms ----------
+# ---------- Merge / transforms ----------
 def merge_baseline_and_fred(baseline_pairs, fred_pairs):
     """FRED values win on overlapping dates; baseline fills the older history."""
     merged = dict(baseline_pairs)
     for date, v in fred_pairs:
         merged[to_month_first(date)] = v
     return sorted(merged.items())
+
+
+# ---------- CSV auto-extension ----------
+# As FRED's window rolls forward (~12-month rolling cap on NAR data), we need
+# the CSV baseline to keep growing or a coverage gap will eventually open
+# between the static CSV history and FRED's trailing edge. Each run, after
+# fetching FRED, we append any FRED months that aren't already in the CSV.
+# Append-only: existing rows are never modified (FRED revisions still flow
+# through via the in-memory merge → JSON output). Idempotent: a second run
+# finds zero new months and is a no-op. The workflow then commits the file
+# back to the repo iff this function actually wrote new rows.
+NAR_CSV_REQUIRED = ["existing_home_sales", "median_sales_price",
+                    "months_supply", "active_inventory"]
+
+def append_new_fred_months_to_csv(csv_path, fred_nar_data):
+    """
+    Append any FRED months not already present in the CSV, preserving the
+    file's existing column schema (so a CSV with extra optional columns like
+    median_sales_price_sa or pending_home_sales gets empty cells in those
+    positions for the new rows). Returns the number of rows appended.
+    """
+    if not csv_path.exists():
+        return 0  # bootstrap-time CSV is required to be created manually first
+    with csv_path.open() as f:
+        rows = list(csv.reader(f))
+    if not rows or rows[0][0] != "date":
+        return 0
+    header = rows[0]
+    existing_dates = {to_month_first(r[0]) for r in rows[1:] if r and r[0]}
+
+    # Build {month -> {csv_col: value}} from FRED data
+    by_month = {}
+    for csv_col, pairs in fred_nar_data.items():
+        for date, value in pairs:
+            by_month.setdefault(to_month_first(date), {})[csv_col] = value
+
+    # Only append months FRED has all 4 NAR series for (NAR releases them
+    # together, so partial months indicate a transient FRED hiccup we'd
+    # rather skip than commit half-data)
+    appendable = sorted(
+        m for m in by_month
+        if m not in existing_dates
+        and all(c in by_month[m] for c in NAR_CSV_REQUIRED)
+    )
+    if not appendable:
+        return 0
+
+    def fmt(col, val):
+        if col == "months_supply": return f"{val:.2f}"
+        return str(int(round(val)))
+
+    new_rows = []
+    for m in appendable:
+        vals = by_month[m]
+        new_rows.append([
+            m if col == "date"
+            else fmt(col, vals[col]) if col in vals
+            else ""
+            for col in header
+        ])
+
+    # Sort body chronologically before writing (defensive — handles any prior manual misorder)
+    body = sorted(rows[1:] + new_rows, key=lambda r: r[0] if r else "")
+
+    # Atomic write via tmp + rename
+    tmp_path = csv_path.with_suffix(csv_path.suffix + ".tmp")
+    with tmp_path.open("w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(header)
+        w.writerows(body)
+    tmp_path.replace(csv_path)
+    return len(appendable)
 
 
 def to_label_pairs(pairs, decimals=2):
@@ -257,6 +330,15 @@ def main():
     for col, sid in NAR_FRED_SERIES.items():
         fred_nar[col] = fetch_fred(sid)
 
+    # Auto-extend the CSV with any FRED months not already in it. This keeps
+    # the historical baseline growing as FRED's 12-month window rolls forward,
+    # so we never develop a coverage gap. The workflow then commits the file
+    # iff this returns >0.
+    appended = append_new_fred_months_to_csv(CSV_PATH, fred_nar)
+    if appended:
+        print(f"Auto-appended {appended} new month(s) to {CSV_PATH}", file=sys.stderr)
+        baseline = load_csv_baseline()  # reload so the merge below sees them
+
     merged_nar = {
         col: merge_baseline_and_fred(baseline[col], fred_nar[col])
         for col in NAR_FRED_SERIES
@@ -324,6 +406,7 @@ def main():
         "build_time":       dt.datetime.utcnow().isoformat(timespec="seconds") + "Z",
         "csv_baseline_loaded": CSV_PATH.exists(),
         "sa_method":        sa_method,
+        "csv_rows_appended_this_run": appended,
     }
 
     if not CSV_PATH.exists():
