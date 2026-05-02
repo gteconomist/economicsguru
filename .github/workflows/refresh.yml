@@ -61,6 +61,11 @@ jobs:
           FRED_API_KEY:   ${{ secrets.FRED_API_KEY }}
         run: python scripts/fetch_housing_new.py
 
+      - name: Refresh Permits & Starts data from FRED (Census-sourced)
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: python scripts/fetch_housing_permits.py
+
       - name: Show generated data summary
         run: |
           test -s data/inflation.json
@@ -69,12 +74,14 @@ jobs:
           test -s data/pce.json
           test -s data/housing_existing.json
           test -s data/housing_new.json
+          test -s data/housing_permits.json
           python -c "import json; d=json.load(open('data/inflation.json')); print('CPI latest:', d['latest_label']); print('CPI headline kpi:', d['kpis']['headline'])"
           python -c "import json; d=json.load(open('data/ppi.json')); print('PPI latest:', d['latest_label']); print('PPI headline kpi:', d['kpis']['headline'])"
           python -c "import json; d=json.load(open('data/labor.json')); print('Labor CPS:', d['cps_latest'], 'JOLTS:', d['jolts_latest']); print('UR kpi:', d['kpis']['unemployment'])"
           python -c "import json; d=json.load(open('data/pce.json')); print('PCE latest:', d['latest_label']); print('PCE headline kpi:', d['kpis']['headline']); print('PCE supercore kpi:', d['kpis']['supercore'])"
           python -c "import json; d=json.load(open('data/housing_existing.json')); print('Existing Homes latest:', d['latest_label']); print('Sales kpi:', d['kpis']['sales']); print('Mortgage kpi:', d['kpis']['mortgage_30y']); print('CSV baseline loaded:', d.get('csv_baseline_loaded')); print('CSV rows appended this run:', d.get('csv_rows_appended_this_run', 0))"
           python -c "import json; d=json.load(open('data/housing_new.json')); print('New Homes latest:', d['latest_label']); print('Sales kpi:', d['kpis']['sales']); print('NAHB kpi:', d['kpis']['nahb_hmi']); print('NAHB scrape ok:', d.get('nahb_scrape_succeeded')); print('NAHB CSV changed this run:', d.get('nahb_csv_changed_this_run'))"
+          python -c "import json; d=json.load(open('data/housing_permits.json')); print('Permits & Starts latest:', d['latest_label']); print('Total permits kpi:', d['kpis']['permits_total']); print('Total starts kpi:', d['kpis']['starts_total'])"
 
       - name: Commit auto-appended CSV rows (if any)
         run: |
