@@ -2,72 +2,27 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Consumer Chart — Economics Guru</title>
+<title>Redirecting…</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<style>
-  :root {
-    --navy: #003057; --mustard: #d4a017; --chart-bg: #fbf5dc; --ink-soft: #6b7280;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; height: 100%; background: transparent; font-family: "Source Sans Pro", sans-serif; }
-  .embed { padding: 8px 12px 6px; height: 100vh; display: flex; flex-direction: column; }
-  .title { font-weight: 800; font-size: 16px; color: var(--navy); text-align: center; margin: 0 0 1px; }
-  .subtitle { font-style: italic; font-size: 12px; color: var(--ink-soft); text-align: center; margin: 0 0 6px; }
-  .chart-wrap { position: relative; flex: 1 1 auto; min-height: 0; background: var(--chart-bg); border: 1px solid var(--navy); padding: 6px; }
-  .source { margin-top: 4px; font-size: 10px; color: var(--ink-soft); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-  .source a { color: var(--mustard); text-decoration: none; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px; }
-  .source a:hover { text-decoration: underline; }
-</style>
+<style>body{font-family:-apple-system,sans-serif;color:#666;padding:20px;text-align:center}</style>
 </head>
 <body>
-<div class="embed">
-  <div class="title" id="t">&hellip;</div>
-  <div class="subtitle" id="s"></div>
-  <div class="chart-wrap">
-    <canvas id="chartCsRetailMom"      style="display:none"></canvas>
-    <canvas id="chartCsRetailSectors"  style="display:none"></canvas>
-    <canvas id="chartCsIncomeNominal"  style="display:none"></canvas>
-    <canvas id="chartCsIncomeReal"     style="display:none"></canvas>
-    <canvas id="chartCsUmich"          style="display:none"></canvas>
-    <canvas id="chartCsConfBoard"      style="display:none"></canvas>
-  </div>
-  <div class="source">
-    <span id="src">Source: U.S. Census Bureau, BEA, FRED, UMich, The Conference Board</span>
-    <a href="https://economicsguru.com/consumer/" target="_blank" rel="noopener">economicsguru.com</a>
-  </div>
-</div>
-
-<script src="/assets/charts.js"></script>
+<p>Redirecting…</p>
 <script>
-const CHART_INFO = {
-  retail:        { canvas: 'chartCsRetailMom',     title: 'Retail Sales — Monthly Change',                  subtitle: '(% change MoM SA; bars + Total YoY line)' },
-  sectors:       { canvas: 'chartCsRetailSectors', title: 'Retail Sales — Contribution by Sector',           subtitle: '(Stacked bars sum to total MoM %; pp)' },
-  incomenom:     { canvas: 'chartCsIncomeNominal', title: 'Personal Income & Consumption — Nominal MoM',     subtitle: '(% change MoM SA; current $)' },
-  incomereal:    { canvas: 'chartCsIncomeReal',    title: 'Personal Income & Consumption — Real MoM',        subtitle: '(% change MoM SA; chained 2017 $)' },
-  umich:         { canvas: 'chartCsUmich',         title: 'UMich Consumer Sentiment',                        subtitle: '(Index, 1966 Q1 = 100)' },
-  confboard:     { canvas: 'chartCsConfBoard',     title: 'Conference Board Consumer Confidence',            subtitle: '(Index, 1985 = 100)' },
-};
-
-const params = new URLSearchParams(window.location.search);
-const chartKey = (params.get('chart') || 'retail').toLowerCase();
-const range = (params.get('range') || '12m').toLowerCase();
-const info = CHART_INFO[chartKey] || CHART_INFO.retail;
-
-document.getElementById('t').textContent = info.title;
-document.getElementById('s').textContent = info.subtitle;
-document.getElementById(info.canvas).style.display = 'block';
-
-fetch('/data/consumer.json', { cache: 'no-cache' })
-  .then(r => r.json())
-  .then(data => EG.renderConsumerEmbed(chartKey, data, range))
-  .catch(err => {
-    document.getElementById('t').textContent = 'Could not load data';
-    console.error(err);
-  });
+// Backward-compat redirect for /consumer/embed/?chart=X&range=Y URLs that
+// shipped before the 2026-05-03 hub-split. Old chart keys mapped onto the
+// two new sub-pages: retail/sectors/umich/confboard now live under
+// /consumer/retail-confidence/embed/, and incomenom/incomereal under
+// /consumer/income-spending-debt/embed/.
+(function(){
+  var p = new URLSearchParams(window.location.search);
+  var key = (p.get('chart') || 'retail').toLowerCase();
+  var ISD = ['incomenom','incomereal','savingrate','interest','credit','revolving','delinquency'];
+  var target = ISD.indexOf(key) >= 0
+    ? '/consumer/income-spending-debt/embed/'
+    : '/consumer/retail-confidence/embed/';
+  window.location.replace(target + window.location.search);
+})();
 </script>
 </body>
 </html>
