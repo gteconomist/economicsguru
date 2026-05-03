@@ -2391,25 +2391,32 @@ function buildCsConsumerCredit(view) {
   return cfg;
 }
 
-// Revolving Consumer Credit — bars on left ($bn), YoY % line on right.
+// Revolving Consumer Credit — two lines, dual-axis. Level on the left axis
+// in $T (REVOLSL is published in $B but the level is now ~$1.3T, so $T reads
+// cleaner on the y-axis). YoY % change on the right axis as a second line.
 function buildCsRevolving(view) {
   const series = view.revolving || [];
   const labels = series.map(r => shortLabel(r[0]));
   const yoyMap = new Map((view.revolving_yoy || []).map(r => [r[0], r[1]]));
-  const yoy = series.map(r => yoyMap.has(r[0]) ? yoyMap.get(r[0]) : null);
+  const yoy    = series.map(r => yoyMap.has(r[0]) ? yoyMap.get(r[0]) : null);
   const pr = pointSizeForLength(labels.length);
+  // REVOLSL is published in $B; convert to $T for the y-axis so the
+  // (now-trillion-scale) level reads naturally.
+  const levelT = series.map(r => r[1] == null ? null : r[1] / 1000);
   return {
+    type: 'line',
     data: {
       labels,
       datasets: [
-        { type: 'bar', label: 'Revolving Credit ($bn SAAR)',
-          data: series.map(r => r[1]),
-          backgroundColor: BRAND.navy, borderColor: BRAND.navy,
-          barPercentage: 0.9, categoryPercentage: 0.85, yAxisID: 'yLevel' },
-        { type: 'line', label: 'YoY % change (right axis)',
+        { label: 'Revolving Credit ($T)',
+          data: levelT,
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr,
+          fill: false, yAxisID: 'yLevel' },
+        { label: 'YoY % change (right axis)',
           data: yoy,
           borderColor: BRAND.coral, backgroundColor: BRAND.coral,
-          tension: 0.2, borderWidth: 2.4, pointRadius: pr,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr,
           fill: false, yAxisID: 'yYoy' },
       ],
     },
@@ -2429,14 +2436,14 @@ function buildCsRevolving(view) {
               if (ctx.dataset.yAxisID === 'yYoy') {
                 return `${ctx.dataset.label}: ${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(1)}%`;
               }
-              return `${ctx.dataset.label}: $${ctx.parsed.y.toFixed(0)}B`;
+              return `${ctx.dataset.label}: $${ctx.parsed.y.toFixed(2)}T`;
             }
           }
         }
       },
       scales: {
         x: baseScales(v => v).x,
-        yLevel: axisSpec(v => '$' + v.toFixed(0) + 'B', 'left'),
+        yLevel: axisSpec(v => '$' + v.toFixed(1) + 'T', 'left'),
         yYoy:   axisSpec(v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`, 'right'),
       },
     }
