@@ -3,21 +3,33 @@
 <head>
 <meta charset="utf-8">
 <title>Consumer &mdash; Economics Guru</title>
-<meta name="description" content="Live US consumer dashboard: retail sales, sector contributions, personal income & consumption, UMich consumer sentiment, Conference Board consumer confidence. Updated each release from Census, BEA, FRED, UMich, and the Conference Board.">
+<meta name="description" content="US consumer dashboards: retail sales and consumer confidence (UMich, Conference Board), and a separate income, spending, and debt view (personal income, PCE, saving rate, consumer credit, delinquencies).">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/assets/styles.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-  .interactivity-hint { margin: 10px 0 16px; font-size: 12.5px; font-style: italic; color: var(--ink-on-navy-soft); }
-  .chart-card .source { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; }
-  .chart-card .csv-link { font-size: 11px; font-weight: 700; color: var(--mustard); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; text-decoration: none; }
-  .chart-card .csv-link::before { content: '\2193  '; }
-  .chart-card .csv-link:hover { text-decoration: underline; }
-  .controls { display: flex; gap: 12px; align-items: center; margin: 4px 0 0; flex-wrap: wrap; }
-  .controls .label-text { font-size: 12px; color: var(--ink-on-navy-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+  .hub-hero { padding: 24px 0 12px; }
+  .hub-hero h1 { font-family: var(--font-display); color: var(--ink-on-navy); font-weight: 800; font-size: 32px; letter-spacing: -0.01em; margin: 0 0 6px; }
+  .hub-hero p { font-size: 15px; color: var(--ink-on-navy-soft); max-width: 760px; margin: 0; }
+  .topic-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 22px; }
+  @media (max-width: 800px) { .topic-grid { grid-template-columns: 1fr; } }
+  .topic-card {
+    background: var(--panel-bg); border: 1px solid var(--border);
+    border-top: 4px solid var(--navy); padding: 18px;
+    text-decoration: none; color: var(--ink); display: block;
+  }
+  .topic-card:hover { border-color: var(--navy); text-decoration: none; }
+  .topic-card.coming { opacity: 0.55; cursor: not-allowed; }
+  .topic-card h3 { margin: 0 0 6px; font-family: var(--font-display); color: var(--navy); font-size: 19px; }
+  .topic-card p { margin: 0; color: var(--ink-soft); font-size: 14px; }
+  .topic-card .badge {
+    display: inline-block; margin-bottom: 8px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--mustard);
+  }
+  .topic-card.coming .badge { color: var(--silver); }
 </style>
 </head>
 <body>
@@ -26,138 +38,45 @@
   <div class="wrap">
     <div class="brand">Economics<span class="tag">Guru</span></div>
     <nav>
-      <a href="/" >Home</a>
+      <a href="/">Home</a>
       <a href="/inflation/">Inflation</a>
       <a href="/labor/">Labor</a>
       <a href="/housing/">Housing</a>
       <a href="/gdp/">GDP</a>
       <a href="/consumer/" class="active">Consumer</a>
+      <a href="/rates/">Rates</a>
       <a href="/about/">About</a>
     </nav>
   </div>
 </header>
 
 <main>
-  <div class="page-header">
-    <h1>US Consumer Dashboard</h1>
-    <div class="subtitle">Retail sales, sector contributions, personal income & consumption, and consumer sentiment &mdash; sourced live from the U.S. Census Bureau, BEA, and FRED, with Conference Board / UMich components updated from press releases.</div>
-    <div class="latest">Latest retail release: <strong id="latest-month">&hellip;</strong></div>
-  </div>
+  <section class="hub-hero">
+    <h1>US Consumer</h1>
+    <p>Two windows on the US consumer: how money is being earned, spent, saved, and borrowed (income, PCE, saving rate, consumer credit, delinquencies), and how that's showing up at the register and in survey-based confidence (retail sales by sector, UMich sentiment, Conference Board CCI).</p>
+  </section>
 
-  <div class="notice" id="notice" style="display:none">
-    <strong>Data note:</strong> <span id="notice-text"></span>
-  </div>
-
-  <div id="kpis" class="kpi-grid"></div>
-
-  <div class="controls">
-    <span class="label-text">Time range:</span>
-    <div class="range-toggle">
-      <button data-range="12m" class="active">12 mo</button>
-      <button data-range="5y">5 yr</button>
-      <button data-range="10y">10 yr</button>
-      <button data-range="20y">20 yr</button>
-      <button data-range="max">Max</button>
-    </div>
-  </div>
-
-  <div class="interactivity-hint">
-    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post. Personal income / PCE and the consumer-sentiment surveys typically lag the retail-sales release by a few business days.
-  </div>
-
-  <div class="chart-grid">
-    <div class="chart-card">
-      <div class="title">Retail Sales &mdash; Monthly Change</div>
-      <div class="subtitle">(% change from preceding month, seasonally adjusted; Total YoY shown as a line on the right axis)</div>
-      <div class="chart-wrap"><canvas id="chartCsRetailMom"></canvas></div>
-      <div class="source">
-        <span>Source: U.S. Census Bureau Monthly Retail Trade (MARTS) via FRED &mdash; RSAFS, RSFSXMV, control group computed from sectors.</span>
-        <a href="#" class="csv-link" data-chart="chartCsRetailMom">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Retail Sales &mdash; Contribution by Sector</div>
-      <div class="subtitle">(Stacked bars sum to total MoM %; each segment is the sector's contribution in percentage points)</div>
-      <div class="chart-wrap"><canvas id="chartCsRetailSectors"></canvas></div>
-      <div class="source">
-        <span>Source: U.S. Census Bureau MARTS via FRED &mdash; 12 NAICS retail sectors, contribution = (sector &Delta;) / total_{t-1}.</span>
-        <a href="#" class="csv-link" data-chart="chartCsRetailSectors">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Personal Income &amp; Consumption &mdash; Nominal MoM</div>
-      <div class="subtitle">(% change from preceding month; total Personal Income, Disposable Personal Income, Personal Consumption Expenditures &mdash; current dollars)</div>
-      <div class="chart-wrap"><canvas id="chartCsIncomeNominal"></canvas></div>
-      <div class="source">
-        <span>Source: BEA via FRED &mdash; PI, DSPI, PCE.</span>
-        <a href="#" class="csv-link" data-chart="chartCsIncomeNominal">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Personal Income &amp; Consumption &mdash; Real MoM</div>
-      <div class="subtitle">(% change from preceding month; chained 2017 dollars &mdash; deflated by the PCE price index)</div>
-      <div class="chart-wrap"><canvas id="chartCsIncomeReal"></canvas></div>
-      <div class="source">
-        <span>Source: BEA via FRED &mdash; RPI, DSPIC96, PCEC96.</span>
-        <a href="#" class="csv-link" data-chart="chartCsIncomeReal">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">UMich Consumer Sentiment</div>
-      <div class="subtitle">(Index, 1966 Q1 = 100; total Index of Consumer Sentiment plus Expectations and Current Conditions sub-indices)</div>
-      <div class="chart-wrap"><canvas id="chartCsUmich"></canvas></div>
-      <div class="source">
-        <span>Source: University of Michigan Surveys of Consumers &mdash; UMCSENT (FRED) for total; ICE / ICC components from <code>data/historical/umich_sentiment.csv</code>.</span>
-        <a href="#" class="csv-link" data-chart="chartCsUmich">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Conference Board Consumer Confidence</div>
-      <div class="subtitle">(Index, 1985 = 100; CCI plus Expectations Index and Present Situation Index)</div>
-      <div class="chart-wrap"><canvas id="chartCsConfBoard"></canvas></div>
-      <div class="source">
-        <span>Source: The Conference Board, Consumer Confidence Survey &mdash; loaded from <code>data/historical/conference_board.csv</code>.</span>
-        <a href="#" class="csv-link" data-chart="chartCsConfBoard">Download CSV</a>
-      </div>
-    </div>
+  <div class="topic-grid">
+    <a class="topic-card" href="/consumer/income-spending-debt/">
+      <div class="badge">Available</div>
+      <h3>Income, Spending, &amp; Debt</h3>
+      <p>Personal income &amp; consumption (nominal &amp; real), saving rate, personal interest payments, total consumer credit (less mortgage), revolving debt, and 90+ day delinquency rates. Sources: BEA via FRED, NY Fed Quarterly Report on Household Debt and Credit.</p>
+    </a>
+    <a class="topic-card" href="/consumer/retail-confidence/">
+      <div class="badge">Available</div>
+      <h3>Retail &amp; Consumer Confidence</h3>
+      <p>Retail sales (total / ex-MV / control group), MoM &amp; YoY changes, sector contributions across 12 NAICS categories, UMich Consumer Sentiment, and Conference Board Consumer Confidence. Sources: U.S. Census Bureau, FRED, UMich, The Conference Board.</p>
+    </a>
   </div>
 </main>
 
 <footer class="site-footer">
   <div class="wrap">
-    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BEA, BLS, FRED, Census, UMich, and the Conference Board. <a href="/about/">Methodology</a></div>
-    <div>Data refreshes nightly. Last successful build: <span id="build-time">&hellip;</span></div>
+    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BEA, BLS, FRED, Census, UMich, the Conference Board, and the Federal Reserve Bank of New York. <a href="/about/">Methodology</a></div>
+    <div>Data refreshes nightly.</div>
   </div>
 </footer>
 
-<script src="/assets/charts.js"></script>
-<script>
-document.getElementById('yr').textContent = new Date().getFullYear();
-
-fetch('/data/consumer.json', { cache: 'no-cache' })
-  .then(r => r.json())
-  .then(data => {
-    EG.renderConsumer(data);
-    if (data.notice) {
-      document.getElementById('notice').style.display = '';
-      document.getElementById('notice-text').textContent = data.notice;
-    }
-    if (data.build_time) {
-      document.getElementById('build-time').textContent =
-        new Date(data.build_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
-    }
-  })
-  .catch(err => {
-    console.error(err);
-    document.querySelector('main').insertAdjacentHTML('afterbegin',
-      '<div class="notice"><strong>Could not load data.</strong> Try refreshing in a moment.</div>');
-  });
-</script>
-
+<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
 </body>
 </html>
