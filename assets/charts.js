@@ -26,21 +26,6 @@ function formatLabelLong(s){
   return new Date(y, m-1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
 }
 
-// Daily-date helpers (treasuries / rates pages emit YYYY-MM-DD labels).
-// Trading-day buckets for the time-range slider on those pages.
-const RANGE_DAYS = { '12m': 252, '5y': 1260, '10y': 2520, '20y': 5040, 'max': Infinity };
-function shortLabelD(s){
-  // 'YYYY-MM-DD' -> "MMM 'YY" so 12m of daily data shows ~12 unique tick labels
-  // and Chart.js autoSkip handles density naturally for longer ranges.
-  const [y,m] = s.split('-').map(Number);
-  return new Date(y, m-1, 1).toLocaleString('en-US', { month: 'short', year: '2-digit' });
-}
-function formatLabelLongD(s){
-  // 'YYYY-MM-DD' -> "May 1, 2026" for the latest-data line in the page header
-  const [y,m,d] = s.split('-').map(Number);
-  return new Date(y, m-1, d).toLocaleString('en-US', { dateStyle: 'long' });
-}
-
 // Quarterly-aware label helpers (GDP/profits/productivity series use "YYYYQN").
 function shortLabelQ(s){
   // "2026Q1" -> "Q1 '26"
@@ -2038,9 +2023,18 @@ function renderKpisGdp(data) {
 // Range / dispatch
 // =========================================================
 // =========================================================
-// Consumer: chart builders
+// Consumer (split into two sub-pages: ISD and RCC)
 // =========================================================
-function rangedViewConsumer(data, range) {
+//
+// As of 2026-05-03 the /consumer/ topic is a hub with two sub-pages:
+//   /consumer/income-spending-debt/   ('consumer-isd')
+//   /consumer/retail-confidence/      ('consumer-rcc')
+// Both fetch the same /data/consumer.json — the page-specific renderers
+// below pick the slice they need.
+
+// ---- Range slicers ----
+
+function rangedViewConsumerRcc(data, range) {
   const n = RANGE_MONTHS[range];
   return {
     retail_total_mom:   tail(data.retail_total_mom || [], n),
@@ -2051,23 +2045,55 @@ function rangedViewConsumer(data, range) {
       key: s.key, label: s.label,
       contribution: tail(s.contribution || [], n),
     })),
+    umich_total:   tail(data.umich_total   || [], n),
+    umich_expect:  tail(data.umich_expect  || [], n),
+    umich_current: tail(data.umich_current || [], n),
+    cb_total:   tail(data.cb_total   || [], n),
+    cb_expect:  tail(data.cb_expect  || [], n),
+    cb_present: tail(data.cb_present || [], n),
+    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+  };
+}
+
+function rangedViewConsumerIsd(data, range) {
+  const n  = RANGE_MONTHS[range];
+  const nQ = RANGE_QUARTERS[range] || Infinity;
+  const debt = data.debt || {};
+  const delq = data.delinquency || {};
+  return {
     pi_mom:    tail(data.pi_mom || [], n),
     dspi_mom:  tail(data.dspi_mom || [], n),
     pce_mom:   tail(data.pce_mom || [], n),
     rpi_mom:   tail(data.rpi_mom || [], n),
     rdspi_mom: tail(data.rdspi_mom || [], n),
     rpce_mom:  tail(data.rpce_mom || [], n),
-    umich_total:   tail(data.umich_total || [], n),
-    umich_expect:  tail(data.umich_expect || [], n),
-    umich_current: tail(data.umich_current || [], n),
-    cb_total:   tail(data.cb_total || [], n),
-    cb_expect:  tail(data.cb_expect || [], n),
-    cb_present: tail(data.cb_present || [], n),
-    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+    saving_rate:       tail(data.saving_rate || [], n),
+    interest_payments: tail(data.interest_payments || [], n),
+    revolving:         tail(data.revolving || [], n),
+    revolving_yoy:     tail(data.revolving_yoy || [], n),
+    debt: {
+      credit_card: tail(debt.credit_card || [], nQ),
+      home_equity: tail(debt.home_equity || [], nQ),
+      auto:        tail(debt.auto        || [], nQ),
+      student:     tail(debt.student     || [], nQ),
+      other:       tail(debt.other       || [], nQ),
+      total:       tail(debt.total       || [], nQ),
+    },
+    delinquency: {
+      credit_card: tail(delq.credit_card || [], nQ),
+      mortgage:    tail(delq.mortgage    || [], nQ),
+      auto:        tail(delq.auto        || [], nQ),
+      student:     tail(delq.student     || [], nQ),
+    },
+    kpis: data.kpis,
+    latest_label: data.latest_label,
+    latest_quarter: data.latest_quarter,
+    notice: data.notice,
   };
 }
 
-// Chart 1: Retail MoM bars (Total / ex-MV / Control) + Total YoY line on right axis.
+// ---- RCC builders (existing, unchanged from pre-split) ----
+
 function buildCsRetailMom(view) {
   const labels = view.retail_total_mom.map(r => shortLabel(r[0]));
   const total  = view.retail_total_mom.map(r => r[1]);
@@ -2122,12 +2148,7 @@ function buildCsRetailMom(view) {
   };
 }
 
-// Chart 2: Sector contributions stacked bar (12 NAICS categories) + total MoM line.
 function buildCsRetailSectors(view) {
-  // 12-color palette ordered to roughly track the user's reference image
-  // (441 navy, 442 grey, 444 light teal, 445 medium teal, 446 royal blue,
-  //  447 plum, 448 lime-green, 451 lilac, 452 coral-red, 453 forest, 454 mustard,
-  //  722 khaki).
   const SECTOR_COLORS = [
     '#1e2a4a', '#5b6470', '#7fc7c7', '#3a8d8d', '#2e4a8d',
     '#7d2e7d', '#a8d05f', '#9b8b6a', '#d4624a', '#3a6e3a',
@@ -2145,7 +2166,6 @@ function buildCsRetailSectors(view) {
       barPercentage: 0.92, categoryPercentage: 0.92,
     };
   });
-  // Overlay: total MoM% as a thin line (the bars sum to this, modulo rounding).
   datasets.push({
     type: 'line', label: 'Total Retail MoM (sum)',
     data: view.retail_total_mom.map(r => r[1]),
@@ -2159,7 +2179,6 @@ function buildCsRetailSectors(view) {
   };
   cfg.options.scales.x.stacked = true;
   cfg.options.scales.y.stacked = true;
-  // 13 entries (12 sectors + total line) — keep legend tight.
   cfg.options.plugins.legend.labels.boxWidth  = 10;
   cfg.options.plugins.legend.labels.padding   = 8;
   cfg.options.plugins.legend.labels.font      = { size: 11, weight: '600' };
@@ -2169,7 +2188,6 @@ function buildCsRetailSectors(view) {
   return cfg;
 }
 
-// Charts 3 & 4: Income & Consumption MoM (3 grouped bars, nominal or real).
 function _buildCsIncomeBars(view, keys, labels3) {
   const labels = view[keys[0]].map(r => shortLabel(r[0]));
   return {
@@ -2202,7 +2220,6 @@ function buildCsIncomeReal(view) {
     ['Real Personal Income', 'Real Disposable PI', 'Real Personal Consumption']);
 }
 
-// Charts 5 & 6: 3-line consumer-survey index.
 function _buildCs3Line(totalKey, expectKey, currentKey, totalLabel, expectLabel, currentLabel, view) {
   const total = view[totalKey] || [];
   const labels = total.map(r => shortLabel(r[0]));
@@ -2235,7 +2252,6 @@ function buildCsUmich(view) {
     'Total (ICS)', 'Expectations (ICE)', 'Current Conditions (ICC)', view);
 }
 function buildCsConfBoard(view) {
-  // Graceful empty state if no Conference Board CSV data has been loaded yet.
   if (!view.cb_total || !view.cb_total.length) {
     return {
       type: 'line',
@@ -2254,22 +2270,289 @@ function buildCsConfBoard(view) {
     'CCI (Total)', 'Expectations Index', 'Present Situation Index', view);
 }
 
-const CONSUMER_BUILDERS = {
+// ---- ISD builders (5 new charts) ----
+
+// Saving rate — single line, % of DPI.
+function buildCsSavingRate(view) {
+  const series = view.saving_rate || [];
+  const labels = series.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Personal Saving Rate', data: series.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.4, pointRadius: pr, fill: false },
+      ]
+    },
+    options: baseOptions(v => v == null ? 'n/a' : v.toFixed(1) + '%')
+  };
+}
+
+// Personal Interest Payments — single line, $bn SAAR.
+function buildCsInterestPayments(view) {
+  const series = view.interest_payments || [];
+  if (!series.length) {
+    return {
+      type: 'line',
+      data: {
+        labels: ['—'],
+        datasets: [{
+          label: 'Personal Interest Payments — series unavailable from FRED',
+          data: [null],
+          borderColor: BRAND.silver, backgroundColor: BRAND.silver,
+        }],
+      },
+      options: baseOptions(v => v == null ? 'n/a' : v.toFixed(0))
+    };
+  }
+  const labels = series.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Personal Interest Payments ($bn SAAR)',
+          data: series.map(r => r[1]),
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.2, borderWidth: 2.4, pointRadius: pr, fill: false },
+      ]
+    },
+    options: baseOptions(v => v == null ? 'n/a' : '$' + v.toFixed(0) + 'B')
+  };
+}
+
+// Consumer Credit (less mortgage) — stacked area + total line, quarterly.
+function buildCsConsumerCredit(view) {
+  const debt = view.debt || {};
+  const total = debt.total || [];
+  if (!total.length) {
+    return {
+      type: 'line',
+      data: {
+        labels: ['—'],
+        datasets: [{
+          label: 'No data — populate data/historical/nyfed_household_debt.csv',
+          data: [null],
+          borderColor: BRAND.silver, backgroundColor: BRAND.silver,
+        }],
+      },
+      options: baseOptions(v => v == null ? 'n/a' : '$' + v.toFixed(1) + 'T')
+    };
+  }
+  const labels = total.map(r => shortLabelQ(r[0]));
+
+  // Component palette chosen to track the NY Fed reference image:
+  //   Credit Card  = silver (light gray)
+  //   Home Equity  = khaki  (tan)
+  //   Auto Loans   = navy   (dominant middle band)
+  //   Student      = mustard (bright yellow band)
+  //   Other        = light  (cream-ish gray)
+  const COMPONENTS = [
+    { key: 'credit_card', label: 'Credit Card', color: BRAND.silver },
+    { key: 'home_equity', label: 'Home Equity', color: BRAND.khaki  },
+    { key: 'auto',        label: 'Auto Loans',  color: BRAND.navy   },
+    { key: 'student',     label: 'Student Loans', color: BRAND.mustard },
+    { key: 'other',       label: 'Other Debt',  color: '#cbd2d8'    },
+  ];
+  const datasets = COMPONENTS.map(c => {
+    const lookup = new Map((debt[c.key] || []).map(r => [r[0], r[1]]));
+    const data = total.map(r => lookup.has(r[0]) ? lookup.get(r[0]) : null);
+    return {
+      type: 'line',
+      label: c.label, data,
+      borderColor: c.color, backgroundColor: c.color,
+      borderWidth: 0, pointRadius: 0, tension: 0.0,
+      fill: true, stack: 'debt', spanGaps: true,
+    };
+  });
+  // Total line on top
+  datasets.push({
+    type: 'line',
+    label: 'Total',
+    data: total.map(r => r[1]),
+    borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+    borderWidth: 2.2, pointRadius: 0, fill: false, tension: 0.0,
+  });
+
+  const cfg = {
+    type: 'line',
+    data: { labels, datasets },
+    options: baseOptions(v => v == null ? 'n/a' : '$' + v.toFixed(1) + 'T')
+  };
+  cfg.options.scales.y.stacked = true;
+  cfg.options.scales.x.stacked = false;
+  cfg.options.plugins.tooltip.callbacks.label = ctx =>
+    ctx.parsed.y == null ? `${ctx.dataset.label}: n/a`
+                         : `${ctx.dataset.label}: $${ctx.parsed.y.toFixed(2)}T`;
+  return cfg;
+}
+
+// Revolving Consumer Credit — bars on left ($bn), YoY % line on right.
+function buildCsRevolving(view) {
+  const series = view.revolving || [];
+  const labels = series.map(r => shortLabel(r[0]));
+  const yoyMap = new Map((view.revolving_yoy || []).map(r => [r[0], r[1]]));
+  const yoy = series.map(r => yoyMap.has(r[0]) ? yoyMap.get(r[0]) : null);
+  const pr = pointSizeForLength(labels.length);
+  return {
+    data: {
+      labels,
+      datasets: [
+        { type: 'bar', label: 'Revolving Credit ($bn SAAR)',
+          data: series.map(r => r[1]),
+          backgroundColor: BRAND.navy, borderColor: BRAND.navy,
+          barPercentage: 0.9, categoryPercentage: 0.85, yAxisID: 'yLevel' },
+        { type: 'line', label: 'YoY % change (right axis)',
+          data: yoy,
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.2, borderWidth: 2.4, pointRadius: pr,
+          fill: false, yAxisID: 'yYoy' },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 8, right: 16, bottom: 4, left: 4 } },
+      interaction: { mode: 'index', intersect: false },
+      animation: { duration: 350 },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, boxHeight: 12, padding: 12, color: BRAND.navy, font: { size: 12, weight: '600' } } },
+        tooltip: {
+          backgroundColor: BRAND.navy, titleColor: '#fff', bodyColor: '#fff',
+          borderColor: BRAND.mustard, borderWidth: 1, padding: 10, cornerRadius: 4,
+          callbacks: {
+            label: ctx => {
+              if (ctx.parsed.y == null) return `${ctx.dataset.label}: n/a`;
+              if (ctx.dataset.yAxisID === 'yYoy') {
+                return `${ctx.dataset.label}: ${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(1)}%`;
+              }
+              return `${ctx.dataset.label}: $${ctx.parsed.y.toFixed(0)}B`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: baseScales(v => v).x,
+        yLevel: axisSpec(v => '$' + v.toFixed(0) + 'B', 'left'),
+        yYoy:   axisSpec(v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`, 'right'),
+      },
+    }
+  };
+}
+
+// Percent of balances 90+ days delinquent — 4-line, quarterly.
+function buildCsDelinquency(view) {
+  const delq = view.delinquency || {};
+  const longest = ['credit_card', 'mortgage', 'auto', 'student']
+    .map(k => delq[k] || [])
+    .reduce((a, b) => (a.length >= b.length ? a : b), []);
+  if (!longest.length) {
+    return {
+      type: 'line',
+      data: {
+        labels: ['—'],
+        datasets: [{
+          label: 'No data — populate data/historical/nyfed_delinquency.csv',
+          data: [null],
+          borderColor: BRAND.silver, backgroundColor: BRAND.silver,
+        }],
+      },
+      options: baseOptions(v => v == null ? 'n/a' : v.toFixed(1) + '%')
+    };
+  }
+  const labels = longest.map(r => shortLabelQ(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  // NY Fed-image color mapping
+  const SERIES = [
+    { key: 'credit_card', label: 'Credit Cards',  color: BRAND.navy    },
+    { key: 'mortgage',    label: 'Mortgages',     color: BRAND.teal    },
+    { key: 'auto',        label: 'Auto Loans',    color: BRAND.coral   },
+    { key: 'student',     label: 'Student Loans', color: BRAND.mustard },
+  ];
+  const datasets = SERIES.map(s => {
+    const lookup = new Map((delq[s.key] || []).map(r => [r[0], r[1]]));
+    const data = longest.map(r => lookup.has(r[0]) ? lookup.get(r[0]) : null);
+    return {
+      label: s.label, data,
+      borderColor: s.color, backgroundColor: s.color,
+      tension: 0.15, borderWidth: 2.2, pointRadius: pr,
+      spanGaps: false, fill: false,
+    };
+  });
+  return {
+    type: 'line',
+    data: { labels, datasets },
+    options: baseOptions(v => v == null ? 'n/a' : v.toFixed(1) + '%')
+  };
+}
+
+// ---- Builder dictionaries ----
+
+const CONSUMER_RCC_BUILDERS = {
   chartCsRetailMom:     buildCsRetailMom,
   chartCsRetailSectors: buildCsRetailSectors,
-  chartCsIncomeNominal: buildCsIncomeNominal,
-  chartCsIncomeReal:    buildCsIncomeReal,
   chartCsUmich:         buildCsUmich,
   chartCsConfBoard:     buildCsConfBoard,
 };
 
-function renderAllConsumer(view) {
-  for (const [id, builder] of Object.entries(CONSUMER_BUILDERS)) {
-    if (document.getElementById(id)) makeChart(id, builder(view));
-  }
+const CONSUMER_ISD_BUILDERS = {
+  chartCsIncomeNominal:    buildCsIncomeNominal,
+  chartCsIncomeReal:       buildCsIncomeReal,
+  chartCsSavingRate:       buildCsSavingRate,
+  chartCsInterestPayments: buildCsInterestPayments,
+  chartCsConsumerCredit:   buildCsConsumerCredit,
+  chartCsRevolving:        buildCsRevolving,
+  chartCsDelinquency:      buildCsDelinquency,
+};
+
+// Combined map for the legacy /consumer/embed/ redirect — chart-key lookup.
+const CONSUMER_BUILDERS = Object.assign({}, CONSUMER_RCC_BUILDERS, CONSUMER_ISD_BUILDERS);
+
+function renderAllConsumerRcc(view) {
+  for (const [id, b] of Object.entries(CONSUMER_RCC_BUILDERS))
+    if (document.getElementById(id)) makeChart(id, b(view));
+}
+function renderAllConsumerIsd(view) {
+  for (const [id, b] of Object.entries(CONSUMER_ISD_BUILDERS))
+    if (document.getElementById(id)) makeChart(id, b(view));
+  // Auto-hide chart cards whose series came back empty (e.g. NY Fed CSV not
+  // yet populated, or Personal Interest Payments unavailable on FRED).
+  const hideIfEmpty = [
+    ['chartCsInterestPayments', (view.interest_payments || []).length],
+    ['chartCsConsumerCredit',   ((view.debt || {}).total || []).length],
+    ['chartCsDelinquency',      Math.max(
+        ((view.delinquency || {}).credit_card || []).length,
+        ((view.delinquency || {}).mortgage    || []).length,
+        ((view.delinquency || {}).auto        || []).length,
+        ((view.delinquency || {}).student     || []).length)],
+  ];
+  hideIfEmpty.forEach(([id, len]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const card = el.closest('.chart-card');
+    if (card) card.style.display = (len ? '' : 'none');
+  });
 }
 
-function renderKpisConsumer(data) {
+function _kpiHtml(def, k) {
+  let dCls = 'flat';
+  if (k.delta != null && k.delta !== 0) {
+    const isGood = (k.delta > 0 && def.goodDir === 'up') || (k.delta < 0 && def.goodDir === 'down');
+    dCls = isGood ? 'down' : 'up';
+  }
+  const arrow = k.delta == null ? '–' : (k.delta > 0 ? '▲' : (k.delta < 0 ? '▼' : '▬'));
+  return `
+    <div class="kpi" style="border-top-color:${def.accent}">
+      <div class="label">${def.label}</div>
+      <div class="value">${def.valueFmt(k)}</div>
+      <div class="delta ${dCls}">${arrow} ${def.deltaFmt(k)}</div>
+    </div>`;
+}
+
+function renderKpisConsumerRcc(data) {
   const kpiHost = document.getElementById('kpis');
   if (!kpiHost) return;
   const fmtPct1 = v => (v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%');
@@ -2284,14 +2567,6 @@ function renderKpisConsumer(data) {
       valueFmt: k => fmtPct1(k.value),
       deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
       goodDir: 'up' },
-    { key: 'pi_mom', label: 'Personal Income (m/m)', accent: BRAND.teal,
-      valueFmt: k => fmtPct2(k.value),
-      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
-      goodDir: 'up' },
-    { key: 'pce_mom', label: 'Pers. Consumption (m/m)', accent: BRAND.mustard,
-      valueFmt: k => fmtPct2(k.value),
-      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
-      goodDir: 'up' },
     { key: 'umich_sentiment', label: 'UMich Sentiment', accent: BRAND.green,
       valueFmt: k => fmtIdx(k.value),
       deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(1)} vs prior month`,
@@ -2304,11 +2579,57 @@ function renderKpisConsumer(data) {
       goodDir: 'up' },
   ];
   kpiHost.innerHTML = KPI_DEFS.map(def => {
-    const k = data.kpis[def.key] || { value: null, delta: null };
+    const k = (data.kpis || {})[def.key] || { value: null, delta: null };
+    return _kpiHtml(def, k);
+  }).join('');
+}
+
+function renderKpisConsumerIsd(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const fmtPct1 = v => (v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%');
+  const fmtPct2 = v => (v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%');
+  const fmtUSD0 = v => (v == null ? 'n/a' : '$' + v.toFixed(0) + 'B');
+  const fmtUSD2 = v => (v == null ? 'n/a' : '$' + v.toFixed(2) + 'T');
+  const KPI_DEFS = [
+    { key: 'pi_mom', label: 'Personal Income (m/m)', accent: BRAND.teal,
+      valueFmt: k => fmtPct2(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
+      goodDir: 'up' },
+    { key: 'pce_mom', label: 'Pers. Consumption (m/m)', accent: BRAND.mustard,
+      valueFmt: k => fmtPct2(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
+      goodDir: 'up' },
+    { key: 'saving_rate', label: 'Saving Rate', accent: BRAND.green,
+      valueFmt: k => (k.value == null ? 'n/a' : k.value.toFixed(1) + '%'),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(1)} pp vs prior month`,
+      goodDir: 'up' },
+    { key: 'debt_total', label: 'Cons. Credit (ex-mortgage)', accent: BRAND.navy,
+      valueFmt: k => fmtUSD2(k.value),
+      deltaFmt: k => k.delta == null
+        ? (k.note ? '— add CSV data —' : 'no prior data')
+        : `${k.delta > 0 ? '+' : ''}$${k.delta.toFixed(2)}T vs prior quarter`,
+      goodDir: 'neutral' },
+    { key: 'revolving_yoy', label: 'Revolving Debt (y/y)', accent: BRAND.coral,
+      valueFmt: k => fmtPct1(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(1)} pp vs prior month`,
+      goodDir: 'neutral' },
+    { key: 'delq_credit_card', label: 'CC 90+ Day Delinq.', accent: BRAND.khaki,
+      valueFmt: k => (k.value == null ? 'n/a' : k.value.toFixed(1) + '%'),
+      deltaFmt: k => k.delta == null
+        ? (k.note ? '— add CSV data —' : 'no prior data')
+        : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior quarter`,
+      goodDir: 'down' },
+  ];
+  kpiHost.innerHTML = KPI_DEFS.map(def => {
+    const k = (data.kpis || {})[def.key] || { value: null, delta: null };
     let dCls = 'flat';
     if (k.delta != null && k.delta !== 0) {
-      const isGood = (k.delta > 0 && def.goodDir === 'up') || (k.delta < 0 && def.goodDir === 'down');
-      dCls = isGood ? 'down' : 'up';
+      let isGood;
+      if      (def.goodDir === 'up')   isGood = k.delta > 0;
+      else if (def.goodDir === 'down') isGood = k.delta < 0;
+      else                              isGood = null; // neutral
+      dCls = isGood == null ? 'flat' : (isGood ? 'down' : 'up');
     }
     const arrow = k.delta == null ? '–' : (k.delta > 0 ? '▲' : (k.delta < 0 ? '▼' : '▬'));
     return `
@@ -2320,19 +2641,13 @@ function renderKpisConsumer(data) {
   }).join('');
 }
 
-function registerAllCsvsConsumer(view) {
+function registerAllCsvsConsumerRcc(view) {
   registerCsv('chartCsRetailMom', 'retail-sales-mom-and-yoy.csv',
     ['Month', 'Total MoM (%)', 'Ex-MV MoM (%)', 'Control Group MoM (%)', 'Total YoY (%)'],
     mergeSeries([view.retail_total_mom, view.retail_ex_mv_mom, view.retail_control_mom, view.retail_total_yoy]));
   registerCsv('chartCsRetailSectors', 'retail-sales-sector-contributions.csv',
     ['Month', 'Total MoM (%)', ...view.retail_sectors.map(s => s.label + ' (pp)')],
     mergeSeries([view.retail_total_mom, ...view.retail_sectors.map(s => s.contribution)]));
-  registerCsv('chartCsIncomeNominal', 'income-and-consumption-nominal-mom.csv',
-    ['Month', 'Personal Income MoM (%)', 'Disposable PI MoM (%)', 'PCE MoM (%)'],
-    mergeSeries([view.pi_mom, view.dspi_mom, view.pce_mom]));
-  registerCsv('chartCsIncomeReal', 'income-and-consumption-real-mom.csv',
-    ['Month', 'Real PI MoM (%)', 'Real DPI MoM (%)', 'Real PCE MoM (%)'],
-    mergeSeries([view.rpi_mom, view.rdspi_mom, view.rpce_mom]));
   registerCsv('chartCsUmich', 'umich-consumer-sentiment.csv',
     ['Month', 'Total ICS', 'Expectations ICE', 'Current Conditions ICC'],
     mergeSeries([view.umich_total, view.umich_expect, view.umich_current]));
@@ -2340,6 +2655,33 @@ function registerAllCsvsConsumer(view) {
     ['Month', 'CCI', 'Expectations Index', 'Present Situation Index'],
     mergeSeries([view.cb_total, view.cb_expect, view.cb_present]));
 }
+
+function registerAllCsvsConsumerIsd(view) {
+  registerCsv('chartCsIncomeNominal', 'income-and-consumption-nominal-mom.csv',
+    ['Month', 'Personal Income MoM (%)', 'Disposable PI MoM (%)', 'PCE MoM (%)'],
+    mergeSeries([view.pi_mom, view.dspi_mom, view.pce_mom]));
+  registerCsv('chartCsIncomeReal', 'income-and-consumption-real-mom.csv',
+    ['Month', 'Real PI MoM (%)', 'Real DPI MoM (%)', 'Real PCE MoM (%)'],
+    mergeSeries([view.rpi_mom, view.rdspi_mom, view.rpce_mom]));
+  registerCsv('chartCsSavingRate', 'personal-saving-rate.csv',
+    ['Month', 'Saving Rate (%)'],
+    (view.saving_rate || []).map(r => [r[0], r[1]]));
+  registerCsv('chartCsInterestPayments', 'personal-interest-payments.csv',
+    ['Month', 'Personal Interest Payments ($bn SAAR)'],
+    (view.interest_payments || []).map(r => [r[0], r[1]]));
+  const debt = view.debt || {};
+  registerCsv('chartCsConsumerCredit', 'consumer-credit-by-category.csv',
+    ['Quarter', 'Credit Card ($T)', 'Home Equity ($T)', 'Auto ($T)', 'Student ($T)', 'Other ($T)', 'Total ex-Mortgage ($T)'],
+    mergeSeries([debt.credit_card || [], debt.home_equity || [], debt.auto || [], debt.student || [], debt.other || [], debt.total || []]));
+  registerCsv('chartCsRevolving', 'revolving-consumer-credit.csv',
+    ['Month', 'Revolving Credit ($bn SAAR)', 'YoY % Change'],
+    mergeSeries([view.revolving || [], view.revolving_yoy || []]));
+  const delq = view.delinquency || {};
+  registerCsv('chartCsDelinquency', 'pct-balances-90day-delinquent.csv',
+    ['Quarter', 'Credit Cards (%)', 'Mortgages (%)', 'Auto (%)', 'Student (%)'],
+    mergeSeries([delq.credit_card || [], delq.mortgage || [], delq.auto || [], delq.student || []]));
+}
+
 
 function applyRange(range) {
   CURRENT_RANGE = range;
@@ -2365,15 +2707,12 @@ function applyRange(range) {
   } else if (CURRENT_PAGE === 'gdp') {
     const view = rangedViewGdp(RAW_DATA, range);
     renderAllGdp(view); registerAllCsvsGdp(view);
-  } else if (CURRENT_PAGE === 'consumer') {
-    const view = rangedViewConsumer(RAW_DATA, range);
-    renderAllConsumer(view); registerAllCsvsConsumer(view);
-  } else if (CURRENT_PAGE === 'treasuries') {
-    const view = rangedViewTreasuries(RAW_DATA, range);
-    renderAllTreasuries(view); registerAllCsvsTreasuries(view);
-  } else if (CURRENT_PAGE === 'commodities') {
-    const view = rangedViewCommodities(RAW_DATA, range);
-    renderAllCommodities(view); registerAllCsvsCommodities(view);
+  } else if (CURRENT_PAGE === 'consumer-isd') {
+    const view = rangedViewConsumerIsd(RAW_DATA, range);
+    renderAllConsumerIsd(view); registerAllCsvsConsumerIsd(view);
+  } else if (CURRENT_PAGE === 'consumer-rcc') {
+    const view = rangedViewConsumerRcc(RAW_DATA, range);
+    renderAllConsumerRcc(view); registerAllCsvsConsumerRcc(view);
   } else {
     const view = rangedView(RAW_DATA, range);
     renderAll(view); registerAllCsvs(view);
@@ -2389,571 +2728,6 @@ function wireRangeToggle() {
     b.dataset.bound = '1';
     b.addEventListener('click', () => applyRange(b.dataset.range));
   });
-}
-
-// =========================================================
-// US Treasuries / Rates / Credit page (DAILY data)
-// =========================================================
-// Series are daily closes from FRED. Date labels are YYYY-MM-DD; the time-range
-// slider uses RANGE_DAYS (trading-day buckets) instead of RANGE_MONTHS. KPIs
-// show level + 1-day change in basis points; the spread KPI also flags when
-// the curve is inverted (level < 0).
-function rangedViewTreasuries(data, range) {
-  const n = RANGE_DAYS[range] || Infinity;
-  // Treasury series (DGS*) and credit spreads publish on trading days only;
-  // tail them by n trading days. fed_funds / fed_target_* / tips / breakeven
-  // publish on a 7-day cadence (DFF includes weekends), so the literal tail
-  // would cover fewer calendar days than the trading-day series. We don't
-  // pre-tail those: their builders do date-keyed Map lookups against the
-  // trading-day axis and slice implicitly. The CSV downloader uses mergeSeries
-  // which also keys by date, so the full vector is fine there too.
-  return {
-    yields_3m:        tail(data.yields_3m || [], n),
-    yields_2y:        tail(data.yields_2y || [], n),
-    yields_5y:        tail(data.yields_5y || [], n),
-    yields_10y:       tail(data.yields_10y || [], n),
-    yields_30y:       tail(data.yields_30y || [], n),
-    fed_funds:             data.fed_funds        || [],
-    fed_target_upper:      data.fed_target_upper || [],
-    fed_target_lower:      data.fed_target_lower || [],
-    tips_5y:               data.tips_5y          || [],
-    tips_10y:              data.tips_10y         || [],
-    spread_2s10s:     tail(data.spread_2s10s || [], n),
-    spread_3m10y:     tail(data.spread_3m10y || [], n),
-    breakeven_10y:         data.breakeven_10y    || [],
-    spread_ig_oas:    tail(data.spread_ig_oas || [], n),
-    spread_hy_oas:    tail(data.spread_hy_oas || [], n),
-    yield_curve_today:    data.yield_curve_today    || [],
-    yield_curve_year_ago: data.yield_curve_year_ago || [],
-    yield_curve_today_date:    data.yield_curve_today_date,
-    yield_curve_year_ago_date: data.yield_curve_year_ago_date,
-    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
-  };
-}
-
-// "%" tick / tooltip formatters (one for yields, one for percent spreads).
-function fmtPct2(v) { return v == null ? 'n/a' : v.toFixed(2) + '%'; }
-function fmtPctSpread(v) {
-  // Used on the 2s10s / 3m10y axis. Show sign for clarity (negative = inverted).
-  if (v == null) return 'n/a';
-  return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
-}
-
-function buildTrCurve(view) {
-  // Snapshot chart: today's full curve vs. ~1y ago. X-axis is categorical
-  // (3M/2Y/5Y/10Y/30Y). Two line datasets, no time slicing applies.
-  const labels   = (view.yield_curve_today || []).map(p => p.maturity);
-  const today    = (view.yield_curve_today || []).map(p => p.value);
-  const yearAgo  = (view.yield_curve_year_ago || []).map(p => p.value);
-  const todayLbl = view.yield_curve_today_date    ? formatLabelLongD(view.yield_curve_today_date)    : 'today';
-  const yaLbl    = view.yield_curve_year_ago_date ? formatLabelLongD(view.yield_curve_year_ago_date) : '~1Y ago';
-  return {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Today (' + todayLbl + ')', data: today,
-          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
-          tension: 0.0, borderWidth: 2.8, pointRadius: 4.5, fill: false },
-        { label: '~1 Year Ago (' + yaLbl + ')', data: yearAgo,
-          borderColor: BRAND.khaki, backgroundColor: BRAND.khaki,
-          tension: 0.0, borderWidth: 2.4, pointRadius: 4, fill: false, borderDash: [4,3] },
-      ],
-    },
-    options: baseOptions(fmtPct2),
-  };
-}
-
-function buildTr10y(view) {
-  // 10-year Treasury history.
-  const labels = view.yields_10y.map(r => shortLabelD(r[0]));
-  const pr = pointSizeForLength(labels.length);
-  return {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: '10-Year Treasury Yield', data: view.yields_10y.map(r => r[1]),
-          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
-          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
-      ],
-    },
-    options: baseOptions(fmtPct2),
-  };
-}
-
-function buildTrSpread(view) {
-  // 2s10s spread with reference line at 0. Below 0 = inverted curve.
-  const labels = view.spread_2s10s.map(r => shortLabelD(r[0]));
-  const pr = pointSizeForLength(labels.length);
-  return {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: '10Y minus 2Y (% pts)', data: view.spread_2s10s.map(r => r[1]),
-          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
-          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
-        { label: 'Inversion threshold (0)', data: labels.map(()=>0),
-          borderColor: BRAND.coral, borderWidth: 1.4, borderDash: [5,4], pointRadius: 0, fill: false },
-      ],
-    },
-    options: baseOptions(fmtPctSpread),
-  };
-}
-
-function buildTrFfrVs10y(view) {
-  // Align Fed Funds (daily, may include weekends) to the trading-day axis of DGS10
-  // by joining on YYYY-MM-DD; FRED publishes both, so most days line up exactly.
-  const labels = view.yields_10y.map(r => shortLabelD(r[0]));
-  const pr = pointSizeForLength(labels.length);
-  const ffrMap = new Map((view.fed_funds || []).map(r => [r[0], r[1]]));
-  const ffrAligned = view.yields_10y.map(r => ffrMap.has(r[0]) ? ffrMap.get(r[0]) : null);
-  return {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: '10-Year Treasury', data: view.yields_10y.map(r => r[1]),
-          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
-          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
-        { label: 'Fed Funds (Effective)', data: ffrAligned,
-          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
-          tension: 0.15, borderWidth: 2.2, pointRadius: pr, fill: false, spanGaps: true },
-      ],
-    },
-    options: baseOptions(fmtPct2),
-  };
-}
-
-function buildTrReal(view) {
-  // Three lines: nominal 10Y, real 10Y (TIPS), 10Y breakeven inflation.
-  // TIPS / breakeven only start in 2003; longer ranges naturally show what's available.
-  const labels = view.yields_10y.map(r => shortLabelD(r[0]));
-  const pr = pointSizeForLength(labels.length);
-  const tipsMap = new Map((view.tips_10y || []).map(r => [r[0], r[1]]));
-  const beMap   = new Map((view.breakeven_10y || []).map(r => [r[0], r[1]]));
-  const tipsAligned = view.yields_10y.map(r => tipsMap.has(r[0]) ? tipsMap.get(r[0]) : null);
-  const beAligned   = view.yields_10y.map(r => beMap.has(r[0])   ? beMap.get(r[0])   : null);
-  return {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Nominal 10Y Treasury', data: view.yields_10y.map(r => r[1]),
-          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
-          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
-        { label: 'Real 10Y (TIPS)', data: tipsAligned,
-          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
-          tension: 0.15, borderWidth: 2.2, pointRadius: pr, fill: false, spanGaps: true },
-        { label: '10Y Breakeven Inflation', data: beAligned,
-          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
-          tension: 0.15, borderWidth: 2.2, pointRadius: pr, fill: false, spanGaps: true },
-      ],
-    },
-    options: baseOptions(fmtPct2),
-  };
-}
-
-function buildTrCredit(view) {
-  // IG vs HY OAS. IG runs ~1% and HY ~3-6%, so dual y-axis makes both visible.
-  // FRED's public API for these BofA series is licensed-limited to ~3 years.
-  const labels = view.spread_hy_oas.map(r => shortLabelD(r[0]));
-  const pr = pointSizeForLength(labels.length);
-  const igMap = new Map((view.spread_ig_oas || []).map(r => [r[0], r[1]]));
-  const igAligned = view.spread_hy_oas.map(r => igMap.has(r[0]) ? igMap.get(r[0]) : null);
-  return {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'High Yield OAS', data: view.spread_hy_oas.map(r => r[1]),
-          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
-          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false, yAxisID: 'y' },
-        { label: 'Investment Grade OAS', data: igAligned,
-          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
-          tension: 0.15, borderWidth: 2.4, pointRadius: pr, fill: false,
-          spanGaps: true, yAxisID: 'y2' },
-      ],
-    },
-    options: {
-      ...baseOptions(fmtPct2),
-      scales: {
-        x: {
-          grid: { display: false, drawBorder: true, color: BRAND.navy },
-          ticks: { color: BRAND.navy, font: { size: 11, weight: 'bold' }, maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 14 },
-          border: { color: BRAND.navy, width: 1 },
-        },
-        y:  axisSpec(fmtPct2, 'left'),
-        y2: axisSpec(fmtPct2, 'right'),
-      }
-    }
-  };
-}
-
-const TREASURIES_BUILDERS = {
-  chartTrCurve:    buildTrCurve,
-  chartTr10y:      buildTr10y,
-  chartTrSpread:   buildTrSpread,
-  chartTrFfrVs10y: buildTrFfrVs10y,
-  chartTrReal:     buildTrReal,
-  chartTrCredit:   buildTrCredit,
-};
-
-function renderAllTreasuries(view) {
-  Object.entries(TREASURIES_BUILDERS).forEach(([id, builder]) => {
-    const cfg = builder(view);
-    if (cfg) makeChart(id, cfg);
-  });
-}
-
-function registerAllCsvsTreasuries(view) {
-  // Yield curve snapshot CSV: a small two-column comparison.
-  const curveRows = (view.yield_curve_today || []).map((p, i) => {
-    const ya = (view.yield_curve_year_ago || [])[i];
-    return [p.maturity, p.value, ya ? ya.value : null];
-  });
-  registerCsv('chartTrCurve', 'yield-curve-today-vs-1y-ago.csv',
-    ['Maturity', 'Today (%)', '~1 Year Ago (%)'], curveRows);
-  registerCsv('chartTr10y', '10y-treasury-yield.csv',
-    ['Date', '10Y Treasury Yield (%)'], view.yields_10y);
-  registerCsv('chartTrSpread', '10y-2y-spread.csv',
-    ['Date', '10Y minus 2Y (% pts)'], view.spread_2s10s);
-  registerCsv('chartTrFfrVs10y', 'fedfunds-vs-10y.csv',
-    ['Date', '10Y Treasury (%)', 'Fed Funds Effective (%)'],
-    mergeSeries([view.yields_10y, view.fed_funds]));
-  registerCsv('chartTrReal', 'real-yield-and-breakeven.csv',
-    ['Date', 'Nominal 10Y (%)', 'Real 10Y TIPS (%)', '10Y Breakeven (%)'],
-    mergeSeries([view.yields_10y, view.tips_10y, view.breakeven_10y]));
-  registerCsv('chartTrCredit', 'credit-spreads-ig-hy.csv',
-    ['Date', 'High Yield OAS (%)', 'Investment Grade OAS (%)'],
-    mergeSeries([view.spread_hy_oas, view.spread_ig_oas]));
-}
-
-function renderKpisTreasuries(data) {
-  const kpiHost = document.getElementById('kpis');
-  if (!kpiHost) return;
-  const fmtPct = v => (v == null ? 'n/a' : v.toFixed(2) + '%');
-  const fmtBps = v => {
-    if (v == null) return 'no prior data';
-    if (v === 0)   return 'unchanged from prior day';
-    const sign = v > 0 ? '+' : '';
-    return sign + v.toFixed(0) + ' bps vs prior day';
-  };
-
-  // For yields, "rising" is neutral (depends on context) but we still color
-  // by direction so the eye picks up the move at a glance: up = coral, down = green.
-  const KPI_DEFS = [
-    { key: 'y3m',    label: '3-Month Treasury',  accent: BRAND.silver },
-    { key: 'y2y',    label: '2-Year Treasury',   accent: BRAND.khaki  },
-    { key: 'y10y',   label: '10-Year Treasury',  accent: BRAND.navy   },
-    { key: 'y30y',   label: '30-Year Treasury',  accent: BRAND.teal   },
-    { key: 'spread', label: '10Y - 2Y Spread',   accent: BRAND.mustard, spread: true },
-    { key: 'ffr',    label: 'Fed Funds Effective', accent: BRAND.coral },
-  ];
-
-  kpiHost.innerHTML = KPI_DEFS.map(def => {
-    const k = data.kpis[def.key] || { value: null, delta_bps: null, label: null };
-    const arrow = k.delta_bps == null ? '-' : (k.delta_bps > 0 ? '▲' : (k.delta_bps < 0 ? '▼' : '▬'));
-    let dCls = 'flat';
-    if (k.delta_bps != null && k.delta_bps !== 0) dCls = (k.delta_bps > 0 ? 'up' : 'down');
-    let extra = '';
-    if (def.spread && k.value != null) {
-      if (k.value < 0)       extra = '<div class="spread-flag invert">Curve inverted</div>';
-      else if (k.value < 0.25) extra = '<div class="spread-flag">Near-flat curve</div>';
-      else                   extra = '<div class="spread-flag steep">Positively-sloped</div>';
-    }
-    return `
-      <div class="kpi" style="border-top-color:${def.accent}">
-        <div class="label">${def.label}</div>
-        <div class="value">${fmtPct(k.value)}</div>
-        <div class="delta-bps ${dCls}">${arrow} ${fmtBps(k.delta_bps)}</div>
-        ${extra}
-      </div>`;
-  }).join('');
-}
-
-// =========================================================
-// Commodities (Metals + Energy) page (DAILY data)
-// =========================================================
-// Same daily-cadence pattern as treasuries: YYYY-MM-DD labels, RANGE_DAYS
-// for the slider. Six charts: gold + silver dual-axis, gold/silver ratio,
-// WTI vs Brent, Henry Hub natgas, copper, and an energy-vs-metals composite
-// rebased to 100 at the start of the visible window.
-function rangedViewCommodities(data, range) {
-  const n = RANGE_DAYS[range] || Infinity;
-  return {
-    gold:     tail(data.gold || [], n),
-    silver:   tail(data.silver || [], n),
-    platinum: tail(data.platinum || [], n),
-    wti:      tail(data.wti || [], n),
-    brent:    tail(data.brent || [], n),
-    natgas:   tail(data.natgas || [], n),
-    gs_ratio: tail(data.gs_ratio || [], n),
-    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
-  };
-}
-
-// Currency / unit formatters
-function fmtUsd(v)        { return v == null ? 'n/a' : '$' + v.toLocaleString('en-US', { maximumFractionDigits: 2 }); }
-function fmtUsdSilver(v)  { return v == null ? 'n/a' : '$' + v.toFixed(2); }
-function fmtUsdNatgas(v)  { return v == null ? 'n/a' : '$' + v.toFixed(2); }
-function fmtRatio2(v)     { return v == null ? 'n/a' : v.toFixed(2); }
-function fmtIndex100(v)   { return v == null ? 'n/a' : v.toFixed(1); }
-
-function buildCmGoldSilver(view) {
-  // Dual-axis: gold left ($/oz, ~$300-5000), silver right ($/oz, ~$5-100).
-  // Without dual axis, silver would be a flat line near zero on a gold-scaled chart.
-  const labels = view.gold.map(r => shortLabelD(r[0]));
-  const pr = pointSizeForLength(labels.length);
-  const sMap = new Map((view.silver || []).map(r => [r[0], r[1]]));
-  const sAligned = view.gold.map(r => sMap.has(r[0]) ? sMap.get(r[0]) : null);
-  return {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Gold ($/oz, left axis)', data: view.gold.map(r => r[1]),
-          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
-          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false, yAxisID: 'y' },
-        { label: 'Silver ($/oz, right axis)', data: sAligned,
-          borderColor: BRAND.silver, backgroundColor: BRAND.silver,
-          tension: 0.15, borderWidth: 2.2, pointRadius: pr, fill: false,
-          spanGaps: true, yAxisID: 'y2' },
-      ],
-    },
-    options: {
-      ...baseOptions(fmtUsd),
-      scales: {
-        x: {
-          grid: { display: false, drawBorder: true, color: BRAND.navy },
-          ticks: { color: BRAND.navy, font: { size: 11, weight: 'bold' }, maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 14 },
-          border: { color: BRAND.navy, width: 1 },
-        },
-        y:  axisSpec(fmtUsd,       'left'),
-        y2: axisSpec(fmtUsdSilver, 'right'),
-      }
-    }
-  };
-}
-
-function buildCmGsRatio(view) {
-  // Gold-to-silver ratio with reference bands at 60 (low / silver-strong)
-  // and 80 (high / risk-off). Both reference lines are flat dashes.
-  const labels = view.gs_ratio.map(r => shortLabelD(r[0]));
-  const pr = pointSizeForLength(labels.length);
-  return {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Gold / Silver Ratio', data: view.gs_ratio.map(r => r[1]),
-          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
-          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
-        { label: 'Silver-strong (60)', data: labels.map(()=>60),
-          borderColor: BRAND.green, borderWidth: 1.2, borderDash: [4,4], pointRadius: 0, fill: false },
-        { label: 'Risk-off (80)', data: labels.map(()=>80),
-          borderColor: BRAND.coral, borderWidth: 1.2, borderDash: [4,4], pointRadius: 0, fill: false },
-      ],
-    },
-    options: baseOptions(fmtRatio2),
-  };
-}
-
-function buildCmCrude(view) {
-  // WTI vs Brent. Brent is typically $5-10 above WTI on average; both move
-  // together. Diverging spreads signal U.S. supply / pipeline anomalies.
-  const labels = view.wti.map(r => shortLabelD(r[0]));
-  const pr = pointSizeForLength(labels.length);
-  const bMap = new Map((view.brent || []).map(r => [r[0], r[1]]));
-  const bAligned = view.wti.map(r => bMap.has(r[0]) ? bMap.get(r[0]) : null);
-  return {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'WTI Crude ($/bbl)', data: view.wti.map(r => r[1]),
-          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
-          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
-        { label: 'Brent Crude ($/bbl)', data: bAligned,
-          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
-          tension: 0.15, borderWidth: 2.2, pointRadius: pr, fill: false, spanGaps: true },
-      ],
-    },
-    options: baseOptions(fmtUsd),
-  };
-}
-
-function buildCmNatgas(view) {
-  // Henry Hub natural gas spot price ($/MMBtu). Highly volatile, weather-driven.
-  const labels = view.natgas.map(r => shortLabelD(r[0]));
-  const pr = pointSizeForLength(labels.length);
-  return {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Henry Hub Natural Gas ($/MMBtu)', data: view.natgas.map(r => r[1]),
-          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
-          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
-      ],
-    },
-    options: baseOptions(fmtUsdNatgas),
-  };
-}
-
-function buildCmPlatinum(view) {
-  // Platinum spot, $/oz. London PM Fix via Kitco. Heavy industrial demand
-  // (catalytic converters) makes platinum more cyclical than gold and
-  // historically it traded above gold; flipped below gold around 2015.
-  const labels = view.platinum.map(r => shortLabelD(r[0]));
-  const pr = pointSizeForLength(labels.length);
-  return {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Platinum Spot ($/oz)', data: view.platinum.map(r => r[1]),
-          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
-          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
-      ],
-    },
-    options: baseOptions(fmtUsd),
-  };
-}
-
-function buildCmComposite(view) {
-  // Energy vs Precious Metals: each rebased to 100 at the start of the visible window.
-  // - Energy = average of WTI and Brent (both $/bbl, comparable scales).
-  // - Precious Metals = (Gold + 50*Silver + 2*Platinum) / 3, where silver and
-  //   platinum are pre-scaled so each metal contributes meaningfully despite
-  //   the ~50x and ~2x absolute-price differences vs gold. Multipliers chosen
-  //   to roughly equalize current levels (~2026 prices); the final rebase to
-  //   100 means the absolute scaling doesn't change the qualitative story.
-  const labels = view.wti.map(r => shortLabelD(r[0]));
-  const pr = pointSizeForLength(labels.length);
-
-  const wtiMap   = new Map(view.wti.map(r => [r[0], r[1]]));
-  const brentMap = new Map(view.brent.map(r => [r[0], r[1]]));
-  const goldMap  = new Map(view.gold.map(r => [r[0], r[1]]));
-  const silverMap   = new Map(view.silver.map(r => [r[0], r[1]]));
-  const platinumMap = new Map(view.platinum.map(r => [r[0], r[1]]));
-
-  function avg(...xs) {
-    const vals = xs.filter(v => v != null && Number.isFinite(v));
-    return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
-  }
-  function rebase(arr) {
-    let base = null;
-    for (const v of arr) { if (v != null && Number.isFinite(v)) { base = v; break; } }
-    if (base == null || base === 0) return arr.map(_ => null);
-    return arr.map(v => (v == null || !Number.isFinite(v)) ? null : +(v / base * 100).toFixed(2));
-  }
-
-  const energyRaw = view.wti.map(r => avg(wtiMap.get(r[0]), brentMap.get(r[0])));
-  const metalsRaw = view.wti.map(r => {
-    const g = goldMap.get(r[0]);
-    const s = silverMap.get(r[0]);
-    const p = platinumMap.get(r[0]);
-    const parts = [];
-    if (g != null) parts.push(g);
-    if (s != null) parts.push(s * 50);
-    if (p != null) parts.push(p * 2);
-    return parts.length ? parts.reduce((a,b) => a+b, 0) / parts.length : null;
-  });
-
-  return {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        { label: 'Energy (WTI/Brent avg)', data: rebase(energyRaw),
-          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
-          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false, spanGaps: true },
-        { label: 'Precious Metals (Gold/Silver/Platinum)', data: rebase(metalsRaw),
-          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
-          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false, spanGaps: true },
-      ],
-    },
-    options: baseOptions(fmtIndex100),
-  };
-}
-
-const COMMODITIES_BUILDERS = {
-  chartCmGoldSilver: buildCmGoldSilver,
-  chartCmGsRatio:    buildCmGsRatio,
-  chartCmCrude:      buildCmCrude,
-  chartCmNatgas:     buildCmNatgas,
-  chartCmPlatinum:   buildCmPlatinum,
-  chartCmComposite:  buildCmComposite,
-};
-
-function renderAllCommodities(view) {
-  Object.entries(COMMODITIES_BUILDERS).forEach(([id, builder]) => {
-    const cfg = builder(view);
-    if (cfg) makeChart(id, cfg);
-  });
-}
-
-function registerAllCsvsCommodities(view) {
-  registerCsv('chartCmGoldSilver', 'gold-silver-spot.csv',
-    ['Date', 'Gold ($/oz)', 'Silver ($/oz)'],
-    mergeSeries([view.gold, view.silver]));
-  registerCsv('chartCmGsRatio', 'gold-silver-ratio.csv',
-    ['Date', 'Gold/Silver Ratio'], view.gs_ratio);
-  registerCsv('chartCmCrude', 'crude-oil-wti-brent.csv',
-    ['Date', 'WTI ($/bbl)', 'Brent ($/bbl)'],
-    mergeSeries([view.wti, view.brent]));
-  registerCsv('chartCmNatgas', 'natural-gas-henry-hub.csv',
-    ['Date', 'Henry Hub Natural Gas ($/MMBtu)'], view.natgas);
-  registerCsv('chartCmPlatinum', 'platinum-spot.csv',
-    ['Date', 'Platinum Spot ($/oz)'], view.platinum);
-  registerCsv('chartCmComposite', 'commodities-composite-rebased.csv',
-    ['Date', 'WTI ($/bbl)', 'Brent ($/bbl)', 'Gold ($/oz)', 'Silver ($/oz)', 'Platinum ($/oz)'],
-    mergeSeries([view.wti, view.brent, view.gold, view.silver, view.platinum]));
-}
-
-function renderKpisCommodities(data) {
-  const kpiHost = document.getElementById('kpis');
-  if (!kpiHost) return;
-  const fmtVal = (v, decimals=2, units='') => {
-    if (v == null) return 'n/a';
-    return '$' + v.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) +
-           (units ? ` <span style="font-size:11px; font-weight:600; color:var(--ink-soft);">${units}</span>` : '');
-  };
-  const fmtPct = v => v == null ? 'no prior data'
-                                : (v >= 0 ? '+' : '') + v.toFixed(2) + '% vs prior day';
-
-  // For commodities, "rising" is neutral (depends on context). The site uses
-  // green for up, coral for down -- intuitive for a market-watcher view.
-  const KPI_DEFS = [
-    { key: 'gold',     label: 'Gold',           accent: BRAND.mustard, decimals: 2, units: '/oz',  unitsBare: '$/oz' },
-    { key: 'silver',   label: 'Silver',         accent: BRAND.silver,  decimals: 2, units: '/oz',  unitsBare: '$/oz' },
-    { key: 'platinum', label: 'Platinum',       accent: BRAND.teal,    decimals: 2, units: '/oz',  unitsBare: '$/oz' },
-    { key: 'gs_ratio', label: 'Gold/Silver Ratio', accent: BRAND.navy, decimals: 2, units: ':1',   unitsBare: ':1', noDollar: true },
-    { key: 'wti',      label: 'WTI Crude',      accent: BRAND.coral,   decimals: 2, units: '/bbl', unitsBare: '$/bbl' },
-    { key: 'brent',    label: 'Brent Crude',    accent: BRAND.coral,   decimals: 2, units: '/bbl', unitsBare: '$/bbl' },
-  ];
-
-  kpiHost.innerHTML = KPI_DEFS.map(def => {
-    const k = data.kpis[def.key] || { value: null, delta: null, delta_pct: null, label: null };
-    let dCls = 'flat';
-    if (k.delta_pct != null && k.delta_pct !== 0) dCls = (k.delta_pct > 0 ? 'up' : 'down');
-    const arrow = k.delta_pct == null ? '-' : (k.delta_pct > 0 ? '▲' : (k.delta_pct < 0 ? '▼' : '▬'));
-    let valHtml;
-    if (def.noDollar) {
-      valHtml = (k.value == null ? 'n/a' : k.value.toFixed(def.decimals)) +
-                ` <span style="font-size:11px; font-weight:600; color:var(--ink-soft);">${def.units}</span>`;
-    } else {
-      valHtml = fmtVal(k.value, def.decimals, def.units);
-    }
-    return `
-      <div class="kpi" style="border-top-color:${def.accent}">
-        <div class="label">${def.label}</div>
-        <div class="value">${valHtml}</div>
-        <div class="delta-pct ${dCls}">${arrow} ${fmtPct(k.delta_pct)}</div>
-      </div>`;
-  }).join('');
 }
 
 // =========================================================
@@ -3176,93 +2950,65 @@ window.EG = {
     if (GDP_BUILDERS[id]) makeChart(id, GDP_BUILDERS[id](view));
   },
 
-  renderConsumer(data) {
-    CURRENT_PAGE = 'consumer';
+  renderConsumerRcc(data) {
+    CURRENT_PAGE = 'consumer-rcc';
     RAW_DATA = data;
     const m = document.getElementById('latest-month');
     if (m) m.textContent = formatLabelLong(data.latest_label);
-    renderKpisConsumer(data);
-    const view = rangedViewConsumer(data, CURRENT_RANGE);
-    renderAllConsumer(view); registerAllCsvsConsumer(view);
+    renderKpisConsumerRcc(data);
+    const view = rangedViewConsumerRcc(data, CURRENT_RANGE);
+    renderAllConsumerRcc(view); registerAllCsvsConsumerRcc(view);
     attachDownloadHandlers(); wireRangeToggle();
   },
 
-  // Embed mode for Consumer:
-  // chartKey ∈ 'retail' | 'sectors' | 'incomenom' | 'incomereal' | 'umich' | 'confboard'
-  renderConsumerEmbed(chartKey, data, range) {
-    CURRENT_PAGE = 'consumer';
+  renderConsumerIsd(data) {
+    CURRENT_PAGE = 'consumer-isd';
+    RAW_DATA = data;
+    const m = document.getElementById('latest-month');
+    if (m) m.textContent = formatLabelLong(data.latest_label);
+    const q = document.getElementById('latest-quarter');
+    if (q) q.textContent = data.latest_quarter
+      ? formatLabelLongQ(data.latest_quarter) : 'no NY Fed data uploaded yet';
+    renderKpisConsumerIsd(data);
+    const view = rangedViewConsumerIsd(data, CURRENT_RANGE);
+    renderAllConsumerIsd(view); registerAllCsvsConsumerIsd(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  // Embed mode for Consumer (Retail & Confidence sub-page):
+  // chartKey ∈ 'retail' | 'sectors' | 'umich' | 'confboard'
+  renderConsumerRccEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'consumer-rcc';
     RAW_DATA = data;
     if (range && RANGE_MONTHS[range]) CURRENT_RANGE = range;
-    const view = rangedViewConsumer(data, CURRENT_RANGE);
+    const view = rangedViewConsumerRcc(data, CURRENT_RANGE);
     const map = {
       retail:     'chartCsRetailMom',
       sectors:    'chartCsRetailSectors',
-      incomenom:  'chartCsIncomeNominal',
-      incomereal: 'chartCsIncomeReal',
       umich:      'chartCsUmich',
       confboard:  'chartCsConfBoard',
     };
     const id = map[chartKey] || 'chartCsRetailMom';
-    if (CONSUMER_BUILDERS[id]) makeChart(id, CONSUMER_BUILDERS[id](view));
+    if (CONSUMER_RCC_BUILDERS[id]) makeChart(id, CONSUMER_RCC_BUILDERS[id](view));
   },
 
-  renderTreasuries(data) {
-    CURRENT_PAGE = 'treasuries';
+  // Embed mode for Consumer (Income / Spending / Debt sub-page):
+  // chartKey ∈ 'incomenom' | 'incomereal' | 'savingrate' | 'interest' | 'credit' | 'revolving' | 'delinquency'
+  renderConsumerIsdEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'consumer-isd';
     RAW_DATA = data;
-    const m = document.getElementById('latest-month');
-    if (m) m.textContent = formatLabelLongD(data.latest_label);
-    renderKpisTreasuries(data);
-    const view = rangedViewTreasuries(data, CURRENT_RANGE);
-    renderAllTreasuries(view); registerAllCsvsTreasuries(view);
-    attachDownloadHandlers(); wireRangeToggle();
-  },
-
-  // Embed mode for Treasuries:
-  // chartKey ∈ 'curve' | '10y' | 'spread' | 'ffrvs10y' | 'real' | 'credit'
-  renderTreasuriesEmbed(chartKey, data, range) {
-    CURRENT_PAGE = 'treasuries';
-    RAW_DATA = data;
-    if (range && RANGE_DAYS[range]) CURRENT_RANGE = range;
-    const view = rangedViewTreasuries(data, CURRENT_RANGE);
+    if (range && (RANGE_MONTHS[range] || RANGE_QUARTERS[range])) CURRENT_RANGE = range;
+    const view = rangedViewConsumerIsd(data, CURRENT_RANGE);
     const map = {
-      curve:    'chartTrCurve',
-      '10y':    'chartTr10y',
-      spread:   'chartTrSpread',
-      ffrvs10y: 'chartTrFfrVs10y',
-      real:     'chartTrReal',
-      credit:   'chartTrCredit',
+      incomenom:   'chartCsIncomeNominal',
+      incomereal:  'chartCsIncomeReal',
+      savingrate:  'chartCsSavingRate',
+      interest:    'chartCsInterestPayments',
+      credit:      'chartCsConsumerCredit',
+      revolving:   'chartCsRevolving',
+      delinquency: 'chartCsDelinquency',
     };
-    const id = map[chartKey] || 'chartTrCurve';
-    if (TREASURIES_BUILDERS[id]) makeChart(id, TREASURIES_BUILDERS[id](view));
-  },
-
-  renderCommodities(data) {
-    CURRENT_PAGE = 'commodities';
-    RAW_DATA = data;
-    const m = document.getElementById('latest-month');
-    if (m) m.textContent = formatLabelLongD(data.latest_label);
-    renderKpisCommodities(data);
-    const view = rangedViewCommodities(data, CURRENT_RANGE);
-    renderAllCommodities(view); registerAllCsvsCommodities(view);
-    attachDownloadHandlers(); wireRangeToggle();
-  },
-
-  // Embed mode for Commodities:
-  // chartKey ∈ 'goldsilver' | 'gsratio' | 'crude' | 'natgas' | 'platinum' | 'composite'
-  renderCommoditiesEmbed(chartKey, data, range) {
-    CURRENT_PAGE = 'commodities';
-    RAW_DATA = data;
-    if (range && RANGE_DAYS[range]) CURRENT_RANGE = range;
-    const view = rangedViewCommodities(data, CURRENT_RANGE);
-    const map = {
-      goldsilver: 'chartCmGoldSilver',
-      gsratio:    'chartCmGsRatio',
-      crude:      'chartCmCrude',
-      natgas:     'chartCmNatgas',
-      platinum:   'chartCmPlatinum',
-      composite:  'chartCmComposite',
-    };
-    const id = map[chartKey] || 'chartCmGoldSilver';
-    if (COMMODITIES_BUILDERS[id]) makeChart(id, COMMODITIES_BUILDERS[id](view));
+    const id = map[chartKey] || 'chartCsIncomeNominal';
+    if (CONSUMER_ISD_BUILDERS[id]) makeChart(id, CONSUMER_ISD_BUILDERS[id](view));
   },
 };
