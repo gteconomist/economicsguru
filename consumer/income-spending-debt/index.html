@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Income, Spending, &amp; Debt &mdash; Economics Guru</title>
+<meta name="description" content="Live US household-finance dashboard: personal income, consumption, saving rate, personal interest payments, total consumer credit (less mortgage) by category, revolving debt, and 90+ day delinquency rates. Sourced from BEA via FRED and the New York Fed's Quarterly Report on Household Debt and Credit.">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/assets/styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  .interactivity-hint { margin: 10px 0 16px; font-size: 12.5px; font-style: italic; color: var(--ink-on-navy-soft); }
+  .chart-card .source { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; }
+  .chart-card .csv-link { font-size: 11px; font-weight: 700; color: var(--mustard); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; text-decoration: none; }
+  .chart-card .csv-link::before { content: '\2193  '; }
+  .chart-card .csv-link:hover { text-decoration: underline; }
+  .controls { display: flex; gap: 12px; align-items: center; margin: 4px 0 0; flex-wrap: wrap; }
+  .controls .label-text { font-size: 12px; color: var(--ink-on-navy-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .subnav {
+    display: flex; gap: 0; align-items: stretch; flex-wrap: wrap;
+    margin: 8px 0 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+  }
+  .subnav a, .subnav span {
+    padding: 8px 14px; font-size: 12.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: #f3ecd0; text-decoration: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    opacity: 0.7;
+  }
+  .subnav a:hover { opacity: 1; text-decoration: none; }
+  .subnav a.active { color: var(--mustard); border-bottom-color: var(--mustard); opacity: 1; }
+  .subnav .disabled { color: #9ba3ab; cursor: not-allowed; opacity: 0.7; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">Economics<span class="tag">Guru</span></div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/inflation/">Inflation</a>
+      <a href="/labor/">Labor</a>
+      <a href="/housing/">Housing</a>
+      <a href="/gdp/">GDP</a>
+      <a href="/consumer/" class="active">Consumer</a>
+      <a href="/rates/">Rates</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <nav class="subnav">
+    <a href="/consumer/income-spending-debt/" class="active">Income, Spending, &amp; Debt</a>
+    <a href="/consumer/retail-confidence/">Retail &amp; Consumer Confidence</a>
+  </nav>
+
+  <div class="page-header">
+    <h1>Income, Spending, &amp; Debt</h1>
+    <div class="subtitle">How US households are earning, spending, saving, and borrowing &mdash; personal income &amp; consumption (nominal and real), saving rate, personal interest payments, total consumer credit (less mortgage), revolving debt, and 90+ day delinquency rates. Monthly data from BEA via FRED; quarterly debt and delinquency data from the NY Fed's Quarterly Report on Household Debt and Credit.</div>
+    <div class="latest">Latest monthly data: <strong id="latest-month">&hellip;</strong>
+      <span style="margin-left:14px">Latest quarterly data: <strong id="latest-quarter">&hellip;</strong></span>
+    </div>
+  </div>
+
+  <div class="notice" id="notice" style="display:none">
+    <strong>Data note:</strong> <span id="notice-text"></span>
+  </div>
+
+  <div id="kpis" class="kpi-grid"></div>
+
+  <div class="controls">
+    <span class="label-text">Time range:</span>
+    <div class="range-toggle">
+      <button data-range="12m" class="active">12 mo</button>
+      <button data-range="5y">5 yr</button>
+      <button data-range="10y">10 yr</button>
+      <button data-range="20y">20 yr</button>
+      <button data-range="max">Max</button>
+    </div>
+  </div>
+
+  <div class="interactivity-hint">
+    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post. The monthly series (income, PCE, saving rate, revolving credit) update with the BEA / Fed G.19 release; the NY Fed Quarterly Report on Household Debt and Credit publishes about six weeks after each quarter close, so the debt-composition and delinquency charts are quarterly.
+  </div>
+
+  <div class="chart-grid">
+
+    <div class="chart-card">
+      <div class="title">Personal Income &amp; Consumption &mdash; Nominal MoM</div>
+      <div class="subtitle">(% change from preceding month; total Personal Income, Disposable Personal Income, Personal Consumption Expenditures &mdash; current dollars)</div>
+      <div class="chart-wrap"><canvas id="chartCsIncomeNominal"></canvas></div>
+      <div class="source">
+        <span>Source: BEA via FRED &mdash; PI, DSPI, PCE.</span>
+        <a href="#" class="csv-link" data-chart="chartCsIncomeNominal">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Personal Income &amp; Consumption &mdash; Real MoM</div>
+      <div class="subtitle">(% change from preceding month; chained 2017 dollars &mdash; deflated by the PCE price index)</div>
+      <div class="chart-wrap"><canvas id="chartCsIncomeReal"></canvas></div>
+      <div class="source">
+        <span>Source: BEA via FRED &mdash; RPI, DSPIC96, PCEC96.</span>
+        <a href="#" class="csv-link" data-chart="chartCsIncomeReal">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Personal Saving Rate</div>
+      <div class="subtitle">(Personal saving as a % of disposable personal income, monthly, seasonally adjusted at annual rates)</div>
+      <div class="chart-wrap"><canvas id="chartCsSavingRate"></canvas></div>
+      <div class="source">
+        <span>Source: BEA via FRED &mdash; PSAVERT.</span>
+        <a href="#" class="csv-link" data-chart="chartCsSavingRate">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Personal Interest Payments</div>
+      <div class="subtitle">(Nonmortgage personal interest payments, billions of dollars, seasonally adjusted at annual rates)</div>
+      <div class="chart-wrap"><canvas id="chartCsInterestPayments"></canvas></div>
+      <div class="source">
+        <span>Source: BEA NIPA Table 2.6 via FRED &mdash; A068RC1 (with vintage-aware fallback).</span>
+        <a href="#" class="csv-link" data-chart="chartCsInterestPayments">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Consumer Credit &mdash; Total Household Debt Less Mortgage Debt</div>
+      <div class="subtitle">(Stacked area, $ trillions; categories: credit card, home equity, auto loans, student loans, other &mdash; total line shown over the stack)</div>
+      <div class="chart-wrap"><canvas id="chartCsConsumerCredit"></canvas></div>
+      <div class="source">
+        <span>Source: Federal Reserve Bank of New York &mdash; Quarterly Report on Household Debt and Credit; CSV baseline at <code>data/historical/nyfed_household_debt.csv</code>.</span>
+        <a href="#" class="csv-link" data-chart="chartCsConsumerCredit">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Revolving Consumer Credit &mdash; Total &amp; YoY % Change</div>
+      <div class="subtitle">(Bars: total revolving consumer credit, billions of dollars SAAR, on the left axis. Line: YoY % change on the right axis.)</div>
+      <div class="chart-wrap"><canvas id="chartCsRevolving"></canvas></div>
+      <div class="source">
+        <span>Source: Federal Reserve G.19 via FRED &mdash; REVOLSL (revolving consumer credit, $bn SAAR).</span>
+        <a href="#" class="csv-link" data-chart="chartCsRevolving">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Percent of Balances 90+ Days Delinquent</div>
+      <div class="subtitle">(Credit card, mortgage, auto loan, and student loan balances at least 90 days past due, % of category balance, quarterly)</div>
+      <div class="chart-wrap"><canvas id="chartCsDelinquency"></canvas></div>
+      <div class="source">
+        <span>Source: Federal Reserve Bank of New York &mdash; Quarterly Report on Household Debt and Credit; CSV baseline at <code>data/historical/nyfed_delinquency.csv</code>.</span>
+        <a href="#" class="csv-link" data-chart="chartCsDelinquency">Download CSV</a>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BEA, FRED, and the Federal Reserve Bank of New York. <a href="/about/">Methodology</a></div>
+    <div>Data refreshes nightly. Last successful build: <span id="build-time">&hellip;</span></div>
+  </div>
+</footer>
+
+<script src="/assets/charts.js"></script>
+<script>
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+fetch('/data/consumer.json', { cache: 'no-cache' })
+  .then(r => r.json())
+  .then(data => {
+    EG.renderConsumerIsd(data);
+    if (data.notice) {
+      document.getElementById('notice').style.display = '';
+      document.getElementById('notice-text').textContent = data.notice;
+    }
+    if (data.build_time) {
+      document.getElementById('build-time').textContent =
+        new Date(data.build_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    document.querySelector('main').insertAdjacentHTML('afterbegin',
+      '<div class="notice"><strong>Could not load data.</strong> Try refreshing in a moment.</div>');
+  });
+</script>
+
+</body>
+</html>
