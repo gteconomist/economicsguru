@@ -31,7 +31,7 @@ jobs:
       # down (e.g. BLS daily-quota exhausted, FRED 5xx storm, Census outage)
       # does not block the rest of the pipeline. Combined with the data/*.json
       # auto-commit at the end of the build job, a failed fetch just means
-      # yesterday's committed JSON rides through to deploy -- the corresponding
+      # yesterday's committed JSON rides through to deploy — the corresponding
       # page shows yesterday's numbers for one day instead of going blank.
 
       - name: Refresh CPI data from BLS
@@ -94,26 +94,11 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_consumer.py
 
-      - name: Refresh Treasuries / Rates data from FRED
-        env:
-          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
-        continue-on-error: true
-        run: python scripts/fetch_treasuries.py
-
-      - name: Refresh Commodities data from Stooq + FRED + MetalPriceAPI
-        env:
-          FRED_API_KEY:       ${{ secrets.FRED_API_KEY }}
-          METALPRICE_API_KEY: ${{ secrets.METALPRICE_API_KEY }}
-        continue-on-error: true
-        run: python scripts/fetch_commodities.py
-
       # Show data summary, but don't fail the workflow if some files are missing
-      # (a fetch step may have hit a quota or rate-limit). Each line is wrapped
-      # so a missing/empty JSON prints a warning and we keep going.
       - name: Show generated data summary
         run: |
           set +e
-          for f in inflation ppi labor pce housing_existing housing_new housing_permits gdp consumer treasuries commodities; do
+          for f in inflation ppi labor pce housing_existing housing_new housing_permits gdp consumer; do
             if [[ -s "data/${f}.json" ]]; then
               echo "OK  data/${f}.json ($(stat -c%s data/${f}.json) bytes)"
             else
@@ -129,22 +114,11 @@ jobs:
           python -c "import json; d=json.load(open('data/housing_new.json')); print('New Homes latest:', d['latest_label']); print('Sales kpi:', d['kpis']['sales']); print('NAHB kpi:', d['kpis']['nahb_hmi']); print('NAHB scrape ok:', d.get('nahb_scrape_succeeded')); print('NAHB CSV changed this run:', d.get('nahb_csv_changed_this_run'))" 2>/dev/null || echo "skip new-homes summary"
           python -c "import json; d=json.load(open('data/housing_permits.json')); print('Permits & Starts latest:', d['latest_label']); print('Total permits kpi:', d['kpis']['permits_total']); print('Total starts kpi:', d['kpis']['starts_total'])" 2>/dev/null || echo "skip permits summary"
           python -c "import json; d=json.load(open('data/gdp.json')); print('GDP latest:', d['latest_label']); print('GDP QoQ ann kpi:', d['kpis']['gdp_qoq_ann']); print('Productivity kpi:', d['kpis']['productivity'])" 2>/dev/null || echo "skip GDP summary"
-          python -c "import json; d=json.load(open('data/consumer.json')); print('Consumer latest:', d['latest_label']); print('Retail MoM kpi:', d['kpis']['retail_mom']); print('PI MoM kpi:', d['kpis']['pi_mom']); print('UMich kpi:', d['kpis']['umich_sentiment']); print('CB CCI kpi:', d['kpis']['cb_confidence']); print('UMich components loaded:', d.get('umich_components_loaded')); print('CB CSV loaded:', d.get('cb_loaded'))" 2>/dev/null || echo "skip consumer summary"
-          python -c "import json; d=json.load(open('data/treasuries.json')); print('Treasuries latest:', d['latest_label']); print('10Y kpi:', d['kpis']['y10y']); print('2s10s spread kpi:', d['kpis']['spread']); print('Fed Funds kpi:', d['kpis']['ffr']); print('Curve maturities:', [p['maturity'] for p in d['yield_curve_today']])" 2>/dev/null || echo "skip treasuries summary"
-          python -c "import json; d=json.load(open('data/commodities.json')); print('Commodities latest:', d['latest_label']); print('Gold kpi:', d['kpis']['gold']); print('Silver kpi:', d['kpis']['silver']); print('Platinum kpi:', d['kpis']['platinum']); print('G/S ratio kpi:', d['kpis']['gs_ratio']); print('WTI kpi:', d['kpis']['wti']); print('CSV baseline loaded:', d.get('metals_csv_loaded')); print('MetalPriceAPI ok:', d.get('metalprice_succeeded'))" 2>/dev/null || echo "skip commodities summary"
+          python -c "import json; d=json.load(open('data/consumer.json')); print('Consumer latest:', d['latest_label'], 'Q:', d.get('latest_quarter')); print('Retail MoM kpi:', d['kpis']['retail_mom']); print('PI MoM kpi:', d['kpis']['pi_mom']); print('Saving rate kpi:', d['kpis']['saving_rate']); print('Interest pay kpi:', d['kpis']['interest_payments']); print('Revolving kpi:', d['kpis']['revolving']); print('Debt total kpi:', d['kpis']['debt_total']); print('CC delq kpi:', d['kpis']['delq_credit_card']); print('UMich kpi:', d['kpis']['umich_sentiment']); print('CB CCI kpi:', d['kpis']['cb_confidence']); print('NY Fed debt loaded:', d.get('nyfed_debt_loaded')); print('NY Fed delq loaded:', d.get('nyfed_delinquency_loaded'))" 2>/dev/null || echo "skip consumer summary"
           exit 0
 
       # Auto-commit fresh data files + CSV baselines if their content materially
-      # changed (i.e. anything besides the build_time timestamp). This serves
-      # two purposes:
-      #  1. Yesterday's good JSONs persist in the repo, so when a fetch fails
-      #     today (BLS quota etc.), checkout brings yesterday's file forward
-      #     and the corresponding page renders yesterday's numbers instead of
-      #     going blank.
-      #  2. The historical CSV baselines (NAR existing-homes, NAHB HMI, UMich
-      #     sentiment, Conference Board) keep auto-extending as before.
-      # The [skip ci] tag prevents the bot's commit from re-triggering this
-      # workflow.
+      # changed (i.e. anything besides the build_time timestamp).
       - name: Commit fresh data files + CSV baselines (if changed)
         run: |
           set -e
@@ -153,7 +127,7 @@ jobs:
 
           changed=""
 
-          # data/*.json -- only commit if content (excluding build_time) changed
+          # data/*.json — only commit if content (excluding build_time) changed
           for f in data/*.json; do
             [[ -f "$f" ]] || continue
             [[ -n "$(git status --porcelain "$f")" ]] || continue
@@ -167,8 +141,8 @@ jobs:
             fi
           done
 
-          # CSV baselines -- commit on any change (they're append-only / hand-edited)
-          for f in data/historical/nar_existing_homes.csv data/historical/nahb_hmi.csv data/historical/umich_sentiment.csv data/historical/conference_board.csv data/historical/precious_metals_kitco.csv; do
+          # CSV baselines — commit on any change (they're append-only / hand-edited)
+          for f in data/historical/nar_existing_homes.csv data/historical/nahb_hmi.csv data/historical/umich_sentiment.csv data/historical/conference_board.csv data/historical/nyfed_household_debt.csv data/historical/nyfed_delinquency.csv; do
             if [[ -f "$f" && -n "$(git status --porcelain "$f")" ]]; then
               changed="$changed $f"
             fi
