@@ -26,6 +26,21 @@ function formatLabelLong(s){
   return new Date(y, m-1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
 }
 
+// Daily-date helpers (treasuries / rates pages emit YYYY-MM-DD labels).
+// Trading-day buckets for the time-range slider on those pages.
+const RANGE_DAYS = { '12m': 252, '5y': 1260, '10y': 2520, '20y': 5040, 'max': Infinity };
+function shortLabelD(s){
+  // 'YYYY-MM-DD' -> "MMM 'YY" so 12m of daily data shows ~12 unique tick labels
+  // and Chart.js autoSkip handles density naturally for longer ranges.
+  const [y,m] = s.split('-').map(Number);
+  return new Date(y, m-1, 1).toLocaleString('en-US', { month: 'short', year: '2-digit' });
+}
+function formatLabelLongD(s){
+  // 'YYYY-MM-DD' -> "May 1, 2026" for the latest-data line in the page header
+  const [y,m,d] = s.split('-').map(Number);
+  return new Date(y, m-1, d).toLocaleString('en-US', { dateStyle: 'long' });
+}
+
 // Quarterly-aware label helpers (GDP/profits/productivity series use "YYYYQN").
 function shortLabelQ(s){
   // "2026Q1" -> "Q1 '26"
@@ -2720,6 +2735,12 @@ function applyRange(range) {
   } else if (CURRENT_PAGE === 'consumer-rcc') {
     const view = rangedViewConsumerRcc(RAW_DATA, range);
     renderAllConsumerRcc(view); registerAllCsvsConsumerRcc(view);
+  } else if (CURRENT_PAGE === 'treasuries') {
+    const view = rangedViewTreasuries(RAW_DATA, range);
+    renderAllTreasuries(view); registerAllCsvsTreasuries(view);
+  } else if (CURRENT_PAGE === 'commodities') {
+    const view = rangedViewCommodities(RAW_DATA, range);
+    renderAllCommodities(view); registerAllCsvsCommodities(view);
   } else {
     const view = rangedView(RAW_DATA, range);
     renderAll(view); registerAllCsvs(view);
@@ -2735,6 +2756,571 @@ function wireRangeToggle() {
     b.dataset.bound = '1';
     b.addEventListener('click', () => applyRange(b.dataset.range));
   });
+}
+
+// =========================================================
+// US Treasuries / Rates / Credit page (DAILY data)
+// =========================================================
+// Series are daily closes from FRED. Date labels are YYYY-MM-DD; the time-range
+// slider uses RANGE_DAYS (trading-day buckets) instead of RANGE_MONTHS. KPIs
+// show level + 1-day change in basis points; the spread KPI also flags when
+// the curve is inverted (level < 0).
+function rangedViewTreasuries(data, range) {
+  const n = RANGE_DAYS[range] || Infinity;
+  // Treasury series (DGS*) and credit spreads publish on trading days only;
+  // tail them by n trading days. fed_funds / fed_target_* / tips / breakeven
+  // publish on a 7-day cadence (DFF includes weekends), so the literal tail
+  // would cover fewer calendar days than the trading-day series. We don't
+  // pre-tail those: their builders do date-keyed Map lookups against the
+  // trading-day axis and slice implicitly. The CSV downloader uses mergeSeries
+  // which also keys by date, so the full vector is fine there too.
+  return {
+    yields_3m:        tail(data.yields_3m || [], n),
+    yields_2y:        tail(data.yields_2y || [], n),
+    yields_5y:        tail(data.yields_5y || [], n),
+    yields_10y:       tail(data.yields_10y || [], n),
+    yields_30y:       tail(data.yields_30y || [], n),
+    fed_funds:             data.fed_funds        || [],
+    fed_target_upper:      data.fed_target_upper || [],
+    fed_target_lower:      data.fed_target_lower || [],
+    tips_5y:               data.tips_5y          || [],
+    tips_10y:              data.tips_10y         || [],
+    spread_2s10s:     tail(data.spread_2s10s || [], n),
+    spread_3m10y:     tail(data.spread_3m10y || [], n),
+    breakeven_10y:         data.breakeven_10y    || [],
+    spread_ig_oas:    tail(data.spread_ig_oas || [], n),
+    spread_hy_oas:    tail(data.spread_hy_oas || [], n),
+    yield_curve_today:    data.yield_curve_today    || [],
+    yield_curve_year_ago: data.yield_curve_year_ago || [],
+    yield_curve_today_date:    data.yield_curve_today_date,
+    yield_curve_year_ago_date: data.yield_curve_year_ago_date,
+    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+  };
+}
+
+// "%" tick / tooltip formatters (one for yields, one for percent spreads).
+function fmtPct2(v) { return v == null ? 'n/a' : v.toFixed(2) + '%'; }
+function fmtPctSpread(v) {
+  // Used on the 2s10s / 3m10y axis. Show sign for clarity (negative = inverted).
+  if (v == null) return 'n/a';
+  return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+}
+
+function buildTrCurve(view) {
+  // Snapshot chart: today's full curve vs. ~1y ago. X-axis is categorical
+  // (3M/2Y/5Y/10Y/30Y). Two line datasets, no time slicing applies.
+  const labels   = (view.yield_curve_today || []).map(p => p.maturity);
+  const today    = (view.yield_curve_today || []).map(p => p.value);
+  const yearAgo  = (view.yield_curve_year_ago || []).map(p => p.value);
+  const todayLbl = view.yield_curve_today_date    ? formatLabelLongD(view.yield_curve_today_date)    : 'today';
+  const yaLbl    = view.yield_curve_year_ago_date ? formatLabelLongD(view.yield_curve_year_ago_date) : '~1Y ago';
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Today (' + todayLbl + ')', data: today,
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.0, borderWidth: 2.8, pointRadius: 4.5, fill: false },
+        { label: '~1 Year Ago (' + yaLbl + ')', data: yearAgo,
+          borderColor: BRAND.khaki, backgroundColor: BRAND.khaki,
+          tension: 0.0, borderWidth: 2.4, pointRadius: 4, fill: false, borderDash: [4,3] },
+      ],
+    },
+    options: baseOptions(fmtPct2),
+  };
+}
+
+function buildTr10y(view) {
+  // 10-year Treasury history.
+  const labels = view.yields_10y.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '10-Year Treasury Yield', data: view.yields_10y.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
+      ],
+    },
+    options: baseOptions(fmtPct2),
+  };
+}
+
+function buildTrSpread(view) {
+  // 2s10s spread with reference line at 0. Below 0 = inverted curve.
+  const labels = view.spread_2s10s.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '10Y minus 2Y (% pts)', data: view.spread_2s10s.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Inversion threshold (0)', data: labels.map(()=>0),
+          borderColor: BRAND.coral, borderWidth: 1.4, borderDash: [5,4], pointRadius: 0, fill: false },
+      ],
+    },
+    options: baseOptions(fmtPctSpread),
+  };
+}
+
+function buildTrFfrVs10y(view) {
+  // Align Fed Funds (daily, may include weekends) to the trading-day axis of DGS10
+  // by joining on YYYY-MM-DD; FRED publishes both, so most days line up exactly.
+  const labels = view.yields_10y.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const ffrMap = new Map((view.fed_funds || []).map(r => [r[0], r[1]]));
+  const ffrAligned = view.yields_10y.map(r => ffrMap.has(r[0]) ? ffrMap.get(r[0]) : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '10-Year Treasury', data: view.yields_10y.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Fed Funds (Effective)', data: ffrAligned,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.15, borderWidth: 2.2, pointRadius: pr, fill: false, spanGaps: true },
+      ],
+    },
+    options: baseOptions(fmtPct2),
+  };
+}
+
+function buildTrReal(view) {
+  // Three lines: nominal 10Y, real 10Y (TIPS), 10Y breakeven inflation.
+  // TIPS / breakeven only start in 2003; longer ranges naturally show what's available.
+  const labels = view.yields_10y.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const tipsMap = new Map((view.tips_10y || []).map(r => [r[0], r[1]]));
+  const beMap   = new Map((view.breakeven_10y || []).map(r => [r[0], r[1]]));
+  const tipsAligned = view.yields_10y.map(r => tipsMap.has(r[0]) ? tipsMap.get(r[0]) : null);
+  const beAligned   = view.yields_10y.map(r => beMap.has(r[0])   ? beMap.get(r[0])   : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Nominal 10Y Treasury', data: view.yields_10y.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Real 10Y (TIPS)', data: tipsAligned,
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.15, borderWidth: 2.2, pointRadius: pr, fill: false, spanGaps: true },
+        { label: '10Y Breakeven Inflation', data: beAligned,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.15, borderWidth: 2.2, pointRadius: pr, fill: false, spanGaps: true },
+      ],
+    },
+    options: baseOptions(fmtPct2),
+  };
+}
+
+function buildTrCredit(view) {
+  // IG vs HY OAS. IG runs ~1% and HY ~3-6%, so dual y-axis makes both visible.
+  // FRED's public API for these BofA series is licensed-limited to ~3 years.
+  const labels = view.spread_hy_oas.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const igMap = new Map((view.spread_ig_oas || []).map(r => [r[0], r[1]]));
+  const igAligned = view.spread_hy_oas.map(r => igMap.has(r[0]) ? igMap.get(r[0]) : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'High Yield OAS', data: view.spread_hy_oas.map(r => r[1]),
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false, yAxisID: 'y' },
+        { label: 'Investment Grade OAS', data: igAligned,
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.15, borderWidth: 2.4, pointRadius: pr, fill: false,
+          spanGaps: true, yAxisID: 'y2' },
+      ],
+    },
+    options: {
+      ...baseOptions(fmtPct2),
+      scales: {
+        x: {
+          grid: { display: false, drawBorder: true, color: BRAND.navy },
+          ticks: { color: BRAND.navy, font: { size: 11, weight: 'bold' }, maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 14 },
+          border: { color: BRAND.navy, width: 1 },
+        },
+        y:  axisSpec(fmtPct2, 'left'),
+        y2: axisSpec(fmtPct2, 'right'),
+      }
+    }
+  };
+}
+
+const TREASURIES_BUILDERS = {
+  chartTrCurve:    buildTrCurve,
+  chartTr10y:      buildTr10y,
+  chartTrSpread:   buildTrSpread,
+  chartTrFfrVs10y: buildTrFfrVs10y,
+  chartTrReal:     buildTrReal,
+  chartTrCredit:   buildTrCredit,
+};
+
+function renderAllTreasuries(view) {
+  Object.entries(TREASURIES_BUILDERS).forEach(([id, builder]) => {
+    const cfg = builder(view);
+    if (cfg) makeChart(id, cfg);
+  });
+}
+
+function registerAllCsvsTreasuries(view) {
+  // Yield curve snapshot CSV: a small two-column comparison.
+  const curveRows = (view.yield_curve_today || []).map((p, i) => {
+    const ya = (view.yield_curve_year_ago || [])[i];
+    return [p.maturity, p.value, ya ? ya.value : null];
+  });
+  registerCsv('chartTrCurve', 'yield-curve-today-vs-1y-ago.csv',
+    ['Maturity', 'Today (%)', '~1 Year Ago (%)'], curveRows);
+  registerCsv('chartTr10y', '10y-treasury-yield.csv',
+    ['Date', '10Y Treasury Yield (%)'], view.yields_10y);
+  registerCsv('chartTrSpread', '10y-2y-spread.csv',
+    ['Date', '10Y minus 2Y (% pts)'], view.spread_2s10s);
+  registerCsv('chartTrFfrVs10y', 'fedfunds-vs-10y.csv',
+    ['Date', '10Y Treasury (%)', 'Fed Funds Effective (%)'],
+    mergeSeries([view.yields_10y, view.fed_funds]));
+  registerCsv('chartTrReal', 'real-yield-and-breakeven.csv',
+    ['Date', 'Nominal 10Y (%)', 'Real 10Y TIPS (%)', '10Y Breakeven (%)'],
+    mergeSeries([view.yields_10y, view.tips_10y, view.breakeven_10y]));
+  registerCsv('chartTrCredit', 'credit-spreads-ig-hy.csv',
+    ['Date', 'High Yield OAS (%)', 'Investment Grade OAS (%)'],
+    mergeSeries([view.spread_hy_oas, view.spread_ig_oas]));
+}
+
+function renderKpisTreasuries(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const fmtPct = v => (v == null ? 'n/a' : v.toFixed(2) + '%');
+  const fmtBps = v => {
+    if (v == null) return 'no prior data';
+    if (v === 0)   return 'unchanged from prior day';
+    const sign = v > 0 ? '+' : '';
+    return sign + v.toFixed(0) + ' bps vs prior day';
+  };
+
+  // For yields, "rising" is neutral (depends on context) but we still color
+  // by direction so the eye picks up the move at a glance: up = coral, down = green.
+  const KPI_DEFS = [
+    { key: 'y3m',    label: '3-Month Treasury',  accent: BRAND.silver },
+    { key: 'y2y',    label: '2-Year Treasury',   accent: BRAND.khaki  },
+    { key: 'y10y',   label: '10-Year Treasury',  accent: BRAND.navy   },
+    { key: 'y30y',   label: '30-Year Treasury',  accent: BRAND.teal   },
+    { key: 'spread', label: '10Y - 2Y Spread',   accent: BRAND.mustard, spread: true },
+    { key: 'ffr',    label: 'Fed Funds Effective', accent: BRAND.coral },
+  ];
+
+  kpiHost.innerHTML = KPI_DEFS.map(def => {
+    const k = data.kpis[def.key] || { value: null, delta_bps: null, label: null };
+    const arrow = k.delta_bps == null ? '-' : (k.delta_bps > 0 ? '▲' : (k.delta_bps < 0 ? '▼' : '▬'));
+    let dCls = 'flat';
+    if (k.delta_bps != null && k.delta_bps !== 0) dCls = (k.delta_bps > 0 ? 'up' : 'down');
+    let extra = '';
+    if (def.spread && k.value != null) {
+      if (k.value < 0)       extra = '<div class="spread-flag invert">Curve inverted</div>';
+      else if (k.value < 0.25) extra = '<div class="spread-flag">Near-flat curve</div>';
+      else                   extra = '<div class="spread-flag steep">Positively-sloped</div>';
+    }
+    return `
+      <div class="kpi" style="border-top-color:${def.accent}">
+        <div class="label">${def.label}</div>
+        <div class="value">${fmtPct(k.value)}</div>
+        <div class="delta-bps ${dCls}">${arrow} ${fmtBps(k.delta_bps)}</div>
+        ${extra}
+      </div>`;
+  }).join('');
+}
+
+// =========================================================
+// Commodities (Metals + Energy) page (DAILY data)
+// =========================================================
+// Same daily-cadence pattern as treasuries: YYYY-MM-DD labels, RANGE_DAYS
+// for the slider. Six charts: gold + silver dual-axis, gold/silver ratio,
+// WTI vs Brent, Henry Hub natgas, copper, and an energy-vs-metals composite
+// rebased to 100 at the start of the visible window.
+function rangedViewCommodities(data, range) {
+  const n = RANGE_DAYS[range] || Infinity;
+  return {
+    gold:     tail(data.gold || [], n),
+    silver:   tail(data.silver || [], n),
+    platinum: tail(data.platinum || [], n),
+    wti:      tail(data.wti || [], n),
+    brent:    tail(data.brent || [], n),
+    natgas:   tail(data.natgas || [], n),
+    gs_ratio: tail(data.gs_ratio || [], n),
+    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+  };
+}
+
+// Currency / unit formatters
+function fmtUsd(v)        { return v == null ? 'n/a' : '$' + v.toLocaleString('en-US', { maximumFractionDigits: 2 }); }
+function fmtUsdSilver(v)  { return v == null ? 'n/a' : '$' + v.toFixed(2); }
+function fmtUsdNatgas(v)  { return v == null ? 'n/a' : '$' + v.toFixed(2); }
+function fmtRatio2(v)     { return v == null ? 'n/a' : v.toFixed(2); }
+function fmtIndex100(v)   { return v == null ? 'n/a' : v.toFixed(1); }
+
+function buildCmGoldSilver(view) {
+  // Dual-axis: gold left ($/oz, ~$300-5000), silver right ($/oz, ~$5-100).
+  // Without dual axis, silver would be a flat line near zero on a gold-scaled chart.
+  const labels = view.gold.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const sMap = new Map((view.silver || []).map(r => [r[0], r[1]]));
+  const sAligned = view.gold.map(r => sMap.has(r[0]) ? sMap.get(r[0]) : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Gold ($/oz, left axis)', data: view.gold.map(r => r[1]),
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false, yAxisID: 'y' },
+        { label: 'Silver ($/oz, right axis)', data: sAligned,
+          borderColor: BRAND.silver, backgroundColor: BRAND.silver,
+          tension: 0.15, borderWidth: 2.2, pointRadius: pr, fill: false,
+          spanGaps: true, yAxisID: 'y2' },
+      ],
+    },
+    options: {
+      ...baseOptions(fmtUsd),
+      scales: {
+        x: {
+          grid: { display: false, drawBorder: true, color: BRAND.navy },
+          ticks: { color: BRAND.navy, font: { size: 11, weight: 'bold' }, maxRotation: 45, minRotation: 0, autoSkip: true, maxTicksLimit: 14 },
+          border: { color: BRAND.navy, width: 1 },
+        },
+        y:  axisSpec(fmtUsd,       'left'),
+        y2: axisSpec(fmtUsdSilver, 'right'),
+      }
+    }
+  };
+}
+
+function buildCmGsRatio(view) {
+  // Gold-to-silver ratio with reference bands at 60 (low / silver-strong)
+  // and 80 (high / risk-off). Both reference lines are flat dashes.
+  const labels = view.gs_ratio.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Gold / Silver Ratio', data: view.gs_ratio.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Silver-strong (60)', data: labels.map(()=>60),
+          borderColor: BRAND.green, borderWidth: 1.2, borderDash: [4,4], pointRadius: 0, fill: false },
+        { label: 'Risk-off (80)', data: labels.map(()=>80),
+          borderColor: BRAND.coral, borderWidth: 1.2, borderDash: [4,4], pointRadius: 0, fill: false },
+      ],
+    },
+    options: baseOptions(fmtRatio2),
+  };
+}
+
+function buildCmCrude(view) {
+  // WTI vs Brent. Brent is typically $5-10 above WTI on average; both move
+  // together. Diverging spreads signal U.S. supply / pipeline anomalies.
+  const labels = view.wti.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const bMap = new Map((view.brent || []).map(r => [r[0], r[1]]));
+  const bAligned = view.wti.map(r => bMap.has(r[0]) ? bMap.get(r[0]) : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'WTI Crude ($/bbl)', data: view.wti.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Brent Crude ($/bbl)', data: bAligned,
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.15, borderWidth: 2.2, pointRadius: pr, fill: false, spanGaps: true },
+      ],
+    },
+    options: baseOptions(fmtUsd),
+  };
+}
+
+function buildCmNatgas(view) {
+  // Henry Hub natural gas spot price ($/MMBtu). Highly volatile, weather-driven.
+  const labels = view.natgas.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Henry Hub Natural Gas ($/MMBtu)', data: view.natgas.map(r => r[1]),
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
+      ],
+    },
+    options: baseOptions(fmtUsdNatgas),
+  };
+}
+
+function buildCmPlatinum(view) {
+  // Platinum spot, $/oz. London PM Fix via Kitco. Heavy industrial demand
+  // (catalytic converters) makes platinum more cyclical than gold and
+  // historically it traded above gold; flipped below gold around 2015.
+  const labels = view.platinum.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Platinum Spot ($/oz)', data: view.platinum.map(r => r[1]),
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
+      ],
+    },
+    options: baseOptions(fmtUsd),
+  };
+}
+
+function buildCmComposite(view) {
+  // Energy vs Precious Metals: each rebased to 100 at the start of the visible window.
+  // - Energy = average of WTI and Brent (both $/bbl, comparable scales).
+  // - Precious Metals = (Gold + 50*Silver + 2*Platinum) / 3, where silver and
+  //   platinum are pre-scaled so each metal contributes meaningfully despite
+  //   the ~50x and ~2x absolute-price differences vs gold. Multipliers chosen
+  //   to roughly equalize current levels (~2026 prices); the final rebase to
+  //   100 means the absolute scaling doesn't change the qualitative story.
+  const labels = view.wti.map(r => shortLabelD(r[0]));
+  const pr = pointSizeForLength(labels.length);
+
+  const wtiMap   = new Map(view.wti.map(r => [r[0], r[1]]));
+  const brentMap = new Map(view.brent.map(r => [r[0], r[1]]));
+  const goldMap  = new Map(view.gold.map(r => [r[0], r[1]]));
+  const silverMap   = new Map(view.silver.map(r => [r[0], r[1]]));
+  const platinumMap = new Map(view.platinum.map(r => [r[0], r[1]]));
+
+  function avg(...xs) {
+    const vals = xs.filter(v => v != null && Number.isFinite(v));
+    return vals.length ? vals.reduce((a,b) => a+b, 0) / vals.length : null;
+  }
+  function rebase(arr) {
+    let base = null;
+    for (const v of arr) { if (v != null && Number.isFinite(v)) { base = v; break; } }
+    if (base == null || base === 0) return arr.map(_ => null);
+    return arr.map(v => (v == null || !Number.isFinite(v)) ? null : +(v / base * 100).toFixed(2));
+  }
+
+  const energyRaw = view.wti.map(r => avg(wtiMap.get(r[0]), brentMap.get(r[0])));
+  const metalsRaw = view.wti.map(r => {
+    const g = goldMap.get(r[0]);
+    const s = silverMap.get(r[0]);
+    const p = platinumMap.get(r[0]);
+    const parts = [];
+    if (g != null) parts.push(g);
+    if (s != null) parts.push(s * 50);
+    if (p != null) parts.push(p * 2);
+    return parts.length ? parts.reduce((a,b) => a+b, 0) / parts.length : null;
+  });
+
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Energy (WTI/Brent avg)', data: rebase(energyRaw),
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false, spanGaps: true },
+        { label: 'Precious Metals (Gold/Silver/Platinum)', data: rebase(metalsRaw),
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false, spanGaps: true },
+      ],
+    },
+    options: baseOptions(fmtIndex100),
+  };
+}
+
+const COMMODITIES_BUILDERS = {
+  chartCmGoldSilver: buildCmGoldSilver,
+  chartCmGsRatio:    buildCmGsRatio,
+  chartCmCrude:      buildCmCrude,
+  chartCmNatgas:     buildCmNatgas,
+  chartCmPlatinum:   buildCmPlatinum,
+  chartCmComposite:  buildCmComposite,
+};
+
+function renderAllCommodities(view) {
+  Object.entries(COMMODITIES_BUILDERS).forEach(([id, builder]) => {
+    const cfg = builder(view);
+    if (cfg) makeChart(id, cfg);
+  });
+}
+
+function registerAllCsvsCommodities(view) {
+  registerCsv('chartCmGoldSilver', 'gold-silver-spot.csv',
+    ['Date', 'Gold ($/oz)', 'Silver ($/oz)'],
+    mergeSeries([view.gold, view.silver]));
+  registerCsv('chartCmGsRatio', 'gold-silver-ratio.csv',
+    ['Date', 'Gold/Silver Ratio'], view.gs_ratio);
+  registerCsv('chartCmCrude', 'crude-oil-wti-brent.csv',
+    ['Date', 'WTI ($/bbl)', 'Brent ($/bbl)'],
+    mergeSeries([view.wti, view.brent]));
+  registerCsv('chartCmNatgas', 'natural-gas-henry-hub.csv',
+    ['Date', 'Henry Hub Natural Gas ($/MMBtu)'], view.natgas);
+  registerCsv('chartCmPlatinum', 'platinum-spot.csv',
+    ['Date', 'Platinum Spot ($/oz)'], view.platinum);
+  registerCsv('chartCmComposite', 'commodities-composite-rebased.csv',
+    ['Date', 'WTI ($/bbl)', 'Brent ($/bbl)', 'Gold ($/oz)', 'Silver ($/oz)', 'Platinum ($/oz)'],
+    mergeSeries([view.wti, view.brent, view.gold, view.silver, view.platinum]));
+}
+
+function renderKpisCommodities(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const fmtVal = (v, decimals=2, units='') => {
+    if (v == null) return 'n/a';
+    return '$' + v.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) +
+           (units ? ` <span style="font-size:11px; font-weight:600; color:var(--ink-soft);">${units}</span>` : '');
+  };
+  const fmtPct = v => v == null ? 'no prior data'
+                                : (v >= 0 ? '+' : '') + v.toFixed(2) + '% vs prior day';
+
+  // For commodities, "rising" is neutral (depends on context). The site uses
+  // green for up, coral for down -- intuitive for a market-watcher view.
+  const KPI_DEFS = [
+    { key: 'gold',     label: 'Gold',           accent: BRAND.mustard, decimals: 2, units: '/oz',  unitsBare: '$/oz' },
+    { key: 'silver',   label: 'Silver',         accent: BRAND.silver,  decimals: 2, units: '/oz',  unitsBare: '$/oz' },
+    { key: 'platinum', label: 'Platinum',       accent: BRAND.teal,    decimals: 2, units: '/oz',  unitsBare: '$/oz' },
+    { key: 'gs_ratio', label: 'Gold/Silver Ratio', accent: BRAND.navy, decimals: 2, units: ':1',   unitsBare: ':1', noDollar: true },
+    { key: 'wti',      label: 'WTI Crude',      accent: BRAND.coral,   decimals: 2, units: '/bbl', unitsBare: '$/bbl' },
+    { key: 'brent',    label: 'Brent Crude',    accent: BRAND.coral,   decimals: 2, units: '/bbl', unitsBare: '$/bbl' },
+  ];
+
+  kpiHost.innerHTML = KPI_DEFS.map(def => {
+    const k = data.kpis[def.key] || { value: null, delta: null, delta_pct: null, label: null };
+    let dCls = 'flat';
+    if (k.delta_pct != null && k.delta_pct !== 0) dCls = (k.delta_pct > 0 ? 'up' : 'down');
+    const arrow = k.delta_pct == null ? '-' : (k.delta_pct > 0 ? '▲' : (k.delta_pct < 0 ? '▼' : '▬'));
+    let valHtml;
+    if (def.noDollar) {
+      valHtml = (k.value == null ? 'n/a' : k.value.toFixed(def.decimals)) +
+                ` <span style="font-size:11px; font-weight:600; color:var(--ink-soft);">${def.units}</span>`;
+    } else {
+      valHtml = fmtVal(k.value, def.decimals, def.units);
+    }
+    return `
+      <div class="kpi" style="border-top-color:${def.accent}">
+        <div class="label">${def.label}</div>
+        <div class="value">${valHtml}</div>
+        <div class="delta-pct ${dCls}">${arrow} ${fmtPct(k.delta_pct)}</div>
+      </div>`;
+  }).join('');
 }
 
 // =========================================================
@@ -3017,5 +3603,65 @@ window.EG = {
     };
     const id = map[chartKey] || 'chartCsIncomeNominal';
     if (CONSUMER_ISD_BUILDERS[id]) makeChart(id, CONSUMER_ISD_BUILDERS[id](view));
+  },
+
+  renderTreasuries(data) {
+    CURRENT_PAGE = 'treasuries';
+    RAW_DATA = data;
+    const m = document.getElementById('latest-month');
+    if (m) m.textContent = formatLabelLongD(data.latest_label);
+    renderKpisTreasuries(data);
+    const view = rangedViewTreasuries(data, CURRENT_RANGE);
+    renderAllTreasuries(view); registerAllCsvsTreasuries(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  // Embed mode for Treasuries:
+  // chartKey ∈ 'curve' | '10y' | 'spread' | 'ffrvs10y' | 'real' | 'credit'
+  renderTreasuriesEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'treasuries';
+    RAW_DATA = data;
+    if (range && RANGE_DAYS[range]) CURRENT_RANGE = range;
+    const view = rangedViewTreasuries(data, CURRENT_RANGE);
+    const map = {
+      curve:    'chartTrCurve',
+      '10y':    'chartTr10y',
+      spread:   'chartTrSpread',
+      ffrvs10y: 'chartTrFfrVs10y',
+      real:     'chartTrReal',
+      credit:   'chartTrCredit',
+    };
+    const id = map[chartKey] || 'chartTrCurve';
+    if (TREASURIES_BUILDERS[id]) makeChart(id, TREASURIES_BUILDERS[id](view));
+  },
+
+  renderCommodities(data) {
+    CURRENT_PAGE = 'commodities';
+    RAW_DATA = data;
+    const m = document.getElementById('latest-month');
+    if (m) m.textContent = formatLabelLongD(data.latest_label);
+    renderKpisCommodities(data);
+    const view = rangedViewCommodities(data, CURRENT_RANGE);
+    renderAllCommodities(view); registerAllCsvsCommodities(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  // Embed mode for Commodities:
+  // chartKey ∈ 'goldsilver' | 'gsratio' | 'crude' | 'natgas' | 'platinum' | 'composite'
+  renderCommoditiesEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'commodities';
+    RAW_DATA = data;
+    if (range && RANGE_DAYS[range]) CURRENT_RANGE = range;
+    const view = rangedViewCommodities(data, CURRENT_RANGE);
+    const map = {
+      goldsilver: 'chartCmGoldSilver',
+      gsratio:    'chartCmGsRatio',
+      crude:      'chartCmCrude',
+      natgas:     'chartCmNatgas',
+      platinum:   'chartCmPlatinum',
+      composite:  'chartCmComposite',
+    };
+    const id = map[chartKey] || 'chartCmGoldSilver';
+    if (COMMODITIES_BUILDERS[id]) makeChart(id, COMMODITIES_BUILDERS[id](view));
   },
 };
