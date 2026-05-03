@@ -2,43 +2,33 @@
 """
 Fetch Consumer-tab data and write a normalized payload to data/consumer.json.
 
-What this builds, by chart:
-  1. Retail Sales — MoM % bars (Total / ex-MV / Control Group) + Total YoY line
-  2. Sector contributions to retail-sales growth (12 NAICS sectors, stacked bars
-     summing to the total MoM % change)
-  3. Personal Income & Consumption — MoM % bars (Nominal: PI / DSPI / PCE)
-  4. Personal Income & Consumption — MoM % bars (Real: RPI / Real DSPI / Real PCE)
-  5. UMich Consumer Sentiment — 3 lines (Total / Expectations / Current Conditions)
-  6. Conference Board Consumer Confidence — 3 lines (CCI / Expectations / Present
-     Situation)
+This is a SUPERSET of the previous fetch_consumer.py. After the 2026-05-03
+hub-split it serves both sub-pages (/consumer/retail-confidence/ and
+/consumer/income-spending-debt/) from a single payload.
 
-Sources:
-  FRED  RSAFS / RSFSXMV               Retail trade & food services, total / ex-MV
-  FRED  RSMVPD / RSFHFS / RSBMGESD /  12 retail NAICS sectors (441/442/444/445/
-        RSDBS / RSHPCS / RSGASS /     446/447/448/451/452/453/454/722) — used
-        RSCCAS / RSSGHBMS / RSGMS /   for the sector-contribution stacked bars
-        RSMSR / RSNSR / RSFSDP        AND to compute the Control Group:
-                                      Total - Auto - Gas - Bldg Mat - Food Svcs
-  FRED  PI / DSPI / PCE               Personal Income, Disposable PI, PCE (nom)
-  FRED  RPI / DSPIC96 / PCEC96        Real Personal Income, Real DPI, Real PCE
-  FRED  UMCSENT                       UMich Consumer Sentiment (headline only —
-                                      ICE / ICC components come from CSV below)
+Charts produced (by sub-page):
 
-  CSV + monthly scrape (NAHB pattern):
-    data/historical/umich_sentiment.csv         UMich ICS / ICE / ICC
-        Scrape:  https://www.sca.isr.umich.edu/tables.html — discover CSV file
-                 paths from anchor tags, download each, parse, upsert into CSV
-                 (overwrite on revision, append on new month). If the scrape
-                 fails the page still renders from whatever is in the CSV.
-    data/historical/conference_board.csv        CB CCI / Expectations / Present
-        Scrape:  https://www.conference-board.org/topics/consumer-confidence/
-                 — find the latest press release link, fetch, parse the
-                 narrative for "Index ... to <value>" / "from <value>" so we
-                 capture both this month's release AND the prior-month
-                 revision in the same run, upsert into CSV.
+  RETAIL & CONSUMER CONFIDENCE (4):
+   1. Retail Sales - MoM % bars (Total / ex-MV / Control Group) + Total YoY line
+   2. Sector contributions to retail-sales growth (12 NAICS sectors, stacked
+      bars summing to the total MoM % change)
+   3. UMich Consumer Sentiment - 3 lines (Total / Expectations / Current)
+   4. Conference Board Consumer Confidence - 3 lines
+
+  INCOME, SPENDING, & DEBT (7):
+   5. Personal Income & Consumption - MoM % bars (Nominal: PI / DSPI / PCE)
+   6. Personal Income & Consumption - MoM % bars (Real)
+   7. Personal Saving Rate - line, % of disposable personal income (PSAVERT)
+   8. Personal Interest Payments - line, $bn SAAR (A068RC1 with fallbacks)
+   9. Total Consumer Credit (less mortgage) - stacked area, NY Fed Quarterly
+      Report on Household Debt and Credit (CSV at
+      data/historical/nyfed_household_debt.csv)
+  10. Revolving Consumer Credit - total ($bn, FRED REVOLSL) + YoY % change line
+  11. Percent of balances 90+ days delinquent - line, NY Fed Quarterly Report
+      (CSV at data/historical/nyfed_delinquency.csv)
 
 Environment variable:
-  FRED_API_KEY — required; same secret already used by the other fetch scripts.
+  FRED_API_KEY - required; same secret as other fetch scripts.
 """
 
 import os
@@ -56,10 +46,10 @@ OUT_PATH       = REPO_ROOT / "data" / "consumer.json"
 HISTORICAL_DIR = REPO_ROOT / "data" / "historical"
 UMICH_CSV      = HISTORICAL_DIR / "umich_sentiment.csv"
 CB_CSV         = HISTORICAL_DIR / "conference_board.csv"
+NYFED_DEBT_CSV = HISTORICAL_DIR / "nyfed_household_debt.csv"
+NYFED_DELQ_CSV = HISTORICAL_DIR / "nyfed_delinquency.csv"
 
-# History window for FRED — months. ~25 yr at monthly = 300 m.
 START_YEAR = dt.date.today().year - 25
-
 UA = "economicsguru.com data refresh"
 
 MONTHS_FULL = {
@@ -72,7 +62,6 @@ MONTHS_ABBR = {k[:3]: v for k, v in MONTHS_FULL.items()}
 # ============================================================ HTTP helpers
 
 def _http_get(url, retries=3, timeout=30, ua=UA):
-    """GET a URL, return body as bytes. Raises on persistent failure."""
     last_err = None
     for attempt in range(retries):
         try:
@@ -89,20 +78,19 @@ def _http_get(url, retries=3, timeout=30, ua=UA):
 
 
 def _http_get_text(url, retries=3, timeout=30):
-    """GET a URL, return UTF-8-decoded body. Tolerant of bad bytes."""
     return _http_get(url, retries=retries, timeout=timeout).decode("utf-8", errors="replace")
 
 
 # ============================================================ FRED helpers
 
-def _fred_obs(series_id):
-    """Fetch a FRED series and return [(YYYY-MM, float)] sorted ascending."""
+def _fred_obs(series_id, start_year=None):
     key = os.environ.get("FRED_API_KEY")
     if not key:
         raise RuntimeError("FRED_API_KEY env var is not set.")
+    obs_start = f"{start_year or START_YEAR}-01-01"
     params = {
         "series_id": series_id, "api_key": key,
-        "file_type": "json", "observation_start": f"{START_YEAR}-01-01",
+        "file_type": "json", "observation_start": obs_start,
     }
     url = "https://api.stlouisfed.org/fred/series/observations?" + parse.urlencode(params)
     body = _http_get(url, retries=3, timeout=60)
@@ -115,6 +103,20 @@ def _fred_obs(series_id):
         out.append((f"{d.year:04d}-{d.month:02d}", float(o["value"])))
     out.sort(key=lambda x: x[0])
     return out
+
+
+def _fred_obs_try(candidate_ids, start_year=None):
+    """Try a list of FRED series IDs in order; return (data, id_used)."""
+    for sid in candidate_ids:
+        try:
+            obs = _fred_obs(sid, start_year=start_year)
+            if obs:
+                print(f"  FRED: using {sid} ({len(obs)} obs)", flush=True)
+                return obs, sid
+            print(f"  FRED: {sid} returned empty - trying next", flush=True)
+        except (error.HTTPError, error.URLError, RuntimeError) as e:
+            print(f"  FRED: {sid} failed ({e}) - trying next", flush=True)
+    return [], None
 
 
 # ============================================================ Math helpers
@@ -162,7 +164,7 @@ def mom_contribution(sector_levels, total_levels):
     return out
 
 
-# ============================================================ CSV helpers
+# ============================================================ CSV helpers (monthly)
 
 def _normalize_month(s):
     s = s.strip()
@@ -182,7 +184,6 @@ def _normalize_month(s):
         except ValueError:
             return ""
     if " " in s:
-        # "Apr 2026" or "April 2026"
         parts = s.split()
         if len(parts) == 2:
             mon = parts[0][:3].title()
@@ -205,7 +206,7 @@ def _read_csv_series(path, value_columns):
             if not lbl: continue
             for col in value_columns:
                 v = (row.get(col) or "").strip()
-                if v in ("", "n/a", "NA", "—", "-"): continue
+                if v in ("", "n/a", "NA", "-"): continue
                 try: out[col].append((lbl, float(v)))
                 except ValueError: continue
     for col in value_columns:
@@ -214,13 +215,6 @@ def _read_csv_series(path, value_columns):
 
 
 def _upsert_csv(path, value_columns, scraped_rows):
-    """Upsert one or more {month, col1, col2, ...} dicts into a tidy CSV.
-
-    Same shape as NAHB: opens the existing CSV, builds a {month: row-dict},
-    overwrites cells the scrape produced, leaves untouched cells alone, sorts
-    by month on output, atomic write via .tmp + rename. Returns True if the
-    file changed on disk, False otherwise.
-    """
     if not scraped_rows:
         return False
 
@@ -243,7 +237,6 @@ def _upsert_csv(path, value_columns, scraped_rows):
             existing_header = rows[0]
             existing = rows[1:]
             body_changed_initially = False
-        # Preserve user's column order if it differs from canonical
         header = existing_header
 
     by_month = {}
@@ -287,17 +280,58 @@ def _upsert_csv(path, value_columns, scraped_rows):
 
 
 def _format_csv_cell(v):
-    """Render a numeric value the way the source CSV does — decimal if needed,
-    otherwise integer (so a value of 92.0 is written as '92', and 92.8 as '92.8',
-    matching the user's existing pasted history)."""
     try:
         f = float(v)
     except (TypeError, ValueError):
         return str(v).strip()
     if abs(f - round(f)) < 1e-9:
         return str(int(round(f)))
-    # Strip trailing zeros from floats. 92.20 -> '92.2', 100.0 -> already int branch.
     return ("%.4f" % f).rstrip("0").rstrip(".")
+
+
+# ============================================================ CSV helpers (quarterly NY Fed)
+
+def _normalize_quarter(s):
+    s = (s or "").strip().upper().replace(" ", "")
+    if not s:
+        return ""
+    m = re.match(r"^(\d{4})-?Q([1-4])$", s)
+    if m: return f"{m.group(1)}Q{m.group(2)}"
+    m = re.match(r"^Q([1-4])-?(\d{4})$", s)
+    if m: return f"{m.group(2)}Q{m.group(1)}"
+    m = re.match(r"^(\d{4})-(\d{1,2})$", s)
+    if m:
+        y, mo = int(m.group(1)), int(m.group(2))
+        if mo in (3, 6, 9, 12):
+            return f"{y}Q{mo // 3}"
+    m = re.match(r"^(\d{1,2})/(\d{4})$", s)
+    if m:
+        mo, y = int(m.group(1)), int(m.group(2))
+        if mo in (3, 6, 9, 12):
+            return f"{y}Q{mo // 3}"
+    return ""
+
+
+def _read_quarterly_csv(path, value_columns):
+    if not path.exists():
+        return {col: [] for col in value_columns}
+    out = {col: [] for col in value_columns}
+    with path.open() as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            raw = (row.get("quarter") or row.get("Quarter")
+                   or row.get("date") or row.get("Date") or "").strip()
+            if not raw: continue
+            q = _normalize_quarter(raw)
+            if not q: continue
+            for col in value_columns:
+                v = (row.get(col) or "").strip()
+                if v in ("", "n/a", "NA", "-"): continue
+                try: out[col].append((q, float(v)))
+                except ValueError: continue
+    for col in value_columns:
+        out[col].sort(key=lambda x: x[0])
+    return out
 
 
 # ============================================================ UMich scrape
@@ -307,12 +341,6 @@ UMICH_TABLES_URL_FALLBACKS = [
     "http://www.sca.isr.umich.edu/tables.html",
     "https://data.sca.isr.umich.edu/tables.php",
 ]
-# Files we want, by URL filename. UMich's monthly tables follow the convention
-# tb<period><index>.csv where period 'm' = monthly. The combined ICC+ICE file
-# has both components — we map both keys to the same URL with different cols.
-# Identity has to come from the URL path: every download anchor on tables.html
-# is labelled literally "PDF" / "Excel" / "CSV", so label-text matching is
-# useless here.
 UMICH_FILE_MAP = {
     "tbmics.csv":    {"ics": "ICS_ALL"},
     "tbmiccice.csv": {"icc": "ICC", "ice": "ICE"},
@@ -320,12 +348,6 @@ UMICH_FILE_MAP = {
 
 
 def _umich_discover_csvs(html):
-    """Parse tables.html for CSV anchors, return {our_key: (full_url, header_col)}.
-
-    Matches by URL filename rather than anchor label text — UMich labels every
-    download link literally 'CSV'/'PDF'/'Excel', so the identity of the index
-    has to come from the path (tbmics.csv = ICS, tbmiccice.csv = ICC + ICE).
-    """
     found = {}
     href_re = re.compile(r'href="([^"]+\.csv)"', re.IGNORECASE)
     for href in href_re.findall(html):
@@ -340,12 +362,6 @@ def _umich_discover_csvs(html):
 
 
 def _umich_parse_csv(csv_text, value_col):
-    """Parse a UMich monthly index CSV. Header is 'Month, YYYY, <one or more
-    value cols>' (e.g. 'Month,YYYY,ICS_ALL' for tbmics.csv or
-    'Month,YYYY,ICC,ICE' for tbmiccice.csv). Returns sorted [(YYYY-MM, float)]
-    for the requested column. Tolerant of header rows, blank cells, and 'NA'
-    sentinels.
-    """
     rows = list(csv.reader(csv_text.splitlines()))
     if not rows:
         return []
@@ -353,7 +369,6 @@ def _umich_parse_csv(csv_text, value_col):
     try:
         col_idx = header.index(value_col)
     except ValueError:
-        # Fallback: assume the third column (matches tbmics.csv shape).
         col_idx = 2
     out = []
     for row in rows[1:]:
@@ -376,10 +391,6 @@ def _umich_parse_csv(csv_text, value_col):
 
 
 def scrape_umich():
-    """Returns a list of {month, ics, ice, icc} dicts (one per recent month
-    across the three CSVs), or [] on failure. Logs heavily so the workflow log
-    is enough to diagnose what went wrong.
-    """
     html = None
     for url in [UMICH_TABLES_URL] + UMICH_TABLES_URL_FALLBACKS:
         try:
@@ -391,15 +402,14 @@ def scrape_umich():
             print(f"  UMich tables page fetch failed at {url}: {e}",
                   file=sys.stderr)
     if not html:
-        print("  UMich scrape: could not reach any tables-page URL — skipping",
+        print("  UMich scrape: could not reach any tables-page URL - skipping",
               file=sys.stderr)
         return []
 
     discovered = _umich_discover_csvs(html)
     print(f"  UMich CSVs discovered: {discovered}", file=sys.stderr)
     if not discovered:
-        print("  UMich scrape: no expected CSV filenames found on tables.html — "
-              "skipping (UMich likely changed their file naming)",
+        print("  UMich scrape: no expected CSV filenames found - skipping",
               file=sys.stderr)
         return []
 
@@ -408,15 +418,13 @@ def scrape_umich():
         try:
             text = _http_get_text(url)
             parsed = _umich_parse_csv(text, col)
-            print(f"  UMich {key}: parsed {len(parsed)} rows from {url} "
-                  f"(col={col})", file=sys.stderr)
+            print(f"  UMich {key}: parsed {len(parsed)} rows from {url} (col={col})",
+                  file=sys.stderr)
             series[key] = parsed
         except Exception as e:
             print(f"  UMich {key} fetch/parse failed: {e}", file=sys.stderr)
             series[key] = []
 
-    # Merge into [{month, ics, ice, icc}] but only KEEP the most recent
-    # ~24 months — we trust the CSV baseline for older history.
     cutoff = (dt.date.today() - dt.timedelta(days=24 * 31)).strftime("%Y-%m")
     by_month = {}
     for key in ("ics", "ice", "icc"):
@@ -436,14 +444,6 @@ CB_BASE = "https://www.conference-board.org"
 
 
 def _cb_find_press_release_url(landing_html):
-    """Find the most recent CCI press release URL on the topics-page HTML.
-
-    Conference Board press release URLs look like:
-       /press/pressdetail.cfm?pressId=NNNNN
-       /publications/consumer-confidence-<MONTH>
-       /publications/consumer-confidence
-    Return the first match (assumed = newest, since CB lists newest first).
-    """
     candidates = []
     for pat in (
         r'href="(/press/pressdetail\.cfm\?pressId=\d+)"',
@@ -458,87 +458,34 @@ def _cb_find_press_release_url(landing_html):
     return [CB_BASE + u for u in ordered]
 
 
-# Match phrases like:
-#   "edged up by 0.6 points to 92.8 (1985=100) in April, from 92.2 in March's
-#    upwardly revised reading"
-#   "The Present Situation Index ... retreated by 0.3 points to 123.8"
-#   "The Expectations Index ... rose by 1.2 points to 72.2"
-#
-# The regexes are deliberately loose. CB's wording varies ("ticked up", "edged
-# up", "rose", "retreated", "declined", "fell"). We just need:
-#   - The headline value AFTER "to"
-#   - The month name in the same sentence
-#   - And for the "from <prior_value> in <prior_month>'s revised reading" pattern,
-#     capture both the prior value and prior month for the revision row.
 _CB_VALUE = r"([\-\+]?\d{1,3}(?:\.\d+)?)"
 _CB_MONTH = r"(January|February|March|April|May|June|July|August|September|October|November|December)"
 
-# NB: We use a length-bounded ".{0,400}" instead of "[^\.]*?" because the
-# narrative contains decimal points like "0.6 points" that would otherwise
-# break a [^\.] negation. 400 chars is enough to span any phrasing CB uses
-# and keeps the regex from runaway-matching across paragraphs.
 _CB_HEADLINE_RES = [
-    # Order A: "to <val> (1985=100) in <Month>"
-    re.compile(
-        rf"Consumer\s+Confidence\s+Index.{{0,400}}?to\s+{_CB_VALUE}\s*\(?1985\s*=\s*100\)?\s+in\s+{_CB_MONTH}",
-        re.IGNORECASE | re.DOTALL),
-    # Order A loose: "to <val> in <Month>" (no 1985 anchor)
-    re.compile(
-        rf"Consumer\s+Confidence\s+Index.{{0,400}}?to\s+{_CB_VALUE}\s+in\s+{_CB_MONTH}",
-        re.IGNORECASE | re.DOTALL),
-    # Order B: "in <Month> to <val>" — used in some CB releases
-    re.compile(
-        rf"Consumer\s+Confidence\s+Index.{{0,400}}?in\s+{_CB_MONTH}\s+to\s+{_CB_VALUE}",
-        re.IGNORECASE | re.DOTALL),
-    # Order B with parenthetical: "in <Month> to <val> (1985=100)"
-    re.compile(
-        rf"Consumer\s+Confidence\s+Index.{{0,400}}?in\s+{_CB_MONTH}\s+to\s+{_CB_VALUE}\s*\(?1985",
-        re.IGNORECASE | re.DOTALL),
+    re.compile(rf"Consumer\s+Confidence\s+Index.{{0,400}}?to\s+{_CB_VALUE}\s*\(?1985\s*=\s*100\)?\s+in\s+{_CB_MONTH}", re.IGNORECASE | re.DOTALL),
+    re.compile(rf"Consumer\s+Confidence\s+Index.{{0,400}}?to\s+{_CB_VALUE}\s+in\s+{_CB_MONTH}", re.IGNORECASE | re.DOTALL),
+    re.compile(rf"Consumer\s+Confidence\s+Index.{{0,400}}?in\s+{_CB_MONTH}\s+to\s+{_CB_VALUE}", re.IGNORECASE | re.DOTALL),
+    re.compile(rf"Consumer\s+Confidence\s+Index.{{0,400}}?in\s+{_CB_MONTH}\s+to\s+{_CB_VALUE}\s*\(?1985", re.IGNORECASE | re.DOTALL),
 ]
-_CB_PRESENT_RE = re.compile(
-    rf"Present\s+Situation\s+Index.{{0,400}}?to\s+{_CB_VALUE}",
-    re.IGNORECASE | re.DOTALL)
-_CB_EXPECT_RE = re.compile(
-    rf"Expectations\s+Index.{{0,400}}?to\s+{_CB_VALUE}",
-    re.IGNORECASE | re.DOTALL)
-# Prior-month revision: "from <val> in <Month>'s ... revised reading"
-_CB_REVISED_RE = re.compile(
-    rf"from\s+{_CB_VALUE}\s+in\s+{_CB_MONTH}(?:['’]s)?\s+(?:upwardly|downwardly)?\s*revised",
-    re.IGNORECASE | re.DOTALL)
-# Lighter prior-month: "from <val> in <Month>" (no 'revised' word)
-_CB_PRIOR_RE = re.compile(
-    rf"from\s+{_CB_VALUE}\s+in\s+{_CB_MONTH}\b",
-    re.IGNORECASE | re.DOTALL)
+_CB_PRESENT_RE = re.compile(rf"Present\s+Situation\s+Index.{{0,400}}?to\s+{_CB_VALUE}", re.IGNORECASE | re.DOTALL)
+_CB_EXPECT_RE  = re.compile(rf"Expectations\s+Index.{{0,400}}?to\s+{_CB_VALUE}",       re.IGNORECASE | re.DOTALL)
+_CB_REVISED_RE = re.compile(rf"from\s+{_CB_VALUE}\s+in\s+{_CB_MONTH}(?:['’]s)?\s+(?:upwardly|downwardly)?\s*revised", re.IGNORECASE | re.DOTALL)
+_CB_PRIOR_RE   = re.compile(rf"from\s+{_CB_VALUE}\s+in\s+{_CB_MONTH}\b", re.IGNORECASE | re.DOTALL)
 
 
 def _strip_html(html):
-    """Convert HTML to plain text for regex parsing — strip tags, decode common
-    entities, collapse whitespace."""
     s = re.sub(r"<script[^>]*>.*?</script>", " ", html, flags=re.IGNORECASE | re.DOTALL)
     s = re.sub(r"<style[^>]*>.*?</style>", " ", s, flags=re.IGNORECASE | re.DOTALL)
     s = re.sub(r"<[^>]+>", " ", s)
-    s = (s.replace("&nbsp;", " ")
-           .replace("&amp;", "&")
-           .replace("&#x27;", "'")
-           .replace("&#39;", "'")
-           .replace("&apos;", "'")
-           .replace("&ndash;", "-")
-           .replace("&mdash;", "-"))
+    s = (s.replace("&nbsp;", " ").replace("&amp;", "&")
+           .replace("&#x27;", "'").replace("&#39;", "'").replace("&apos;", "'")
+           .replace("&ndash;", "-").replace("&mdash;", "-"))
     s = re.sub(r"\s+", " ", s)
     return s
 
 
 def _cb_parse_press(text):
-    """Given press-release plain text, return up to 2 dicts:
-       - the current month's (cci, expectations, present_situation)
-       - the prior-month CCI revision (CCI only — CB rarely re-cites prior
-         month's components in the new release narrative).
-    """
     rows = []
-
-    # Headline — first regex that matches wins. Different regexes have
-    # different group orders (value/month vs month/value), so we figure out
-    # which group is which by inspecting the captures.
     headline_match = None
     for r in _CB_HEADLINE_RES:
         m = r.search(text)
@@ -548,12 +495,11 @@ def _cb_parse_press(text):
         return []
 
     g1, g2 = headline_match.group(1), headline_match.group(2)
-    if g1 in MONTHS_FULL:   # Order B: month, then value
+    if g1 in MONTHS_FULL:
         month_name, cci_value = g1, float(g2)
-    else:                   # Order A: value, then month
+    else:
         cci_value, month_name = float(g1), g2
     today = dt.date.today()
-    # Resolve the year: if month is in the future relative to today, assume last year
     yr = today.year
     if MONTHS_FULL[month_name] > today.month + 1:
         yr -= 1
@@ -569,9 +515,6 @@ def _cb_parse_press(text):
         cur_row["expectations"] = float(em.group(1))
     rows.append(cur_row)
 
-    # Prior-month CCI revision (only the headline number — components usually
-    # aren't re-cited in the narrative). Try the strict "revised reading"
-    # regex first, then fall back to the looser "from <val> in <month>".
     rm = _CB_REVISED_RE.search(text) or _CB_PRIOR_RE.search(text)
     if rm:
         prev_val = float(rm.group(1))
@@ -587,9 +530,6 @@ def _cb_parse_press(text):
 
 
 def scrape_conference_board():
-    """Scrape the Conference Board's CCI landing page → most recent press
-    release → parse current + revised values. Return list of upsert rows or [].
-    """
     landing_html = None
     for url in (CB_LANDING_URL, CB_PRESS_INDEX_URL):
         try:
@@ -600,26 +540,24 @@ def scrape_conference_board():
         except Exception as e:
             print(f"  CB landing fetch failed at {url}: {e}", file=sys.stderr)
     if not landing_html:
-        print("  CB scrape: could not reach landing page — skipping",
+        print("  CB scrape: could not reach landing page - skipping",
               file=sys.stderr)
         return []
 
     candidate_urls = _cb_find_press_release_url(landing_html)
     if not candidate_urls:
-        # Fall back: try to parse the landing page itself (sometimes CB embeds
-        # the headline summary right there).
-        print("  CB scrape: no press-detail URL found on landing — trying "
-              "landing-page text directly", file=sys.stderr)
+        print("  CB scrape: no press-detail URL on landing - trying landing-page text",
+              file=sys.stderr)
         candidate_urls = [CB_LANDING_URL]
 
-    for url in candidate_urls[:3]:  # try up to 3 candidates
+    for url in candidate_urls[:3]:
         try:
             html = _http_get_text(url) if url != CB_LANDING_URL else landing_html
             text = _strip_html(html)
             rows = _cb_parse_press(text)
             if rows:
-                print(f"  CB scrape: parsed {len(rows)} row(s) from {url}: "
-                      f"{rows}", file=sys.stderr)
+                print(f"  CB scrape: parsed {len(rows)} row(s) from {url}: {rows}",
+                      file=sys.stderr)
                 return rows
             else:
                 print(f"  CB scrape: no headline regex match on {url}",
@@ -629,7 +567,7 @@ def scrape_conference_board():
     return []
 
 
-# ============================================================ KPI helper
+# ============================================================ KPI helpers
 
 def _kpi_from_series(series, dp=2):
     if not series:
@@ -645,11 +583,9 @@ def _kpi_from_series(series, dp=2):
 def main():
     print("Fetching FRED retail series...", flush=True)
 
-    # --- Retail aggregates ---
     rs_total = _fred_obs("RSAFS")
     rs_ex_mv = _fred_obs("RSFSXMV")
 
-    # --- Retail sectors ---
     SECTORS = [
         ("auto",        "RSMVPD",   "Motor Vehicle & Parts Dealers (441)"),
         ("furniture",   "RSFHFS",   "Furniture & Home Furnishings (442)"),
@@ -690,7 +626,6 @@ def main():
         for key, levels in sector_levels.items()
     }
 
-    # --- Personal income & PCE (nominal + real) ---
     print("Fetching personal income / PCE...", flush=True)
     pi    = _fred_obs("PI")
     dspi  = _fred_obs("DSPI")
@@ -699,7 +634,33 @@ def main():
     rdspi = _fred_obs("DSPIC96")
     rpce  = _fred_obs("PCEC96")
 
-    # --- UMich + Conference Board: scrape, upsert into CSVs, then read ---
+    # NEW: saving rate, interest payments, revolving credit
+    print("Fetching saving rate (PSAVERT)...", flush=True)
+    try:
+        saving_rate = _fred_obs("PSAVERT")
+    except Exception as e:
+        print(f"  PSAVERT fetch failed: {e}", file=sys.stderr)
+        saving_rate = []
+
+    print("Fetching personal interest payments...", flush=True)
+    interest_payments, ip_used_id = _fred_obs_try([
+        "A068RC1",
+        "B069RC1",
+        "A068RC1A027NBEA",
+        "A068RC1M027SBEA",
+    ])
+    if not interest_payments:
+        print("  WARN: Personal Interest Payments - no FRED ID returned data; "
+              "chart will hide on the page.", file=sys.stderr)
+
+    print("Fetching revolving consumer credit (REVOLSL)...", flush=True)
+    try:
+        revolsl = _fred_obs("REVOLSL")
+    except Exception as e:
+        print(f"  REVOLSL fetch failed: {e}", file=sys.stderr)
+        revolsl = []
+    revolsl_yoy = yoy_pct(revolsl)
+
     print("Fetching UMich consumer sentiment headline (FRED)...", flush=True)
     try:
         umcsent_fred = _fred_obs("UMCSENT")
@@ -736,7 +697,6 @@ def main():
     else:
         print("  CB scrape returned no rows; CSV-only this run.", file=sys.stderr)
 
-    # Now (re-)read the CSVs that may have been just updated
     print(f"Reading UMich components from {UMICH_CSV}...", flush=True)
     umich = _read_csv_series(UMICH_CSV, ["ics", "ice", "icc"])
     csv_ics_map = dict(umich["ics"])
@@ -755,7 +715,42 @@ def main():
     cb_expect  = cb["expectations"]
     cb_present = cb["present_situation"]
 
-    # --- KPIs ---
+    # NY Fed Quarterly Report on Household Debt and Credit (CSV-only)
+    print(f"Reading NY Fed household debt composition from {NYFED_DEBT_CSV}...",
+          flush=True)
+    debt_cols = ["credit_card", "home_equity", "auto", "student", "other"]
+    debt = _read_quarterly_csv(NYFED_DEBT_CSV, debt_cols)
+
+    # Build the total-excluding-mortgage line by summing the 5 components per
+    # quarter. Sum what's present per row. Components are non-overlapping so
+    # the partial sum (when only some columns are populated) is still valid.
+    debt_quarters = sorted({q for col in debt_cols for q, _ in debt[col]})
+    debt_lookups  = {col: dict(debt[col]) for col in debt_cols}
+    debt_total = []
+    for q in debt_quarters:
+        components = [debt_lookups[col].get(q) for col in debt_cols]
+        present = [c for c in components if c is not None]
+        if not present:
+            continue
+        debt_total.append((q, round(sum(present), 3)))
+
+    print(f"Reading NY Fed delinquency from {NYFED_DELQ_CSV}...", flush=True)
+    delq_cols = ["credit_card", "mortgage", "auto", "student"]
+    delq = _read_quarterly_csv(NYFED_DELQ_CSV, delq_cols)
+
+    saving_rate_kpi   = _kpi_from_series(saving_rate, dp=1)
+    ip_kpi            = _kpi_from_series(interest_payments, dp=1)
+    revolving_kpi     = _kpi_from_series(revolsl, dp=1)
+    revolving_yoy_kpi = _kpi_from_series(revolsl_yoy, dp=1)
+    debt_total_kpi    = (_kpi_from_series(debt_total, dp=2)
+                         if debt_total else
+                         {"value": None, "delta": None, "label": None,
+                          "note": "Add data to data/historical/nyfed_household_debt.csv"})
+    delq_cc_kpi       = (_kpi_from_series(delq["credit_card"], dp=1)
+                         if delq["credit_card"] else
+                         {"value": None, "delta": None, "label": None,
+                          "note": "Add data to data/historical/nyfed_delinquency.csv"})
+
     kpis = {
         "retail_mom":      _kpi_from_series(retail_total_mom, dp=2),
         "retail_yoy":      _kpi_from_series(retail_total_yoy, dp=2),
@@ -764,14 +759,22 @@ def main():
         "umich_sentiment": _kpi_from_series(umich_total,  dp=1),
         "cb_confidence":   _kpi_from_series(cb_total,     dp=1) if cb_total else
                            {"value": None, "delta": None, "label": None,
-                            "note": "Add data to data/historical/conference_board.csv to populate"},
+                            "note": "Add data to data/historical/conference_board.csv"},
+        "saving_rate":      saving_rate_kpi,
+        "interest_payments": ip_kpi,
+        "revolving":        revolving_kpi,
+        "revolving_yoy":    revolving_yoy_kpi,
+        "debt_total":       debt_total_kpi,
+        "delq_credit_card": delq_cc_kpi,
     }
 
-    latest_label = retail_total_mom[-1][0] if retail_total_mom else None
+    latest_label   = retail_total_mom[-1][0] if retail_total_mom else None
+    latest_quarter = debt_total[-1][0] if debt_total else None
 
     payload = {
         "build_time": dt.datetime.utcnow().isoformat() + "Z",
         "latest_label": latest_label,
+        "latest_quarter": latest_quarter,
         "kpis": kpis,
         "retail_total_mom":   retail_total_mom,
         "retail_ex_mv_mom":   retail_ex_mv_mom,
@@ -781,25 +784,47 @@ def main():
             {"key": key, "label": label, "contribution": sector_contributions[key]}
             for key, _sid, label in SECTORS
         ],
-        "pi_mom":   mom_pct(pi),
-        "dspi_mom": mom_pct(dspi),
-        "pce_mom":  mom_pct(pce),
-        "rpi_mom":   mom_pct(rpi),
-        "rdspi_mom": mom_pct(rdspi),
-        "rpce_mom":  mom_pct(rpce),
         "umich_total":   umich_total,
         "umich_expect":  umich_expect,
         "umich_current": umich_current,
         "cb_total":   cb_total,
         "cb_expect":  cb_expect,
         "cb_present": cb_present,
-        # Provenance flags
-        "umich_components_loaded": bool(umich_expect and umich_current),
-        "cb_loaded":               bool(cb_total),
-        "umich_scrape_succeeded":  bool(umich_scraped),
-        "cb_scrape_succeeded":     bool(cb_scraped),
+        "pi_mom":   mom_pct(pi),
+        "dspi_mom": mom_pct(dspi),
+        "pce_mom":  mom_pct(pce),
+        "rpi_mom":   mom_pct(rpi),
+        "rdspi_mom": mom_pct(rdspi),
+        "rpce_mom":  mom_pct(rpce),
+        "saving_rate":       saving_rate,
+        "interest_payments": interest_payments,
+        "revolving":         revolsl,
+        "revolving_yoy":     revolsl_yoy,
+        "debt": {
+            "quarters":    debt_quarters,
+            "credit_card": debt["credit_card"],
+            "home_equity": debt["home_equity"],
+            "auto":        debt["auto"],
+            "student":     debt["student"],
+            "other":       debt["other"],
+            "total":       debt_total,
+        },
+        "delinquency": {
+            "credit_card": delq["credit_card"],
+            "mortgage":    delq["mortgage"],
+            "auto":        delq["auto"],
+            "student":     delq["student"],
+        },
+        "umich_components_loaded":    bool(umich_expect and umich_current),
+        "cb_loaded":                  bool(cb_total),
+        "umich_scrape_succeeded":     bool(umich_scraped),
+        "cb_scrape_succeeded":        bool(cb_scraped),
         "umich_csv_changed_this_run": umich_csv_changed,
         "cb_csv_changed_this_run":    cb_csv_changed,
+        "interest_payments_fred_id":  ip_used_id,
+        "nyfed_debt_loaded":          bool(debt_total),
+        "nyfed_delinquency_loaded":   bool(delq["credit_card"] or delq["mortgage"]
+                                            or delq["auto"] or delq["student"]),
     }
 
     notes = []
@@ -809,8 +834,18 @@ def main():
                      "(headline UMCSENT shown from FRED).")
     if not payload["cb_loaded"]:
         notes.append("Conference Board Consumer Confidence series not yet loaded - "
-                     "add monthly rows to data/historical/conference_board.csv "
-                     "from the CB press releases.")
+                     "add monthly rows to data/historical/conference_board.csv.")
+    if not payload["nyfed_debt_loaded"]:
+        notes.append("NY Fed household debt composition not yet loaded - populate "
+                     "data/historical/nyfed_household_debt.csv from the NY Fed "
+                     "Quarterly Report on Household Debt and Credit.")
+    if not payload["nyfed_delinquency_loaded"]:
+        notes.append("NY Fed 90+ day delinquency series not yet loaded - populate "
+                     "data/historical/nyfed_delinquency.csv from the same NY Fed "
+                     "Quarterly Report.")
+    if not interest_payments:
+        notes.append("Personal Interest Payments series did not return data from "
+                     "FRED - chart will hide. (Tried A068RC1 and aliases.)")
     if notes:
         payload["notice"] = " ".join(notes)
 
@@ -819,17 +854,26 @@ def main():
         json.dump(payload, f, separators=(",", ":"))
 
     print(f"\nWrote {OUT_PATH}", flush=True)
-    print(f"  latest_label: {latest_label}", flush=True)
-    print(f"  retail MoM:   {kpis['retail_mom']}", flush=True)
-    print(f"  retail YoY:   {kpis['retail_yoy']}", flush=True)
-    print(f"  PI MoM:       {kpis['pi_mom']}", flush=True)
-    print(f"  PCE MoM:      {kpis['pce_mom']}", flush=True)
-    print(f"  UMich:        {kpis['umich_sentiment']}", flush=True)
-    print(f"  CB:           {kpis['cb_confidence']}", flush=True)
-    print(f"  UMich scrape: succeeded={payload['umich_scrape_succeeded']}, "
+    print(f"  latest_label:   {latest_label}", flush=True)
+    print(f"  latest_quarter: {latest_quarter}", flush=True)
+    print(f"  retail MoM:     {kpis['retail_mom']}", flush=True)
+    print(f"  retail YoY:     {kpis['retail_yoy']}", flush=True)
+    print(f"  PI MoM:         {kpis['pi_mom']}", flush=True)
+    print(f"  PCE MoM:        {kpis['pce_mom']}", flush=True)
+    print(f"  Saving Rate:    {kpis['saving_rate']}", flush=True)
+    print(f"  Interest Pay:   {kpis['interest_payments']} (id={ip_used_id})", flush=True)
+    print(f"  Revolving:      {kpis['revolving']}", flush=True)
+    print(f"  Revolving YoY:  {kpis['revolving_yoy']}", flush=True)
+    print(f"  Debt total:     {kpis['debt_total']}", flush=True)
+    print(f"  CC delq 90+:    {kpis['delq_credit_card']}", flush=True)
+    print(f"  UMich:          {kpis['umich_sentiment']}", flush=True)
+    print(f"  CB:             {kpis['cb_confidence']}", flush=True)
+    print(f"  UMich scrape:   succeeded={payload['umich_scrape_succeeded']}, "
           f"CSV changed this run={payload['umich_csv_changed_this_run']}", flush=True)
-    print(f"  CB scrape:    succeeded={payload['cb_scrape_succeeded']}, "
+    print(f"  CB scrape:      succeeded={payload['cb_scrape_succeeded']}, "
           f"CSV changed this run={payload['cb_csv_changed_this_run']}", flush=True)
+    print(f"  NY Fed debt loaded:        {payload['nyfed_debt_loaded']}", flush=True)
+    print(f"  NY Fed delinquency loaded: {payload['nyfed_delinquency_loaded']}", flush=True)
     if "notice" in payload:
         print(f"  NOTICE:       {payload['notice']}", flush=True)
 
