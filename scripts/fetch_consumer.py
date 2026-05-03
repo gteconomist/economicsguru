@@ -19,7 +19,7 @@ Charts produced (by sub-page):
    5. Personal Income & Consumption - MoM % bars (Nominal: PI / DSPI / PCE)
    6. Personal Income & Consumption - MoM % bars (Real)
    7. Personal Saving Rate - line, % of disposable personal income (PSAVERT)
-   8. Personal Interest Payments - line, $bn SAAR (A068RC1 with fallbacks)
+   8. Personal Interest Payments - line, $bn SAAR (FRED B069RC1)
    9. Total Consumer Credit (less mortgage) - stacked area, NY Fed Quarterly
       Report on Household Debt and Credit (CSV at
       data/historical/nyfed_household_debt.csv)
@@ -643,11 +643,15 @@ def main():
         saving_rate = []
 
     print("Fetching personal interest payments...", flush=True)
+    # Correct FRED ID is B069RC1 — Personal Interest Payments, monthly SA SAAR,
+    # billions of dollars, BEA NIPA Table 2.6. (Earlier draft of this script
+    # had A068RC1 first on a misremembered guess; A068RC1 is a different NIPA
+    # line and returns very different values, which surfaced as wrong y-axis
+    # numbers on the chart. Always B069RC1 for this series.)
     interest_payments, ip_used_id = _fred_obs_try([
-        "A068RC1",
-        "B069RC1",
-        "A068RC1A027NBEA",
-        "A068RC1M027SBEA",
+        "B069RC1",                # Personal Interest Payments — primary
+        "B069RC1M027SBEA",        # full-form monthly SA fallback
+        "B069RC1A027NBEA",        # full-form annual NSA fallback
     ])
     if not interest_payments:
         print("  WARN: Personal Interest Payments - no FRED ID returned data; "
@@ -845,7 +849,7 @@ def main():
                      "Quarterly Report.")
     if not interest_payments:
         notes.append("Personal Interest Payments series did not return data from "
-                     "FRED - chart will hide. (Tried A068RC1 and aliases.)")
+                     "FRED - chart will hide. (Tried B069RC1 and full-form aliases.)")
     if notes:
         payload["notice"] = " ".join(notes)
 
