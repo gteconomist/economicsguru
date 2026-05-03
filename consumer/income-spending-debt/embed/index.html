@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Income, Spending, & Debt Chart — Economics Guru</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --navy: #003057; --mustard: #d4a017; --chart-bg: #fbf5dc; --ink-soft: #6b7280;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: transparent; font-family: "Source Sans Pro", sans-serif; }
+  .embed { padding: 8px 12px 6px; height: 100vh; display: flex; flex-direction: column; }
+  .title { font-weight: 800; font-size: 16px; color: var(--navy); text-align: center; margin: 0 0 1px; }
+  .subtitle { font-style: italic; font-size: 12px; color: var(--ink-soft); text-align: center; margin: 0 0 6px; }
+  .chart-wrap { position: relative; flex: 1 1 auto; min-height: 0; background: var(--chart-bg); border: 1px solid var(--navy); padding: 6px; }
+  .source { margin-top: 4px; font-size: 10px; color: var(--ink-soft); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .source a { color: var(--mustard); text-decoration: none; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px; }
+  .source a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="embed">
+  <div class="title" id="t">&hellip;</div>
+  <div class="subtitle" id="s"></div>
+  <div class="chart-wrap">
+    <canvas id="chartCsIncomeNominal"    style="display:none"></canvas>
+    <canvas id="chartCsIncomeReal"       style="display:none"></canvas>
+    <canvas id="chartCsSavingRate"       style="display:none"></canvas>
+    <canvas id="chartCsInterestPayments" style="display:none"></canvas>
+    <canvas id="chartCsConsumerCredit"   style="display:none"></canvas>
+    <canvas id="chartCsRevolving"        style="display:none"></canvas>
+    <canvas id="chartCsDelinquency"      style="display:none"></canvas>
+  </div>
+  <div class="source">
+    <span id="src">Source: BEA via FRED, Federal Reserve G.19, Federal Reserve Bank of New York</span>
+    <a href="https://economicsguru.com/consumer/income-spending-debt/" target="_blank" rel="noopener">economicsguru.com</a>
+  </div>
+</div>
+
+<script src="/assets/charts.js"></script>
+<script>
+const CHART_INFO = {
+  incomenom:   { canvas: 'chartCsIncomeNominal',    title: 'Personal Income & Consumption — Nominal MoM',  subtitle: '(% change MoM SA; current $)' },
+  incomereal:  { canvas: 'chartCsIncomeReal',       title: 'Personal Income & Consumption — Real MoM',     subtitle: '(% change MoM SA; chained 2017 $)' },
+  savingrate:  { canvas: 'chartCsSavingRate',       title: 'Personal Saving Rate',                          subtitle: '(% of disposable personal income, monthly SA)' },
+  interest:    { canvas: 'chartCsInterestPayments', title: 'Personal Interest Payments',                    subtitle: '($bn SAAR, monthly)' },
+  credit:      { canvas: 'chartCsConsumerCredit',   title: 'Consumer Credit — Total Household Debt Less Mortgage', subtitle: '($T, by category, quarterly — NY Fed)' },
+  revolving:   { canvas: 'chartCsRevolving',        title: 'Revolving Consumer Credit — Total & YoY % Change', subtitle: '(REVOLSL, $bn SAAR + YoY % line)' },
+  delinquency: { canvas: 'chartCsDelinquency',      title: 'Percent of Balances 90+ Days Delinquent',       subtitle: '(% of category balance, quarterly — NY Fed)' },
+};
+
+const params = new URLSearchParams(window.location.search);
+const chartKey = (params.get('chart') || 'incomenom').toLowerCase();
+const range = (params.get('range') || '12m').toLowerCase();
+const info = CHART_INFO[chartKey] || CHART_INFO.incomenom;
+
+document.getElementById('t').textContent = info.title;
+document.getElementById('s').textContent = info.subtitle;
+document.getElementById(info.canvas).style.display = 'block';
+
+fetch('/data/consumer.json', { cache: 'no-cache' })
+  .then(r => r.json())
+  .then(data => EG.renderConsumerIsdEmbed(chartKey, data, range))
+  .catch(err => {
+    document.getElementById('t').textContent = 'Could not load data';
+    console.error(err);
+  });
+</script>
+</body>
+</html>
