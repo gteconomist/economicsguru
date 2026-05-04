@@ -1,346 +1,641 @@
 #!/usr/bin/env python3
 """
-Fetch US industry survey data: ISM Manufacturing PMI (Total + Employment / New
-Orders / Backlog / Prices Paid), ISM Services PMI (Composite + Employment /
-New Orders / Prices), and the Cass Freight Index of Volume Shipments.
+Fetch US industry survey data with auto-scraping.
 
-This script does NOT call any API. ISM and Cass data are subscription-only,
-so the historical series are committed to the repo as Macrobond CSV exports
-under data/historical/. To extend the data each month: re-export from
-Macrobond and overwrite the CSV in place. The same CSV format with the
-6-row header is parsed transparently.
+This is the same pattern used for UMich Sentiment, Conference Board Confidence,
+and the NAHB HMI: each run hits the source's public press release page, parses
+the latest values out of the HTML, and idempotently appends a new row to the
+historical CSV baseline if a fresher month is available. The CSVs in
+data/historical/ are committed to the repo and grow over time -- the
+GitHub Actions workflow auto-commits them when changed.
 
-Sources
--------
-ISM Manufacturing  -- ISM "Report on Business" -- monthly PMI (1948-) plus
-                       Employment, New Orders, Backlog of Orders (1993-),
-                       Commodity Prices (Macrobond series begins ~2003).
-ISM Services        -- ISM Services "Report on Business" (1997-).
-Cass Freight Index  -- Cass Information Systems Volume Index of Shipments,
-                       indexed to Jan 1990 = 1.000 (1990-).
+Sources (all public press release pages, no API keys required)
+--------------------------------------------------------------
+ISM Manufacturing  (~1st business day of each month):
+  https://www.ismworld.org/supply-management-news-and-reports/reports/ism-pmi-reports/pmi/{month_lc}/
+ISM Services       (~3rd business day of each month):
+  https://www.ismworld.org/supply-management-news-and-reports/reports/ism-pmi-reports/services/{month_lc}/
+Cass Freight Index (~12th of each month):
+  https://www.cassinfo.com/freight-audit-payment/cass-transportation-indexes/{month_lc}-{year}
+
+Each URL only returns the most recent reading for that named month -- ISM in
+particular reuses the same /april/ URL each year and just updates the content.
+The scraper extracts the year from the page text to disambiguate.
 
 Computed series
 ---------------
-- cass_yoy: 12-month % change of the Cass volume index level. Matches the
-            "Y-Y % change" chart published by Cass.
-
-Macrobond pad handling
-----------------------
-Macrobond fills early periods of late-starting components with a constant
-"placeholder" value (e.g. ISM Backlog of Orders is constant before 1993).
-We detect this leading-constant run per column and replace those values
-with None so the chart starts cleanly at the real series inception.
+- cass_yoy: 12-month % change of the Cass volume index level.
 
 Output
 ------
 data/industry_surveys.json -- chart-ready [YYYY-MM-DD, value] pair lists.
 KPI cards for the latest ISM Mfg PMI, ISM Mfg New Orders, ISM Services
 Composite, ISM Services New Orders, Cass index level, and Cass Y-Y%.
-Provenance metadata flags which CSVs loaded successfully.
 
-Environment variables
----------------------
-None. The script reads only from local files.
+Maintenance: when ISM or Cass change their press-release page format,
+the regex patterns may need an update. Each scrape is wrapped in try/except;
+failures don't break the workflow -- the previous CSV baseline rides forward.
 """
 
 import csv
 import json
+import os
+import re
 import sys
 import time
 import datetime as dt
 from pathlib import Path
+from urllib import request, error, parse
 
-REPO_ROOT  = Path(__file__).resolve().parents[1]
-DATA_DIR   = REPO_ROOT / "data" / "historical"
-OUT_PATH   = REPO_ROOT / "data" / "industry_surveys.json"
+REPO_ROOT      = Path(__file__).resolve().parents[1]
+HISTORICAL_DIR = REPO_ROOT / "data" / "historical"
+OUT_PATH       = REPO_ROOT / "data" / "industry_surveys.json"
 
-CSV_PATHS = {
-    "ism_manufacturing": DATA_DIR / "ism_manufacturing.csv",
-    "ism_services":      DATA_DIR / "ism_services.csv",
-    "cass_freight":      DATA_DIR / "cass_freight.csv",
+ISM_MFG_CSV  = HISTORICAL_DIR / "ism_manufacturing.csv"
+ISM_SVC_CSV  = HISTORICAL_DIR / "ism_services.csv"
+CASS_CSV     = HISTORICAL_DIR / "cass_freight.csv"
+
+UA = "Mozilla/5.0 (compatible; economicsguru.com data refresh; +https://economicsguru.com/about/)"
+
+MONTHS_FULL = {
+    "January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
+    "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12,
 }
+MONTH_NAMES_LC = [m.lower() for m in MONTHS_FULL.keys()]
+MONTH_NAMES_BY_NUM = {v: k for k, v in MONTHS_FULL.items()}
 
-MONTHS = {'Jan':1,'Feb':2,'Mar':3,'Apr':4,'May':5,'Jun':6,
-          'Jul':7,'Aug':8,'Sep':9,'Oct':10,'Nov':11,'Dec':12}
+
+# ============================================================ HTTP helpers
+
+def _http_get_text(url, retries=3, timeout=30):
+    last_err = None
+    for attempt in range(retries):
+        try:
+            req = request.Request(url, headers={
+                "User-Agent": UA,
+                "Accept": "text/html,application/xhtml+xml",
+                "Accept-Language": "en-US,en;q=0.9",
+            })
+            with request.urlopen(req, timeout=timeout) as r:
+                return r.read().decode("utf-8", errors="replace")
+        except (error.HTTPError, error.URLError, TimeoutError) as e:
+            last_err = e
+            wait = 2 ** attempt
+            print(f"  HTTP attempt {attempt+1}/{retries} on {url} failed: {e}; "
+                  f"retrying in {wait}s", file=sys.stderr)
+            time.sleep(wait)
+    raise RuntimeError(f"HTTP fetch failed for {url} after {retries} attempts: {last_err}")
 
 
-# ---------- Macrobond CSV parser ----------
-def parse_macrobond_csv(path):
-    """Parse a Macrobond CSV export of monthly economic series.
+def _strip_html(html):
+    s = re.sub(r"<script[^>]*>.*?</script>", " ", html, flags=re.IGNORECASE | re.DOTALL)
+    s = re.sub(r"<style[^>]*>.*?</style>", " ", s,    flags=re.IGNORECASE | re.DOTALL)
+    s = re.sub(r"<[^>]+>", " ", s)
+    s = (s.replace("&nbsp;", " ").replace("&amp;", "&")
+           .replace("&#x27;", "'").replace("&#39;", "'").replace("&apos;", "'")
+           .replace("&ndash;", "-").replace("&mdash;", "-").replace("&reg;", ""))
+    s = re.sub(r"\s+", " ", s)
+    return s
 
-    Returns (mnemonic_list, data) where:
-      mnemonic_list: column mnemonics in order (e.g. ['NAPMETM.IUSA', ...])
-      data: list of (YYYY-MM-DD, [value0, value1, ...]) sorted ascending
 
-    Format: rows 1-6 are metadata (Mnemonic, Description, Source,
-    Transformation, Data Archives, Frequency). Data rows start at row 7
-    with date format "MMM YYYY" in column 0 and float values in 1..n.
-    NA / blank cells become Python None.
+# ============================================================ CSV upsert helpers
+
+def _normalize_month(raw):
+    """Accept various month formats and return canonical 'YYYY-MM'."""
+    raw = (raw or "").strip()
+    m = re.match(r"^(\d{4})-(\d{2})", raw)
+    if m:
+        return f"{m.group(1)}-{m.group(2)}"
+    return None
+
+
+def _format_csv_cell(v):
+    if v is None or v == "":
+        return ""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return str(v).strip()
+    if abs(f - round(f)) < 1e-9:
+        return str(int(round(f)))
+    return ("%.4f" % f).rstrip("0").rstrip(".")
+
+
+def _upsert_csv(path, value_columns, scraped_rows):
+    """Idempotently merge scraped rows into the CSV at `path`.
+
+    `scraped_rows` is a list of dicts each with at minimum a 'month' key
+    in 'YYYY-MM' format and one or more value_columns set. Returns True
+    if the on-disk CSV changed.
     """
-    with open(path, newline='') as f:
-        rows = list(csv.reader(f))
-    if not rows or len(rows) < 8:
-        raise RuntimeError(f"{path}: too few rows ({len(rows)})")
-    mnemonics = rows[0][1:]
-    data = []
-    for r in rows:
+    if not scraped_rows:
+        return False
+
+    header = ["month"] + list(value_columns)
+    existing = []
+    if path.exists():
+        with path.open() as f:
+            rows = list(csv.reader(f))
+        if rows:
+            on_disk_header = rows[0]
+            if on_disk_header != header:
+                # Allow a superset header on disk (we only update our cols)
+                missing = [c for c in header if c not in on_disk_header]
+                if missing:
+                    raise RuntimeError(
+                        f"CSV {path} header mismatch (missing cols: {missing}). "
+                        f"Expected ⊆ {on_disk_header}; got {header}.")
+                header = on_disk_header
+            existing = rows[1:]
+
+    by_month = {}
+    for r in existing:
         if not r or not r[0]:
             continue
-        cells = r[0].split()
-        if len(cells) != 2 or cells[0] not in MONTHS:
+        m = _normalize_month(r[0])
+        if not m:
             continue
-        try:
-            year = int(cells[1])
-        except ValueError:
+        by_month[m] = dict(zip(header, r))
+
+    changed = False
+    for scraped in scraped_rows:
+        m = _normalize_month(str(scraped.get("month", "")))
+        if not m:
             continue
-        d = f"{year:04d}-{MONTHS[cells[0]]:02d}-01"
-        vals = []
-        for v in r[1:]:
-            v = v.strip() if v else v
-            if v in ('', 'NA', '#N/A', 'NaN', None):
-                vals.append(None)
-            else:
-                try:
-                    vals.append(round(float(v), 4))
-                except ValueError:
-                    vals.append(None)
-        # Pad short rows with None
-        while len(vals) < len(mnemonics):
-            vals.append(None)
-        data.append((d, vals))
-    data.sort(key=lambda x: x[0])
-    return mnemonics, data
-
-
-def strip_leading_constants(data, n_cols):
-    """Replace each column's leading run of identical values with None.
-
-    Macrobond exports pad early periods of late-starting series with a
-    constant placeholder value. Detecting first-change-after-constant
-    gives a robust start date for each column. Returns a new data list.
-    """
-    out = [(d, list(vv)) for d, vv in data]
-    for col in range(n_cols):
-        # Find first row where this column's value is not None
-        first_real_idx = None
-        for i, (_, vv) in enumerate(out):
-            if vv[col] is not None:
-                first_real_idx = i
-                break
-        if first_real_idx is None:
-            continue
-        const_val = out[first_real_idx][1][col]
-        # Walk forward while value still equals const_val
-        change_idx = first_real_idx
-        for i in range(first_real_idx + 1, len(out)):
-            v = out[i][1][col]
+        row_now = by_month.get(m, {"month": m})
+        if m not in by_month:
+            changed = True
+        for k, v in scraped.items():
+            if k == "month" or k not in header:
+                continue
             if v is None:
                 continue
-            if v != const_val:
-                change_idx = i
-                break
-            change_idx = i + 1  # in case run extends to end of data
-        # If the constant ran for >6 months before changing, treat the run
-        # as Macrobond pad and null it out. Six months is the threshold
-        # because real diffusion indices move every month.
-        if change_idx - first_real_idx >= 6:
-            for i in range(first_real_idx, change_idx):
-                out[i][1][col] = None
+            new_str = _format_csv_cell(v)
+            old = (row_now.get(k) or "")
+            if isinstance(old, str):
+                old = old.strip()
+            if str(old) != new_str:
+                row_now[k] = new_str
+                changed = True
+        by_month[m] = row_now
+
+    if not changed:
+        return False
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with tmp.open("w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(header)
+        for m in sorted(by_month):
+            w.writerow([str(by_month[m].get(col, "")).strip() for col in header])
+    tmp.replace(path)
+    return True
+
+
+def _read_csv_series(path, value_columns):
+    """Read a canonical CSV into a dict of {col: [(month, value), ...]} sorted ascending."""
+    if not path.exists():
+        return {col: [] for col in value_columns}
+    out = {col: [] for col in value_columns}
+    with path.open() as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            m = _normalize_month((row.get("month") or "").strip())
+            if not m:
+                continue
+            for col in value_columns:
+                v = (row.get(col) or "").strip()
+                if v in ("", "NA", "n/a", "-"):
+                    continue
+                try:
+                    out[col].append((m, float(v)))
+                except ValueError:
+                    continue
+    for col in value_columns:
+        out[col].sort(key=lambda x: x[0])
     return out
 
 
-def col_series(data, col):
-    """Extract (date, value) pairs for a single column, dropping None values."""
-    return [(d, vv[col]) for d, vv in data if vv[col] is not None]
+# ============================================================ ISM scrapers
+
+ISM_MFG_BASE = "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-pmi-reports/pmi/"
+ISM_SVC_BASE = "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-pmi-reports/services/"
+
+# Patterns are written defensively: the press releases vary slightly but always
+# follow a ", _Index_ registered N percent" or "Index registered N.N percent"
+# structure, with the headline PMI mentioning the month explicitly.
+_NUM = r"(\d{1,3}(?:\.\d+)?)"
+_MONTH_NAME = r"(January|February|March|April|May|June|July|August|September|October|November|December)"
+
+# Headline patterns -- whichever matches first wins. We get both the index value
+# AND the month name out of the same regex so we know which calendar month the
+# row represents.
+_ISM_MFG_HEADLINE = [
+    re.compile(rf"Manufacturing\s+PMI\s+registered\s+{_NUM}\s+percent\s+in\s+{_MONTH_NAME}", re.IGNORECASE),
+    re.compile(rf"PMI\s+registered\s+{_NUM}\s+percent\s+in\s+{_MONTH_NAME}", re.IGNORECASE),
+    re.compile(rf"{_MONTH_NAME}\s+Manufacturing\s+PMI[^.]{{0,200}}?{_NUM}\s+percent", re.IGNORECASE),
+]
+_ISM_SVC_HEADLINE = [
+    re.compile(rf"Services\s+PMI\s+registered\s+{_NUM}\s+percent\s+in\s+{_MONTH_NAME}", re.IGNORECASE),
+    re.compile(rf"Services\s+PMI[^.]{{0,80}}?{_NUM}\s+percent\s+in\s+{_MONTH_NAME}", re.IGNORECASE),
+    re.compile(rf"{_MONTH_NAME}\s+Services\s+PMI[^.]{{0,200}}?{_NUM}\s+percent", re.IGNORECASE),
+]
+
+def _find_headline(text, patterns):
+    """Return (value, month_name) or None."""
+    for r in patterns:
+        m = r.search(text)
+        if not m:
+            continue
+        g1, g2 = m.group(1), m.group(2)
+        if g1 in MONTHS_FULL:
+            return float(g2), g1
+        return float(g1), g2
+    return None
 
 
-def to_label_pairs(pairs, decimals=2):
-    return [[d, round(v, decimals)] for d, v in pairs]
+def _find_subindex(text, label_alts):
+    """Find the first occurrence of '{label} Index registered N.N percent' for any label alt."""
+    for label in label_alts:
+        # Allow any wording between Index and the percentage (some releases say
+        # "registered", others "indicated", etc.), capped to keep regex bounded.
+        pat = re.compile(
+            rf"{re.escape(label)}\s+Index[^.]{{0,200}}?{_NUM}\s+percent",
+            re.IGNORECASE)
+        m = pat.search(text)
+        if m:
+            return float(m.group(1))
+    return None
 
 
-def yoy_pct(level_pairs):
-    """12-month % change. Matches by date string YYYY-MM."""
+def _ism_target_months():
+    """Return list of (month_lc, year) tuples to try, newest first.
+
+    ISM Mfg publishes 1st business day of next month. ISM Services 3rd. So at
+    any point in the month, the latest *available* reading is the prior month
+    -- but on the very 1st of the month, the prior month's data may or may not
+    have been published yet. We try the 1-month-ago first, then 2-months-ago.
+    """
+    today = dt.date.today()
+    candidates = []
+    cur = today.replace(day=1)
+    for offset in range(0, 3):
+        d = cur - dt.timedelta(days=1) if offset == 0 else \
+            (cur - dt.timedelta(days=offset * 30)).replace(day=1) - dt.timedelta(days=1)
+        # Snap to first of the prior month for clean offset arithmetic
+        if offset == 0:
+            ref = cur - dt.timedelta(days=1)  # last day of prior month
+        else:
+            ref = (cur.replace(day=1) - dt.timedelta(days=1)).replace(day=1)
+            for _ in range(offset - 1):
+                ref = (ref.replace(day=1) - dt.timedelta(days=1)).replace(day=1)
+        candidates.append((MONTH_NAMES_BY_NUM[ref.month].lower(), ref.year))
+    # Dedupe while preserving order
+    seen, out = set(), []
+    for c in candidates:
+        if c not in seen:
+            seen.add(c); out.append(c)
+    return out
+
+
+def scrape_ism_manufacturing():
+    """Try the most recent month URLs; return list of {month, total, employment, ...}."""
+    for month_lc, year_hint in _ism_target_months():
+        url = ISM_MFG_BASE + month_lc + "/"
+        try:
+            html = _http_get_text(url)
+        except Exception as e:
+            print(f"  ISM Mfg fetch failed at {url}: {e}", file=sys.stderr)
+            continue
+        text = _strip_html(html)
+        headline = _find_headline(text, _ISM_MFG_HEADLINE)
+        if not headline:
+            print(f"  ISM Mfg {month_lc}: headline pattern not matched; skipping", file=sys.stderr)
+            continue
+        pmi, month_name = headline
+        # Year disambiguation: pages reuse /april/ each year; pull the year out
+        # of the page if a 4-digit year appears near the month name.
+        year = year_hint
+        ym = re.search(rf"\b{month_name}\s+(20\d\d)", text, re.IGNORECASE)
+        if ym:
+            year = int(ym.group(1))
+        month_num = MONTHS_FULL[month_name]
+        m_label = f"{year:04d}-{month_num:02d}"
+
+        emp = _find_subindex(text, ["Employment"])
+        no  = _find_subindex(text, ["New Orders"])
+        bo  = _find_subindex(text, ["Backlog of Orders", "Backlog"])
+        pp  = _find_subindex(text, ["Prices"])
+
+        row = {"month": m_label, "total": pmi}
+        if emp is not None: row["employment"]   = emp
+        if no  is not None: row["new_orders"]   = no
+        if bo  is not None: row["backlog"]      = bo
+        if pp  is not None: row["prices_paid"]  = pp
+        print(f"  ISM Mfg scraped from {url}: {row}", file=sys.stderr)
+        return [row]
+    return []
+
+
+def scrape_ism_services():
+    for month_lc, year_hint in _ism_target_months():
+        url = ISM_SVC_BASE + month_lc + "/"
+        try:
+            html = _http_get_text(url)
+        except Exception as e:
+            print(f"  ISM Svc fetch failed at {url}: {e}", file=sys.stderr)
+            continue
+        text = _strip_html(html)
+        headline = _find_headline(text, _ISM_SVC_HEADLINE)
+        if not headline:
+            print(f"  ISM Svc {month_lc}: headline pattern not matched; skipping", file=sys.stderr)
+            continue
+        composite, month_name = headline
+        year = year_hint
+        ym = re.search(rf"\b{month_name}\s+(20\d\d)", text, re.IGNORECASE)
+        if ym:
+            year = int(ym.group(1))
+        month_num = MONTHS_FULL[month_name]
+        m_label = f"{year:04d}-{month_num:02d}"
+
+        emp = _find_subindex(text, ["Employment"])
+        no  = _find_subindex(text, ["New Orders"])
+        pp  = _find_subindex(text, ["Prices"])
+
+        row = {"month": m_label, "composite": composite}
+        if emp is not None: row["employment"] = emp
+        if no  is not None: row["new_orders"] = no
+        if pp  is not None: row["prices"]     = pp
+        print(f"  ISM Svc scraped from {url}: {row}", file=sys.stderr)
+        return [row]
+    return []
+
+
+# ============================================================ Cass scraper
+
+CASS_BASE = "https://www.cassinfo.com/freight-audit-payment/cass-transportation-indexes/"
+
+# Cass reports phrases like:
+#   "shipments component of the Cass Freight Index fell 4.5% year-over-year ...
+#    rose 3.0% month-over-month in March"
+_CASS_SHIPMENTS_PARA = re.compile(
+    r"shipments\s+component[^.]{0,400}?(?P<sign1>fell|rose|increased|decreased|gained)"
+    r"\s+(?P<yoy>\d+(?:\.\d+)?)\s*%\s*year-?over-?year"
+    r"[^.]{0,400}?(?P<sign2>fell|rose|increased|decreased|gained)"
+    r"\s+(?P<mom>\d+(?:\.\d+)?)\s*%\s*month-?over-?month\s+in\s+" + _MONTH_NAME,
+    re.IGNORECASE)
+# Fallback for a slightly different phrasing
+_CASS_SHIPMENTS_PARA_ALT = re.compile(
+    r"shipments[^.]{0,400}?(?P<sign1>fell|rose|increased|decreased|gained)\s+"
+    r"(?P<yoy>\d+(?:\.\d+)?)\s*%\s+y/y"
+    r"[^.]{0,400}?(?P<sign2>fell|rose|increased|decreased|gained)\s+"
+    r"(?P<mom>\d+(?:\.\d+)?)\s*%\s+m/m\s+in\s+" + _MONTH_NAME,
+    re.IGNORECASE)
+
+
+def _cass_signed(sign_word, val):
+    sign_word = sign_word.lower()
+    if sign_word in ("fell", "decreased"):
+        return -val
+    return val
+
+
+def _cass_target_months():
+    """Cass releases ~12th of next month. Try the prior month first, then 2 back."""
+    today = dt.date.today()
+    candidates = []
+    ref = today.replace(day=1) - dt.timedelta(days=1)  # last day of prior month
+    for _ in range(3):
+        candidates.append((MONTH_NAMES_BY_NUM[ref.month].lower(), ref.year))
+        ref = ref.replace(day=1) - dt.timedelta(days=1)
+    return candidates
+
+
+def scrape_cass(prior_index_lookup):
+    """Scrape Cass press release; return list of {month, index_level} rows.
+
+    Press releases give YoY% and MoM% changes, not the raw index level. We
+    reconstruct the level using the prior-month CSV value when possible, and
+    the prior-year CSV value as a cross-check.
+    """
+    for month_lc, year in _cass_target_months():
+        url = f"{CASS_BASE}{month_lc}-{year}"
+        try:
+            html = _http_get_text(url)
+        except Exception as e:
+            print(f"  Cass fetch failed at {url}: {e}", file=sys.stderr)
+            continue
+        text = _strip_html(html)
+        m = _CASS_SHIPMENTS_PARA.search(text) or _CASS_SHIPMENTS_PARA_ALT.search(text)
+        if not m:
+            print(f"  Cass {url}: shipments-paragraph pattern not matched; skipping",
+                  file=sys.stderr)
+            continue
+        yoy = _cass_signed(m.group("sign1"), float(m.group("yoy")))
+        mom = _cass_signed(m.group("sign2"), float(m.group("mom")))
+        month_name = m.group(m.lastindex)  # last named group is the month
+        month_num = MONTHS_FULL[month_name]
+
+        # Reconstruct the index from prior-month + MoM (preferred) or prior-year + YoY
+        prev_m_label = f"{year:04d}-{month_num - 1:02d}" if month_num > 1 \
+                       else f"{year - 1:04d}-12"
+        prev_y_label = f"{year - 1:04d}-{month_num:02d}"
+        prev_m_val = prior_index_lookup.get(prev_m_label)
+        prev_y_val = prior_index_lookup.get(prev_y_label)
+
+        idx_from_mom = prev_m_val * (1 + mom / 100.0) if prev_m_val else None
+        idx_from_yoy = prev_y_val * (1 + yoy / 100.0) if prev_y_val else None
+        # Prefer YoY since MoM compounds rounding error from prior-month rounding.
+        # Average them if both available.
+        if idx_from_mom is not None and idx_from_yoy is not None:
+            idx = round((idx_from_mom + idx_from_yoy) / 2, 4)
+        elif idx_from_yoy is not None:
+            idx = round(idx_from_yoy, 4)
+        elif idx_from_mom is not None:
+            idx = round(idx_from_mom, 4)
+        else:
+            print(f"  Cass {url}: no prior-month or prior-year baseline to "
+                  f"reconstruct level; skipping", file=sys.stderr)
+            continue
+
+        m_label = f"{year:04d}-{month_num:02d}"
+        row = {"month": m_label, "index_level": idx}
+        print(f"  Cass scraped from {url}: yoy={yoy:+.1f}% mom={mom:+.1f}% -> "
+              f"index_level={idx} (prior-mo={prev_m_val}, prior-yr={prev_y_val})",
+              file=sys.stderr)
+        return [row]
+    return []
+
+
+# ============================================================ Build outputs
+
+def _to_iso_date(month_label):
+    """Convert YYYY-MM -> YYYY-MM-01."""
+    return f"{month_label}-01"
+
+
+def _yoy_pct(level_pairs):
     bymonth = {p[0]: p[1] for p in level_pairs}
     out = []
-    for d, v in level_pairs:
-        y, m = d.split("-")[:2]
-        prior = f"{int(y) - 1:04d}-{m}-01"
+    for m, v in level_pairs:
+        y, mo = m.split("-")
+        prior = f"{int(y) - 1:04d}-{mo}"
         if prior in bymonth and bymonth[prior] not in (None, 0):
-            out.append((d, (v / bymonth[prior] - 1.0) * 100.0))
+            out.append((m, (v / bymonth[prior] - 1.0) * 100.0))
     return out
 
 
-def kpi_level(level_pairs, decimals=2):
-    if not level_pairs:
+def _kpi_level(pairs, decimals=2):
+    if not pairs:
         return {"value": None, "delta": None, "label": None}
-    latest_d, latest_v = level_pairs[-1]
-    prior_v = level_pairs[-2][1] if len(level_pairs) > 1 else None
-    delta = None if prior_v is None else (latest_v - prior_v)
+    last_m, last_v = pairs[-1]
+    prev_v = pairs[-2][1] if len(pairs) > 1 else None
+    delta = None if prev_v is None else (last_v - prev_v)
     return {
-        "value": round(latest_v, decimals),
+        "value": round(last_v, decimals),
         "delta": None if delta is None else round(delta, 2),
-        "label": latest_d,
+        "label": _to_iso_date(last_m),
     }
 
 
-def kpi_pct(pct_pairs, decimals=2):
-    if not pct_pairs:
-        return {"value": None, "delta": None, "label": None}
-    latest_d, latest_v = pct_pairs[-1]
-    prior_v = pct_pairs[-2][1] if len(pct_pairs) > 1 else None
-    delta = None if prior_v is None else (latest_v - prior_v)
-    return {
-        "value": round(latest_v, decimals),
-        "delta": None if delta is None else round(delta, 2),
-        "label": latest_d,
-    }
+def _kpi_pct(pct_pairs, decimals=2):
+    return _kpi_level(pct_pairs, decimals)
 
 
-# ---------- Main ----------
+def _to_iso_pairs(pairs, decimals=2):
+    return [[_to_iso_date(m), round(v, decimals)] for m, v in pairs]
+
+
+# ============================================================ Main
+
 def main():
     start = time.time()
     print("Fetching industry surveys data...", file=sys.stderr)
-
     notices = []
-    loaded = {"ism_manufacturing": False, "ism_services": False, "cass_freight": False}
 
-    # ----- ISM Manufacturing -----
-    ism_mfg_total = []
-    ism_mfg_emp   = []
-    ism_mfg_no    = []
-    ism_mfg_bo    = []
-    ism_mfg_pp    = []
+    # ---- ISM Manufacturing scrape + upsert ----
+    print("Scraping ISM Manufacturing...", file=sys.stderr)
     try:
-        path = CSV_PATHS["ism_manufacturing"]
-        if not path.exists():
-            raise FileNotFoundError(str(path))
-        mnemonics, data = parse_macrobond_csv(path)
-        # Mnemonic order from Macrobond export:
-        #   NAPMETM = Employment, NAPMNO = New Orders, XNAPMBKM = Backlog,
-        #   XNAPMCPM = Commodity Prices, NAPM = Total PMI
-        col_map = {m.split('.')[0]: i for i, m in enumerate(mnemonics)}
-        # Make column lookup robust to mnemonic variants
-        def ci(*names):
-            for n in names:
-                if n in col_map: return col_map[n]
-            raise KeyError(f"None of {names} found in {list(col_map.keys())}")
-        i_emp   = ci("NAPMETM")
-        i_no    = ci("NAPMNO")
-        i_bo    = ci("XNAPMBKM", "NAPMBKM")
-        i_pp    = ci("XNAPMCPM", "NAPMCPM")
-        i_total = ci("NAPM")
-        data_clean = strip_leading_constants(data, len(mnemonics))
-        ism_mfg_emp   = col_series(data_clean, i_emp)
-        ism_mfg_no    = col_series(data_clean, i_no)
-        ism_mfg_bo    = col_series(data_clean, i_bo)
-        ism_mfg_pp    = col_series(data_clean, i_pp)
-        ism_mfg_total = col_series(data_clean, i_total)
-        loaded["ism_manufacturing"] = True
-        print(f"  ISM Mfg: total={len(ism_mfg_total)} rows "
-              f"(latest={ism_mfg_total[-1] if ism_mfg_total else 'n/a'}); "
-              f"emp={len(ism_mfg_emp)}, no={len(ism_mfg_no)}, "
-              f"bo={len(ism_mfg_bo)}, pp={len(ism_mfg_pp)}",
-              file=sys.stderr)
+        mfg_scraped = scrape_ism_manufacturing()
     except Exception as e:
-        notices.append("ISM Manufacturing CSV missing or unreadable.")
-        print(f"  ERROR ISM Mfg: {e}", file=sys.stderr)
+        print(f"  ISM Mfg unexpected error: {e}", file=sys.stderr)
+        mfg_scraped = []
+    if mfg_scraped:
+        try:
+            changed = _upsert_csv(ISM_MFG_CSV,
+                ["total", "employment", "new_orders", "backlog", "prices_paid"],
+                mfg_scraped)
+            print(f"  ISM Mfg CSV {'CHANGED' if changed else 'unchanged'}",
+                  file=sys.stderr)
+        except Exception as e:
+            print(f"  ISM Mfg CSV upsert error: {e}", file=sys.stderr)
+            notices.append("ISM Manufacturing CSV upsert failed.")
+    elif not ISM_MFG_CSV.exists():
+        notices.append("ISM Manufacturing data not yet available (no scrape, no baseline).")
 
-    # ----- ISM Services -----
-    ism_svc_comp = []
-    ism_svc_emp  = []
-    ism_svc_no   = []
-    ism_svc_pp   = []
+    # ---- ISM Services scrape + upsert ----
+    print("Scraping ISM Services...", file=sys.stderr)
     try:
-        path = CSV_PATHS["ism_services"]
-        if not path.exists():
-            raise FileNotFoundError(str(path))
-        mnemonics, data = parse_macrobond_csv(path)
-        col_map = {m.split('.')[0]: i for i, m in enumerate(mnemonics)}
-        def ci(*names):
-            for n in names:
-                if n in col_map: return col_map[n]
-            raise KeyError(f"None of {names} found in {list(col_map.keys())}")
-        i_comp = ci("NAPSC")
-        i_emp  = ci("NAPSET", "NAPSEM")
-        i_no   = ci("NAPSNOM", "NAPSNO")
-        i_pp   = ci("NAPSP", "NAPSPM")
-        data_clean = strip_leading_constants(data, len(mnemonics))
-        ism_svc_comp = col_series(data_clean, i_comp)
-        ism_svc_emp  = col_series(data_clean, i_emp)
-        ism_svc_no   = col_series(data_clean, i_no)
-        ism_svc_pp   = col_series(data_clean, i_pp)
-        loaded["ism_services"] = True
-        print(f"  ISM Svcs: comp={len(ism_svc_comp)} rows "
-              f"(latest={ism_svc_comp[-1] if ism_svc_comp else 'n/a'})",
-              file=sys.stderr)
+        svc_scraped = scrape_ism_services()
     except Exception as e:
-        notices.append("ISM Services CSV missing or unreadable.")
-        print(f"  ERROR ISM Svcs: {e}", file=sys.stderr)
+        print(f"  ISM Svc unexpected error: {e}", file=sys.stderr)
+        svc_scraped = []
+    if svc_scraped:
+        try:
+            changed = _upsert_csv(ISM_SVC_CSV,
+                ["composite", "employment", "new_orders", "prices"],
+                svc_scraped)
+            print(f"  ISM Svc CSV {'CHANGED' if changed else 'unchanged'}",
+                  file=sys.stderr)
+        except Exception as e:
+            print(f"  ISM Svc CSV upsert error: {e}", file=sys.stderr)
+            notices.append("ISM Services CSV upsert failed.")
+    elif not ISM_SVC_CSV.exists():
+        notices.append("ISM Services data not yet available (no scrape, no baseline).")
 
-    # ----- Cass Freight -----
-    cass_level = []
-    cass_yoy   = []
+    # ---- Cass Freight scrape + upsert ----
+    # Need prior CSV values to reconstruct index level from press-release %s.
+    print("Scraping Cass Freight...", file=sys.stderr)
+    cass_csv_so_far = _read_csv_series(CASS_CSV, ["index_level"])
+    cass_lookup = dict(cass_csv_so_far["index_level"])
     try:
-        path = CSV_PATHS["cass_freight"]
-        if not path.exists():
-            raise FileNotFoundError(str(path))
-        mnemonics, data = parse_macrobond_csv(path)
-        # Single-column file; skip strip_leading_constants since CASS index
-        # legitimately starts at 1.0 in 1990 and we want to keep that point.
-        cass_level = col_series(data, 0)
-        cass_yoy   = yoy_pct(cass_level)
-        loaded["cass_freight"] = True
-        print(f"  Cass: level={len(cass_level)} rows "
-              f"(latest={cass_level[-1] if cass_level else 'n/a'}); "
-              f"yoy_rows={len(cass_yoy)}",
-              file=sys.stderr)
+        cass_scraped = scrape_cass(cass_lookup)
     except Exception as e:
-        notices.append("Cass Freight CSV missing or unreadable.")
-        print(f"  ERROR Cass: {e}", file=sys.stderr)
+        print(f"  Cass unexpected error: {e}", file=sys.stderr)
+        cass_scraped = []
+    if cass_scraped:
+        try:
+            changed = _upsert_csv(CASS_CSV, ["index_level"], cass_scraped)
+            print(f"  Cass CSV {'CHANGED' if changed else 'unchanged'}",
+                  file=sys.stderr)
+        except Exception as e:
+            print(f"  Cass CSV upsert error: {e}", file=sys.stderr)
+            notices.append("Cass Freight CSV upsert failed.")
+    elif not CASS_CSV.exists():
+        notices.append("Cass Freight data not yet available (no scrape, no baseline).")
 
-    # ----- KPIs -----
+    # ---- Read final CSVs and build JSON ----
+    print("Reading CSV baselines...", file=sys.stderr)
+    mfg = _read_csv_series(ISM_MFG_CSV,
+        ["total", "employment", "new_orders", "backlog", "prices_paid"])
+    svc = _read_csv_series(ISM_SVC_CSV,
+        ["composite", "employment", "new_orders", "prices"])
+    cass = _read_csv_series(CASS_CSV, ["index_level"])
+
+    cass_level = cass["index_level"]
+    cass_yoy   = _yoy_pct(cass_level)
+
+    loaded = {
+        "ism_manufacturing": bool(mfg["total"]),
+        "ism_services":      bool(svc["composite"]),
+        "cass_freight":      bool(cass_level),
+    }
+    print(f"  Loaded: ISM Mfg total={len(mfg['total'])} rows, "
+          f"ISM Svc composite={len(svc['composite'])} rows, "
+          f"Cass={len(cass_level)} rows", file=sys.stderr)
+
     kpis = {
-        "ism_mfg_total":     kpi_level(ism_mfg_total),
-        "ism_mfg_new_orders": kpi_level(ism_mfg_no),
-        "ism_svc_composite": kpi_level(ism_svc_comp),
-        "ism_svc_new_orders": kpi_level(ism_svc_no),
-        "cass_level":        kpi_level(cass_level, decimals=3),
-        "cass_yoy":          kpi_pct(cass_yoy),
+        "ism_mfg_total":      _kpi_level(mfg["total"]),
+        "ism_mfg_new_orders": _kpi_level(mfg["new_orders"]),
+        "ism_svc_composite":  _kpi_level(svc["composite"]),
+        "ism_svc_new_orders": _kpi_level(svc["new_orders"]),
+        "cass_level":         _kpi_level(cass_level, decimals=3),
+        "cass_yoy":           _kpi_pct(cass_yoy),
     }
 
-    latest_candidates = [s[-1][0] for s in (ism_mfg_total, ism_svc_comp, cass_level) if s]
-    latest_label = max(latest_candidates) if latest_candidates else None
+    latest_candidates = [s[-1][0] for s in (mfg["total"], svc["composite"], cass_level) if s]
+    latest_label = _to_iso_date(max(latest_candidates)) if latest_candidates else None
 
     out = {
         "build_time":   dt.datetime.utcnow().isoformat() + "Z",
         "latest_label": latest_label,
         "kpis":         kpis,
 
-        # ISM Manufacturing
         "ism_manufacturing": {
-            "total":      to_label_pairs(ism_mfg_total),
-            "employment": to_label_pairs(ism_mfg_emp),
-            "new_orders": to_label_pairs(ism_mfg_no),
-            "backlog":    to_label_pairs(ism_mfg_bo),
-            "prices_paid": to_label_pairs(ism_mfg_pp),
+            "total":      _to_iso_pairs(mfg["total"]),
+            "employment": _to_iso_pairs(mfg["employment"]),
+            "new_orders": _to_iso_pairs(mfg["new_orders"]),
+            "backlog":    _to_iso_pairs(mfg["backlog"]),
+            "prices_paid": _to_iso_pairs(mfg["prices_paid"]),
         },
-
-        # ISM Services
         "ism_services": {
-            "composite":  to_label_pairs(ism_svc_comp),
-            "employment": to_label_pairs(ism_svc_emp),
-            "new_orders": to_label_pairs(ism_svc_no),
-            "prices":     to_label_pairs(ism_svc_pp),
+            "composite":  _to_iso_pairs(svc["composite"]),
+            "employment": _to_iso_pairs(svc["employment"]),
+            "new_orders": _to_iso_pairs(svc["new_orders"]),
+            "prices":     _to_iso_pairs(svc["prices"]),
         },
-
-        # Cass Freight
         "cass_freight": {
-            "index":   to_label_pairs(cass_level, decimals=3),
-            "yoy_pct": to_label_pairs(cass_yoy,   decimals=2),
+            "index":   _to_iso_pairs(cass_level, decimals=3),
+            "yoy_pct": _to_iso_pairs(cass_yoy,   decimals=2),
         },
 
-        # Provenance
         "loaded": loaded,
+        "scraped_this_run": {
+            "ism_manufacturing": bool(mfg_scraped),
+            "ism_services":      bool(svc_scraped),
+            "cass_freight":      bool(cass_scraped),
+        },
         "notice": " ".join(notices) if notices else None,
     }
 
