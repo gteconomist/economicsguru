@@ -113,13 +113,20 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_equities.py
 
+      - name: Refresh Industry / Manufacturing data from FRED + EIA
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          EIA_API_KEY:  ${{ secrets.EIA_API_KEY }}
+        continue-on-error: true
+        run: python scripts/fetch_industry_manufacturing.py
+
       # Show data summary, but don't fail the workflow if some files are missing
       # (a fetch step may have hit a quota or rate-limit). Each line is wrapped
       # so a missing/empty JSON prints a warning and we keep going.
       - name: Show generated data summary
         run: |
           set +e
-          for f in inflation ppi labor pce housing_existing housing_new housing_permits gdp consumer treasuries commodities equities; do
+          for f in inflation ppi labor pce housing_existing housing_new housing_permits gdp consumer treasuries commodities equities industry_manufacturing; do
             if [[ -s "data/${f}.json" ]]; then
               echo "OK  data/${f}.json ($(stat -c%s data/${f}.json) bytes)"
             else
@@ -139,6 +146,7 @@ jobs:
           python -c "import json; d=json.load(open('data/treasuries.json')); print('Treasuries latest:', d['latest_label']); print('10Y kpi:', d['kpis']['y10y']); print('2s10s spread kpi:', d['kpis']['spread']); print('Fed Funds kpi:', d['kpis']['ffr']); print('Curve maturities:', [p['maturity'] for p in d['yield_curve_today']])" 2>/dev/null || echo "skip treasuries summary"
           python -c "import json; d=json.load(open('data/commodities.json')); print('Commodities latest:', d['latest_label']); print('Gold kpi:', d['kpis']['gold']); print('Silver kpi:', d['kpis']['silver']); print('Platinum kpi:', d['kpis']['platinum']); print('G/S ratio kpi:', d['kpis']['gs_ratio']); print('WTI kpi:', d['kpis']['wti']); print('CSV baseline loaded:', d.get('metals_csv_loaded')); print('MetalPriceAPI ok:', d.get('metalprice_succeeded'))" 2>/dev/null || echo "skip commodities summary"
           python -c "import json; d=json.load(open('data/equities.json')); print('Equities latest:', d['latest_label']); print('SPX kpi:', d['kpis']['spx']); print('Nasdaq kpi:', d['kpis']['nasdaq']); print('Dow kpi:', d['kpis']['dow']); print('Russell kpi:', d['kpis']['russell']); print('VIX kpi:', d['kpis']['vix']); print('SPX drawdown kpi:', d['kpis']['spx_drawdown']); pe=d.get('wilshire_pe', []); print('Wilshire/PE quarters:', len(pe)); print('Wilshire/PE latest:', pe[-1] if pe else None); print('Profits after tax (IVA+CCAdj) latest:', d.get('profits_after_tax', [None])[-1]); print('Yahoo ok:', d.get('yahoo_succeeded')); print('FRED ok:', d.get('fred_succeeded'))" 2>/dev/null || echo "skip equities summary"
+          python -c "import json; d=json.load(open('data/industry_manufacturing.json')); print('Industry/Mfg latest:', d['latest_label']); print('IP YoY kpi:', d['kpis']['ip_yoy']); print('IP MoM kpi:', d['kpis']['ip_mom']); print('Cap Util Total kpi:', d['kpis']['tcu']); print('Cap Util Mfg kpi:', d['kpis']['mcumfn']); print('Factory Orders kpi:', d['kpis']['factory_orders']); print('Core Capex kpi:', d['kpis']['core_capex']); print('Electricity 12mma rows:', len(d.get('electricity', {}).get('generation_12mma', []))); print('FRED ok:', d.get('fred_succeeded')); print('EIA ok:', d.get('eia_succeeded'))" 2>/dev/null || echo "skip industry-manufacturing summary"
           exit 0
 
       # Auto-commit fresh data files + CSV baselines if their content materially
