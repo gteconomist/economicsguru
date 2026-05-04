@@ -2955,6 +2955,9 @@ function applyRange(range) {
   } else if (CURRENT_PAGE === 'equities') {
     const view = rangedViewEquities(RAW_DATA, range);
     renderAllEquities(view); registerAllCsvsEquities(view);
+  } else if (CURRENT_PAGE === 'industry-manufacturing') {
+    const view = rangedViewIndustryManufacturing(RAW_DATA, range);
+    renderAllIndustryManufacturing(view); registerAllCsvsIndustryManufacturing(view);
   } else {
     const view = rangedView(RAW_DATA, range);
     renderAll(view); registerAllCsvs(view);
@@ -3879,6 +3882,349 @@ function renderKpisEquities(data) {
 }
 
 // =========================================================
+// Industry &mdash; Manufacturing & Production
+// =========================================================
+//
+// Six charts:
+//   chartIndMfgIpMom         — IP M-M bars (Total + Mfg + Mfg ex MV) with Y-Y line
+//   chartIndMfgIpLong        — IP Y-Y line (left) + M-M bars (right), long-run
+//   chartIndMfgCapUtil       — Capacity Utilization Total + Manufacturing
+//   chartIndMfgFactoryOrders — Factory Orders M-M (Total / Core / Core Durable)
+//   chartIndMfgShipments     — Capital Goods Shipments M-M (Total / Nondef / Core Capex)
+//   chartIndMfgElectricity   — Electricity 12-month MA (left) + CPI Electricity (right)
+
+function rangedViewIndustryManufacturing(data, range) {
+  const n = RANGE_MONTHS[range] || Infinity;
+  const ip = data.ip || {};
+  const cu = data.capacity_utilization || {};
+  const fo = data.factory_orders || {};
+  const sh = data.shipments || {};
+  const el = data.electricity || {};
+  return {
+    ip: {
+      total_index:      tail(ip.total_index      || [], n),
+      ip_total_mom:     tail(ip.ip_total_mom     || [], n),
+      ip_total_yoy:     tail(ip.ip_total_yoy     || [], n),
+      ip_mfg_mom:       tail(ip.ip_mfg_mom       || [], n),
+      ip_mfg_ex_mv_mom: tail(ip.ip_mfg_ex_mv_mom || [], n),
+    },
+    capacity_utilization: {
+      total: tail(cu.total || [], n),
+      mfg:   tail(cu.mfg   || [], n),
+    },
+    factory_orders: {
+      total_mom:        tail(fo.total_mom        || [], n),
+      core_mom:         tail(fo.core_mom         || [], n),
+      core_durable_mom: tail(fo.core_durable_mom || [], n),
+    },
+    shipments: {
+      total_capital_mom:         tail(sh.total_capital_mom         || [], n),
+      nondef_capital_mom:        tail(sh.nondef_capital_mom        || [], n),
+      nondef_capital_ex_air_mom: tail(sh.nondef_capital_ex_air_mom || [], n),
+    },
+    electricity: {
+      generation_12mma: tail(el.generation_12mma || [], n),
+      generation_raw:   tail(el.generation_raw   || [], n),
+      cpi_electricity:  tail(el.cpi_electricity  || [], n),
+    },
+    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+  };
+}
+
+function fmtPctSignedIndMfg(v) {
+  if (v == null) return 'n/a';
+  return (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+}
+
+// Industrial Production — M-M bars (3 series) + Total Y-Y line
+function buildIndMfgIpMom(view) {
+  const ip = view.ip || {};
+  const labels = (ip.ip_total_mom || []).map(r => shortLabel(r[0]));
+  // Align Y-Y line to the same labels as the bars (bars carry the canonical x-axis)
+  const yoyMap = new Map((ip.ip_total_yoy || []).map(r => [r[0], r[1]]));
+  const yoyAligned = (ip.ip_total_mom || []).map(r => yoyMap.has(r[0]) ? yoyMap.get(r[0]) : null);
+  const mfgMap = new Map((ip.ip_mfg_mom || []).map(r => [r[0], r[1]]));
+  const mfgAligned = (ip.ip_total_mom || []).map(r => mfgMap.has(r[0]) ? mfgMap.get(r[0]) : null);
+  const exMvMap = new Map((ip.ip_mfg_ex_mv_mom || []).map(r => [r[0], r[1]]));
+  const exMvAligned = (ip.ip_total_mom || []).map(r => exMvMap.has(r[0]) ? exMvMap.get(r[0]) : null);
+  return {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Total Index (M-M %)', data: (ip.ip_total_mom || []).map(r => r[1]),
+          backgroundColor: BRAND.navy, borderColor: BRAND.navy, borderWidth: 1 },
+        { label: 'Manufacturing Industries Only (M-M %)', data: mfgAligned,
+          backgroundColor: BRAND.mustard, borderColor: BRAND.mustard, borderWidth: 1 },
+        { label: 'Manufacturing ex. Motor Vehicles (M-M %)', data: exMvAligned,
+          backgroundColor: BRAND.silver, borderColor: BRAND.silver, borderWidth: 1 },
+        { label: 'Total Index Y-Y %', type: 'line', data: yoyAligned,
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.4, pointRadius: pointSizeForLength(labels.length),
+          fill: false, spanGaps: true },
+        { label: '0% line', type: 'line', data: labels.map(()=>0),
+          borderColor: BRAND.silver, borderWidth: 1.0, borderDash: [4,4], pointRadius: 0, fill: false, order: 99 },
+      ],
+    },
+    options: baseOptions(fmtPctSignedIndMfg),
+  };
+}
+
+// Industrial Production long-run: Y-Y line (left) + M-M bars (right)
+function buildIndMfgIpLong(view) {
+  const ip = view.ip || {};
+  const labels = (ip.ip_total_yoy || []).map(r => shortLabel(r[0]));
+  const momMap = new Map((ip.ip_total_mom || []).map(r => [r[0], r[1]]));
+  const momAligned = (ip.ip_total_yoy || []).map(r => momMap.has(r[0]) ? momMap.get(r[0]) : null);
+  const cfg = {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Total Index Y-Y % (Left Axis)', type: 'line', data: (ip.ip_total_yoy || []).map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.4, pointRadius: pointSizeForLength(labels.length),
+          fill: false, yAxisID: 'yYoy' },
+        { label: 'Total Index M-M % (Right Axis)', data: momAligned,
+          backgroundColor: BRAND.mustard, borderColor: BRAND.mustard, borderWidth: 1, yAxisID: 'yMom' },
+        { label: '0% line', type: 'line', data: labels.map(()=>0),
+          borderColor: BRAND.silver, borderWidth: 1.0, borderDash: [4,4], pointRadius: 0, fill: false, yAxisID: 'yYoy', order: 99 },
+      ],
+    },
+    options: baseOptions(fmtPctSignedIndMfg),
+  };
+  // Replace default scales with dual-axis spec
+  cfg.options.scales = {
+    x: { grid: { display: false, drawBorder: true }, ticks: { color: BRAND.navy, font: { size: 11 }, autoSkip: true, maxRotation: 0 }, border: { color: BRAND.navy, width: 1 } },
+    yYoy: axisSpec(v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`, 'left'),
+    yMom: axisSpec(v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`, 'right'),
+  };
+  cfg.options.plugins = cfg.options.plugins || {};
+  cfg.options.plugins.tooltip = {
+    backgroundColor: BRAND.navy, titleColor: '#fff', bodyColor: '#fff',
+    borderColor: BRAND.mustard, borderWidth: 1, padding: 10, cornerRadius: 4,
+    callbacks: {
+      label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y == null ? 'n/a' : fmtPctSignedIndMfg(ctx.parsed.y)}`
+    }
+  };
+  return cfg;
+}
+
+// Capacity Utilization — Total + Manufacturing (level series)
+function buildIndMfgCapUtil(view) {
+  const cu = view.capacity_utilization || {};
+  const labels = (cu.total || []).map(r => shortLabel(r[0]));
+  const mfgMap = new Map((cu.mfg || []).map(r => [r[0], r[1]]));
+  const mfgAligned = (cu.total || []).map(r => mfgMap.has(r[0]) ? mfgMap.get(r[0]) : null);
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Total Index', data: (cu.total || []).map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.4, pointRadius: pr, fill: false },
+        { label: 'Manufacturing', data: mfgAligned,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr, fill: false, spanGaps: true },
+      ],
+    },
+    options: baseOptions(v => v.toFixed(1) + '%'),
+  };
+}
+
+// Factory Orders — M-M bars, 3 series
+function buildIndMfgFactoryOrders(view) {
+  const fo = view.factory_orders || {};
+  const labels = (fo.total_mom || []).map(r => shortLabel(r[0]));
+  const coreMap = new Map((fo.core_mom || []).map(r => [r[0], r[1]]));
+  const coreAligned = (fo.total_mom || []).map(r => coreMap.has(r[0]) ? coreMap.get(r[0]) : null);
+  const durMap = new Map((fo.core_durable_mom || []).map(r => [r[0], r[1]]));
+  const durAligned = (fo.total_mom || []).map(r => durMap.has(r[0]) ? durMap.get(r[0]) : null);
+  return {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Total Manufacturing', data: (fo.total_mom || []).map(r => r[1]),
+          backgroundColor: BRAND.navy, borderColor: BRAND.navy, borderWidth: 1 },
+        { label: 'Manufacturing Excluding Transportation ("Core")', data: coreAligned,
+          backgroundColor: BRAND.mustard, borderColor: BRAND.mustard, borderWidth: 1 },
+        { label: 'Core Durable Goods', data: durAligned,
+          backgroundColor: BRAND.silver, borderColor: BRAND.silver, borderWidth: 1 },
+        { label: '0% line', type: 'line', data: labels.map(()=>0),
+          borderColor: BRAND.silver, borderWidth: 1.0, borderDash: [4,4], pointRadius: 0, fill: false, order: 99 },
+      ],
+    },
+    options: baseOptions(fmtPctSignedIndMfg),
+  };
+}
+
+// Capital Goods Shipments — M-M bars, 3 series
+function buildIndMfgShipments(view) {
+  const sh = view.shipments || {};
+  const labels = (sh.total_capital_mom || []).map(r => shortLabel(r[0]));
+  const ndMap = new Map((sh.nondef_capital_mom || []).map(r => [r[0], r[1]]));
+  const ndAligned = (sh.total_capital_mom || []).map(r => ndMap.has(r[0]) ? ndMap.get(r[0]) : null);
+  const nxMap = new Map((sh.nondef_capital_ex_air_mom || []).map(r => [r[0], r[1]]));
+  const nxAligned = (sh.total_capital_mom || []).map(r => nxMap.has(r[0]) ? nxMap.get(r[0]) : null);
+  return {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Total Capital Goods', data: (sh.total_capital_mom || []).map(r => r[1]),
+          backgroundColor: BRAND.navy, borderColor: BRAND.navy, borderWidth: 1 },
+        { label: 'Nondefense Capital Goods', data: ndAligned,
+          backgroundColor: BRAND.mustard, borderColor: BRAND.mustard, borderWidth: 1 },
+        { label: 'Nondefense Capital Goods Excluding Aircraft ("Core Capex")', data: nxAligned,
+          backgroundColor: BRAND.khaki, borderColor: BRAND.khaki, borderWidth: 1 },
+        { label: '0% line', type: 'line', data: labels.map(()=>0),
+          borderColor: BRAND.silver, borderWidth: 1.0, borderDash: [4,4], pointRadius: 0, fill: false, order: 99 },
+      ],
+    },
+    options: baseOptions(fmtPctSignedIndMfg),
+  };
+}
+
+// Electricity — 12-month MA (left) + CPI Electricity (right)
+function buildIndMfgElectricity(view) {
+  const el = view.electricity || {};
+  const gen = el.generation_12mma || [];
+  const cpi = el.cpi_electricity  || [];
+
+  // Build a unified label set (gen and CPI may have slightly different histories)
+  const labelSet = new Set();
+  gen.forEach(r => labelSet.add(r[0]));
+  cpi.forEach(r => labelSet.add(r[0]));
+  const labels = [...labelSet].sort();
+  const labelsShort = labels.map(shortLabel);
+
+  const genMap = new Map(gen.map(r => [r[0], r[1]]));
+  const cpiMap = new Map(cpi.map(r => [r[0], r[1]]));
+  const genAligned = labels.map(d => genMap.has(d) ? genMap.get(d) : null);
+  const cpiAligned = labels.map(d => cpiMap.has(d) ? cpiMap.get(d) : null);
+
+  const pr = pointSizeForLength(labels.length);
+  const cfg = {
+    type: 'line',
+    data: {
+      labels: labelsShort,
+      datasets: [
+        { label: 'Electricity Net Generation Total; Electric Power Sector (Mil. kWh, NSA, 12mo MA)',
+          data: genAligned,
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.4, pointRadius: pr, fill: false, yAxisID: 'yGen', spanGaps: true },
+        { label: 'CPI: Urban Consumer — Electricity (Right Axis)',
+          data: cpiAligned,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr, fill: false, yAxisID: 'yCpi', spanGaps: true },
+      ],
+    },
+    options: baseOptions(v => v == null ? 'n/a' : Math.round(v).toLocaleString()),
+  };
+  cfg.options.scales = {
+    x: { grid: { display: false, drawBorder: true }, ticks: { color: BRAND.navy, font: { size: 11 }, autoSkip: true, maxRotation: 0 }, border: { color: BRAND.navy, width: 1 } },
+    yGen: axisSpec(v => v == null ? 'n/a' : Math.round(v).toLocaleString(), 'left'),
+    yCpi: axisSpec(v => v == null ? 'n/a' : v.toFixed(0), 'right'),
+  };
+  cfg.options.plugins = cfg.options.plugins || {};
+  cfg.options.plugins.tooltip = {
+    backgroundColor: BRAND.navy, titleColor: '#fff', bodyColor: '#fff',
+    borderColor: BRAND.mustard, borderWidth: 1, padding: 10, cornerRadius: 4,
+    callbacks: {
+      label: (ctx) => {
+        if (ctx.parsed.y == null) return `${ctx.dataset.label}: n/a`;
+        if (ctx.dataset.yAxisID === 'yCpi') return `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}`;
+        return `${ctx.dataset.label}: ${Math.round(ctx.parsed.y).toLocaleString()} M kWh`;
+      }
+    }
+  };
+  return cfg;
+}
+
+const INDUSTRY_MFG_BUILDERS = {
+  chartIndMfgIpMom:           buildIndMfgIpMom,
+  chartIndMfgIpLong:          buildIndMfgIpLong,
+  chartIndMfgCapUtil:         buildIndMfgCapUtil,
+  chartIndMfgFactoryOrders:   buildIndMfgFactoryOrders,
+  chartIndMfgShipments:       buildIndMfgShipments,
+  chartIndMfgElectricity:     buildIndMfgElectricity,
+};
+
+function renderAllIndustryManufacturing(view) {
+  Object.entries(INDUSTRY_MFG_BUILDERS).forEach(([id, builder]) => {
+    const cfg = builder(view);
+    if (cfg) makeChart(id, cfg);
+  });
+}
+
+function registerAllCsvsIndustryManufacturing(view) {
+  const ip = view.ip || {};
+  const cu = view.capacity_utilization || {};
+  const fo = view.factory_orders || {};
+  const sh = view.shipments || {};
+  const el = view.electricity || {};
+
+  registerCsv('chartIndMfgIpMom', 'industrial-production-mom-yoy.csv',
+    ['Month', 'Total Index M-M %', 'Manufacturing M-M %', 'Mfg ex Motor Vehicles M-M %', 'Total Index Y-Y %'],
+    mergeSeries([ip.ip_total_mom || [], ip.ip_mfg_mom || [], ip.ip_mfg_ex_mv_mom || [], ip.ip_total_yoy || []]));
+
+  registerCsv('chartIndMfgIpLong', 'industrial-production-long-run.csv',
+    ['Month', 'Total Index Y-Y %', 'Total Index M-M %'],
+    mergeSeries([ip.ip_total_yoy || [], ip.ip_total_mom || []]));
+
+  registerCsv('chartIndMfgCapUtil', 'capacity-utilization.csv',
+    ['Month', 'Total Index (%)', 'Manufacturing (%)'],
+    mergeSeries([cu.total || [], cu.mfg || []]));
+
+  registerCsv('chartIndMfgFactoryOrders', 'factory-orders-mom.csv',
+    ['Month', 'Total Manufacturing M-M %', 'Mfg ex Transportation (Core) M-M %', 'Core Durable Goods M-M %'],
+    mergeSeries([fo.total_mom || [], fo.core_mom || [], fo.core_durable_mom || []]));
+
+  registerCsv('chartIndMfgShipments', 'capital-goods-shipments-mom.csv',
+    ['Month', 'Total Capital Goods M-M %', 'Nondefense Capital Goods M-M %', 'Nondef ex Aircraft (Core Capex) M-M %'],
+    mergeSeries([sh.total_capital_mom || [], sh.nondef_capital_mom || [], sh.nondef_capital_ex_air_mom || []]));
+
+  registerCsv('chartIndMfgElectricity', 'electricity-generation-vs-cpi.csv',
+    ['Month', 'Net Generation 12-mo MA (Mil. kWh)', 'CPI Electricity (1982-84=100)'],
+    mergeSeries([el.generation_12mma || [], el.cpi_electricity || []]));
+}
+
+function renderKpisIndustryManufacturing(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const fmtPct = v => (v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%');
+  const fmtLevel = v => (v == null ? 'n/a' : v.toFixed(1) + '%');
+  // Up = good for IP YoY/MoM, Cap Util Total + Mfg, Factory Orders, Core Capex.
+  const KPI_DEFS = [
+    { key: 'ip_yoy',          label: 'Industrial Production (Y-Y)',  accent: BRAND.navy,    format: fmtPct,   unit: 'pp' },
+    { key: 'ip_mom',          label: 'Industrial Production (M-M)',  accent: BRAND.mustard, format: fmtPct,   unit: 'pp' },
+    { key: 'tcu',             label: 'Capacity Utilization (Total)', accent: BRAND.teal,    format: fmtLevel, unit: 'pp' },
+    { key: 'mcumfn',          label: 'Capacity Utilization (Mfg)',   accent: BRAND.khaki,   format: fmtLevel, unit: 'pp' },
+    { key: 'factory_orders',  label: 'Factory Orders (M-M)',         accent: BRAND.coral,   format: fmtPct,   unit: 'pp' },
+    { key: 'core_capex',      label: 'Core Capex Shipments (M-M)',   accent: BRAND.green,   format: fmtPct,   unit: 'pp' },
+  ];
+  kpiHost.innerHTML = KPI_DEFS.map(def => {
+    const k = (data.kpis || {})[def.key] || { value: null, delta: null, label: null };
+    const arrow = k.delta == null ? '–' : (k.delta > 0 ? '▲' : (k.delta < 0 ? '▼' : '▬'));
+    const deltaTxt = k.delta == null ? 'no prior data'
+                                     : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} ${def.unit} vs prior month`;
+    let cls = 'flat';
+    if (k.delta != null && k.delta !== 0) cls = (k.delta > 0 ? 'up' : 'down');
+    const periodTxt = k.label ? `as of ${formatLabelLong(k.label)}` : '';
+    return `
+      <div class="kpi" style="border-top-color:${def.accent}">
+        <div class="label">${def.label}</div>
+        <div class="value">${def.format(k.value)}</div>
+        <div class="delta ${cls}">${arrow} ${deltaTxt}</div>
+        <div class="delta-yoy" style="color:var(--ink-soft); font-weight:600;">${periodTxt}</div>
+      </div>`;
+  }).join('');
+}
+
+// =========================================================
 // Public API
 // =========================================================
 window.EG = {
@@ -4248,5 +4594,35 @@ window.EG = {
     };
     const id = map[chartKey] || 'chartEqSpx';
     if (EQUITIES_BUILDERS[id]) makeChart(id, EQUITIES_BUILDERS[id](view));
+  },
+
+  renderIndustryManufacturing(data) {
+    CURRENT_PAGE = 'industry-manufacturing';
+    RAW_DATA = data;
+    const m = document.getElementById('latest-month');
+    if (m) m.textContent = formatLabelLong(data.latest_label);
+    renderKpisIndustryManufacturing(data);
+    const view = rangedViewIndustryManufacturing(data, CURRENT_RANGE);
+    renderAllIndustryManufacturing(view); registerAllCsvsIndustryManufacturing(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  // Embed mode for Industry / Manufacturing:
+  // chartKey ∈ 'ip' | 'ip-long' | 'cap-util' | 'factory-orders' | 'shipments' | 'electricity'
+  renderIndustryManufacturingEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'industry-manufacturing';
+    RAW_DATA = data;
+    if (range && RANGE_MONTHS[range]) CURRENT_RANGE = range;
+    const view = rangedViewIndustryManufacturing(data, CURRENT_RANGE);
+    const map = {
+      ip:               'chartIndMfgIpMom',
+      'ip-long':        'chartIndMfgIpLong',
+      'cap-util':       'chartIndMfgCapUtil',
+      'factory-orders': 'chartIndMfgFactoryOrders',
+      shipments:        'chartIndMfgShipments',
+      electricity:      'chartIndMfgElectricity',
+    };
+    const id = map[chartKey] || 'chartIndMfgIpMom';
+    if (INDUSTRY_MFG_BUILDERS[id]) makeChart(id, INDUSTRY_MFG_BUILDERS[id](view));
   },
 };
