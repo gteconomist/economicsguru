@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Manufacturing Chart &mdash; Economics Guru</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --navy: #003057; --mustard: #d4a017; --chart-bg: #fbf5dc; --ink-soft: #6b7280;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: transparent; font-family: "Source Sans Pro", sans-serif; }
+  .embed { padding: 8px 12px 6px; height: 100vh; display: flex; flex-direction: column; }
+  .title { font-weight: 800; font-size: 16px; color: var(--navy); text-align: center; margin: 0 0 1px; }
+  .subtitle { font-style: italic; font-size: 12px; color: var(--ink-soft); text-align: center; margin: 0 0 6px; }
+  .chart-wrap { position: relative; flex: 1 1 auto; min-height: 0; background: var(--chart-bg); border: 1px solid var(--navy); padding: 6px; }
+  .source { margin-top: 4px; font-size: 10px; color: var(--ink-soft); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .source a { color: var(--mustard); text-decoration: none; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px; }
+  .source a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="embed">
+  <div class="title" id="t">&hellip;</div>
+  <div class="subtitle" id="s"></div>
+  <div class="chart-wrap">
+    <canvas id="chartIndMfgIpMom"           style="display:none"></canvas>
+    <canvas id="chartIndMfgIpLong"          style="display:none"></canvas>
+    <canvas id="chartIndMfgCapUtil"         style="display:none"></canvas>
+    <canvas id="chartIndMfgFactoryOrders"   style="display:none"></canvas>
+    <canvas id="chartIndMfgShipments"       style="display:none"></canvas>
+    <canvas id="chartIndMfgElectricity"     style="display:none"></canvas>
+  </div>
+  <div class="source">
+    <span id="src">Source: Federal Reserve G.17 + Census M3 + EIA + BLS via FRED</span>
+    <a href="https://economicsguru.com/industry/manufacturing/" target="_blank" rel="noopener">economicsguru.com</a>
+  </div>
+</div>
+
+<script src="/assets/charts.js"></script>
+<script>
+const CHART_INFO = {
+  ip:              { canvas: 'chartIndMfgIpMom',         title: 'U.S. Industrial Production',                 subtitle: '(Index 2017=100; Seasonally Adjusted; M-M % + Y-Y % Line)' },
+  'ip-long':       { canvas: 'chartIndMfgIpLong',        title: 'Industrial Production &mdash; Long Run',     subtitle: '(Y-Y % Line + M-M % Bars)' },
+  'cap-util':      { canvas: 'chartIndMfgCapUtil',       title: 'Capacity Utilization',                       subtitle: '(% of Potential Output; Total + Manufacturing)' },
+  'factory-orders':{ canvas: 'chartIndMfgFactoryOrders', title: 'U.S. Factory Orders',                        subtitle: '(Manufacturers&rsquo; New Orders; M-M % Change)' },
+  shipments:       { canvas: 'chartIndMfgShipments',     title: 'Value of Shipments &mdash; Capital Goods',   subtitle: '(M-M %; Total / Nondefense / Nondef ex Aircraft)' },
+  electricity:     { canvas: 'chartIndMfgElectricity',   title: 'Total Electricity Net Generation',           subtitle: '(Electric Power Sector; 12-Month MA; CPI Electricity Right Axis)' },
+};
+const params = new URLSearchParams(window.location.search);
+const chartKey = (params.get('chart') || 'ip').toLowerCase();
+const range = (params.get('range') || '12m').toLowerCase();
+const info = CHART_INFO[chartKey] || CHART_INFO.ip;
+document.getElementById('t').innerHTML = info.title;
+document.getElementById('s').innerHTML = info.subtitle;
+document.getElementById(info.canvas).style.display = 'block';
+fetch('/data/industry_manufacturing.json', { cache: 'no-cache' })
+  .then(r => r.json())
+  .then(data => EG.renderIndustryManufacturingEmbed(chartKey, data, range))
+  .catch(err => {
+    document.getElementById('t').textContent = 'Could not load data';
+    console.error(err);
+  });
+</script>
+</body>
+</html>
