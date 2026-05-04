@@ -247,70 +247,137 @@ _MONTH_NAME = r"(January|February|March|April|May|June|July|August|September|Oct
 
 # Headline patterns -- whichever matches first wins. We get both the index value
 # AND the month name out of the same regex so we know which calendar month the
-# row represents. Patterns are listed strictest-first, fallbacks broaden the
-# match to handle the ISM website's ongoing wording tweaks.
+# row represents. Patterns listed strictest-first.
+#
+# The ISM website's "report page" sometimes renders the headline in the page
+# title bar as "Manufacturing PMI® at 52.7%; April 2026 ..." (using the % sign
+# and "at" rather than "registered" + "percent"). Body prose more often reads
+# "The Manufacturing PMI registered 52.7 percent in April". We accept both.
 #
 # Note ® / ™ chars are stripped by _strip_html, so patterns can use \s+ across
-# the "PMI [registered]" boundary even when the page renders "PMI® registered".
+# the "PMI [verb]" boundary even when the rendered page has "PMI® at".
+_PCT = r"\s*(?:percent|%)"  # accepts "52.7 percent", "52.7%", "52.7 %"
+_VERB = r"(?:registered|reading\s+was|came\s+in\s+at|at|was)"
+
 _ISM_MFG_HEADLINE = [
-    # "The April Manufacturing PMI registered 52.7 percent" / "...was 52.7 percent"
-    re.compile(rf"{_MONTH_NAME}\s+Manufacturing\s+PMI\s+(?:registered|reading\s+was|came\s+in\s+at|was)\s+{_NUM}\s+percent", re.IGNORECASE),
-    # "Manufacturing PMI registered 52.7 percent in April"
-    re.compile(rf"Manufacturing\s+PMI\s+(?:registered|was|reading\s+was|came\s+in\s+at)\s+{_NUM}\s+percent\s+in\s+{_MONTH_NAME}", re.IGNORECASE),
-    # Loose: "April ... Manufacturing PMI ... 52.7 percent" (any glue)
-    re.compile(rf"{_MONTH_NAME}[^.]{{0,80}}?Manufacturing\s+PMI[^.]{{0,80}}?{_NUM}\s+percent", re.IGNORECASE),
+    # "The April Manufacturing PMI registered 52.7 percent" or "...at 52.7%"
+    re.compile(rf"{_MONTH_NAME}\s+Manufacturing\s+PMI\s+{_VERB}\s+{_NUM}{_PCT}", re.IGNORECASE),
+    # "Manufacturing PMI registered/at 52.7 percent in April"
+    re.compile(rf"Manufacturing\s+PMI\s+{_VERB}\s+{_NUM}{_PCT}\s+in\s+{_MONTH_NAME}", re.IGNORECASE),
+    # Title-bar style: "Manufacturing PMI at 52.7%; April 2026 ..."
+    re.compile(rf"Manufacturing\s+PMI\s+at\s+{_NUM}{_PCT}[^.]{{0,80}}?{_MONTH_NAME}\s+\d{{4}}", re.IGNORECASE),
+    # Loose: "April ... Manufacturing PMI ... 52.7 percent"
+    re.compile(rf"{_MONTH_NAME}[^.]{{0,100}}?Manufacturing\s+PMI[^.]{{0,100}}?{_NUM}{_PCT}", re.IGNORECASE),
     # Loose: "Manufacturing PMI ... 52.7 percent ... in April"
-    re.compile(rf"Manufacturing\s+PMI[^.]{{0,80}}?{_NUM}\s+percent[^.]{{0,80}}?in\s+{_MONTH_NAME}", re.IGNORECASE),
-    # Last-ditch: "PMI registered 52.7 percent in April" (no Manufacturing prefix)
-    re.compile(rf"PMI\s+registered\s+{_NUM}\s+percent\s+in\s+{_MONTH_NAME}", re.IGNORECASE),
+    re.compile(rf"Manufacturing\s+PMI[^.]{{0,100}}?{_NUM}{_PCT}[^.]{{0,100}}?in\s+{_MONTH_NAME}", re.IGNORECASE),
+    # Last-ditch: "PMI registered 52.7 percent in April"
+    re.compile(rf"PMI\s+registered\s+{_NUM}{_PCT}\s+in\s+{_MONTH_NAME}", re.IGNORECASE),
 ]
 _ISM_SVC_HEADLINE = [
-    re.compile(rf"{_MONTH_NAME}\s+Services\s+PMI\s+(?:registered|reading\s+was|came\s+in\s+at|was)\s+{_NUM}\s+percent", re.IGNORECASE),
-    re.compile(rf"Services\s+PMI\s+(?:registered|was|reading\s+was|came\s+in\s+at)\s+{_NUM}\s+percent\s+in\s+{_MONTH_NAME}", re.IGNORECASE),
-    re.compile(rf"{_MONTH_NAME}[^.]{{0,80}}?Services\s+PMI[^.]{{0,80}}?{_NUM}\s+percent", re.IGNORECASE),
-    re.compile(rf"Services\s+PMI[^.]{{0,80}}?{_NUM}\s+percent[^.]{{0,80}}?in\s+{_MONTH_NAME}", re.IGNORECASE),
-    # Some ISM Services releases use "Services Index" or "ISM Services Index"
-    re.compile(rf"{_MONTH_NAME}[^.]{{0,80}}?Services\s+Index[^.]{{0,80}}?{_NUM}\s+percent", re.IGNORECASE),
+    re.compile(rf"{_MONTH_NAME}\s+Services\s+PMI\s+{_VERB}\s+{_NUM}{_PCT}", re.IGNORECASE),
+    re.compile(rf"Services\s+PMI\s+{_VERB}\s+{_NUM}{_PCT}\s+in\s+{_MONTH_NAME}", re.IGNORECASE),
+    re.compile(rf"Services\s+PMI\s+at\s+{_NUM}{_PCT}[^.]{{0,80}}?{_MONTH_NAME}\s+\d{{4}}", re.IGNORECASE),
+    re.compile(rf"{_MONTH_NAME}[^.]{{0,100}}?Services\s+PMI[^.]{{0,100}}?{_NUM}{_PCT}", re.IGNORECASE),
+    re.compile(rf"Services\s+PMI[^.]{{0,100}}?{_NUM}{_PCT}[^.]{{0,100}}?in\s+{_MONTH_NAME}", re.IGNORECASE),
+    re.compile(rf"{_MONTH_NAME}[^.]{{0,100}}?Services\s+Index[^.]{{0,100}}?{_NUM}{_PCT}", re.IGNORECASE),
 ]
 
-def _find_headline(text, patterns):
-    """Return (value, month_name) or None."""
+# Plausible PMI value range -- helps the loose fallback ignore unrelated
+# percentages (e.g. "1.8 percent GDP increase", "20th month in a row" etc.)
+_PMI_VALUE_RANGE = (30.0, 75.0)
+
+
+def _find_headline(text, patterns, sector_word):
+    """Try strict patterns first, fall back to loose context-based search.
+
+    `sector_word` is "Manufacturing" or "Services" -- used by the loose
+    fallback to filter for the right sector when both might appear on a page.
+    """
     for r in patterns:
         m = r.search(text)
         if not m:
             continue
         g1, g2 = m.group(1), m.group(2)
-        if g1 in MONTHS_FULL:
-            return float(g2), g1
-        return float(g1), g2
+        try:
+            if g1 in MONTHS_FULL:
+                return float(g2), g1
+            return float(g1), g2
+        except (ValueError, TypeError):
+            continue
+    return _loose_pmi_search(text, sector_word)
+
+
+def _loose_pmi_search(text, sector_word):
+    """Last-resort: scan for any plausible PMI value near `<sector> PMI` + month.
+
+    Find every "(value)<percent|%>" in the text. For each, examine the +/- 250
+    chars around it. If that window contains the sector word AND "PMI" AND a
+    month name, return (value, month_name). Plausibility filter: 30 <= val <= 75
+    (rules out "1.8 percent GDP", "20th month in a row", etc.).
+    """
+    val_pat = re.compile(r"(\d{2,3}(?:\.\d+)?)\s*(?:percent|%)", re.IGNORECASE)
+    sector_lower = sector_word.lower()
+    for m in val_pat.finditer(text):
+        try:
+            val = float(m.group(1))
+        except ValueError:
+            continue
+        if not (_PMI_VALUE_RANGE[0] <= val <= _PMI_VALUE_RANGE[1]):
+            continue
+        s = max(0, m.start() - 250)
+        e = min(len(text), m.end() + 250)
+        ctx = text[s:e]
+        ctx_lower = ctx.lower()
+        if sector_lower not in ctx_lower:
+            continue
+        if "pmi" not in ctx_lower:
+            continue
+        for month_name in MONTHS_FULL:
+            if re.search(rf"\b{month_name}\b", ctx, re.IGNORECASE):
+                return val, month_name
     return None
 
 
 def _find_subindex(text, label_alts):
-    """Find the first occurrence of '{label} Index registered N.N percent' for any label alt.
-
-    The press releases vary -- sometimes 'Index registered', 'Index was', 'Index
-    came in at', 'Index reading was', etc. We allow any glue text within
-    bounded distance.
-    """
+    """Find '{label} Index registered/at N.N percent/%' under any wording."""
     for label in label_alts:
         esc = re.escape(label)
-        # Strict: "Employment Index registered 46.4 percent"
+        # Strict: "Employment Index registered 46.4 percent" / "...at 46.4%"
         strict = re.compile(
-            esc + r"\s+Index\s+(?:registered|was|reading\s+was|came\s+in\s+at)\s+" +
-            _NUM + r"\s+percent",
+            esc + r"\s+Index\s+" + _VERB + r"\s+" + _NUM + _PCT,
             re.IGNORECASE)
         m = strict.search(text)
         if m:
             return float(m.group(1))
-        # Loose: "Employment Index ... 46.4 percent" (capped to 150 chars of glue)
+        # Loose: "Employment Index ... 46.4 percent" (capped glue)
         loose = re.compile(
-            esc + r"\s+Index[^.]{0,150}?" + _NUM + r"\s+percent",
+            esc + r"\s+Index[^.]{0,150}?" + _NUM + _PCT,
             re.IGNORECASE)
         m = loose.search(text)
         if m:
             return float(m.group(1))
     return None
+
+
+def _debug_dump_text(text, label):
+    """Dump useful snippets of the stripped page text on parser failure.
+
+    Prints the first 1000 chars and -- separately -- 300 chars around each
+    'PMI' occurrence (capped to 5 occurrences). Lets the next GHA log show
+    exactly what the parser is working with so the regex can be tightened
+    against real wording.
+    """
+    print(f"  [DEBUG {label}] First 1000 chars of stripped text:", file=sys.stderr)
+    print(f"    {text[:1000]!r}", file=sys.stderr)
+    pmi_idxs = [m.start() for m in re.finditer(r"PMI", text, re.IGNORECASE)][:5]
+    for i, idx in enumerate(pmi_idxs, 1):
+        s = max(0, idx - 150)
+        e = min(len(text), idx + 200)
+        print(f"  [DEBUG {label}] PMI ctx #{i} ({idx}): {text[s:e]!r}",
+              file=sys.stderr)
+    if not pmi_idxs:
+        print(f"  [DEBUG {label}] No 'PMI' substring found in stripped text",
+              file=sys.stderr)
 
 
 def _ism_target_months():
@@ -353,9 +420,10 @@ def scrape_ism_manufacturing():
             print(f"  ISM Mfg fetch failed at {url}: {e}", file=sys.stderr)
             continue
         text = _strip_html(html)
-        headline = _find_headline(text, _ISM_MFG_HEADLINE)
+        headline = _find_headline(text, _ISM_MFG_HEADLINE, "Manufacturing")
         if not headline:
             print(f"  ISM Mfg {month_lc}: headline pattern not matched; skipping", file=sys.stderr)
+            _debug_dump_text(text, f"ISM Mfg {month_lc}")
             continue
         pmi, month_name = headline
         # Year disambiguation: pages reuse /april/ each year; pull the year out
@@ -391,9 +459,10 @@ def scrape_ism_services():
             print(f"  ISM Svc fetch failed at {url}: {e}", file=sys.stderr)
             continue
         text = _strip_html(html)
-        headline = _find_headline(text, _ISM_SVC_HEADLINE)
+        headline = _find_headline(text, _ISM_SVC_HEADLINE, "Services")
         if not headline:
             print(f"  ISM Svc {month_lc}: headline pattern not matched; skipping", file=sys.stderr)
+            _debug_dump_text(text, f"ISM Svc {month_lc}")
             continue
         composite, month_name = headline
         year = year_hint
