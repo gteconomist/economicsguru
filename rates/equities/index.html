@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Equities &mdash; S&amp;P 500, Nasdaq, Dow, Russell, VIX &mdash; Economics Guru</title>
-<meta name="description" content="Live US equities dashboard: S&P 500, Nasdaq Composite, Dow Jones, Russell 2000, VIX, and S&P 500 drawdown from peak. Plus the Wilshire 5000 / NIPA after-tax corporate earnings ratio &mdash; a market-wide P/E using economy-wide profits. Sourced live from Stooq and FRED, refreshed nightly.">
+<meta name="description" content="Live US equities dashboard: S&P 500, Nasdaq Composite, Dow Jones, Russell 2000, VIX, and S&P 500 drawdown from peak. Plus the Wilshire 5000 / NIPA after-tax corporate earnings ratio &mdash; a market-wide P/E using economy-wide profits. Sourced live from Yahoo Finance and FRED, refreshed nightly.">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/assets/styles.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -76,7 +76,7 @@
   </nav>
   <div class="page-header">
     <h1>US Equities &mdash; Indices, Volatility &amp; Valuation</h1>
-    <div class="subtitle">The four major US equity benchmarks (S&amp;P 500, Nasdaq Composite, Dow, Russell 2000), the VIX as the market&rsquo;s fear gauge, the S&amp;P 500&rsquo;s drawdown from its all-time high, and a market-wide valuation gauge: the Wilshire 5000 divided by NIPA after-tax corporate profits, a quarterly &ldquo;P/E&rdquo; using economy-wide earnings as the denominator. Daily indices via Stooq and FRED; quarterly profits from BEA via FRED.</div>
+    <div class="subtitle">The four major US equity benchmarks (S&amp;P 500, Nasdaq Composite, Dow, Russell 2000), the VIX as the market&rsquo;s fear gauge, the S&amp;P 500&rsquo;s drawdown from its all-time high, and a market-wide valuation gauge: the Wilshire 5000 divided by NIPA after-tax corporate profits, a quarterly &ldquo;P/E&rdquo; using economy-wide earnings as the denominator. Daily indices via Yahoo Finance; Nasdaq, VIX, and quarterly profits from BEA via FRED.</div>
     <div class="latest">Latest data: <strong id="latest-month">&hellip;</strong></div>
   </div>
 
@@ -107,7 +107,7 @@
       <div class="subtitle">(Daily Close, Index Level &mdash; the Headline Large-Cap Benchmark)</div>
       <div class="chart-wrap"><canvas id="chartEqSpx"></canvas></div>
       <div class="source">
-        <span>Source: Stooq daily CSV &mdash; ^spx (S&amp;P 500 Composite, since 1970).</span>
+        <span>Source: Yahoo Finance v8 chart endpoint &mdash; ^GSPC (S&amp;P 500, since 1928 but cropped to 1970+).</span>
         <a href="#" class="csv-link" data-chart="chartEqSpx">Download CSV</a>
       </div>
     </div>
@@ -117,7 +117,7 @@
       <div class="subtitle">(S&amp;P 500, Nasdaq, Dow &amp; Russell 2000, Each Indexed to 100 at the Start of the Selected Window)</div>
       <div class="chart-wrap"><canvas id="chartEqRebased"></canvas></div>
       <div class="source">
-        <span>Source: Computed in-house from S&amp;P 500 (Stooq), Nasdaq Composite (FRED NASDAQCOM), Dow (Stooq), Russell 2000 (Stooq).</span>
+        <span>Source: Computed in-house from S&amp;P 500 (Yahoo ^GSPC), Nasdaq Composite (FRED NASDAQCOM), Dow Jones (Yahoo ^DJI), Russell 2000 (Yahoo ^RUT).</span>
         <a href="#" class="csv-link" data-chart="chartEqRebased">Download CSV</a>
       </div>
     </div>
@@ -137,7 +137,7 @@
       <div class="subtitle">(Percent Below the Running Peak; Always &le; 0; Reference Lines at &minus;10% Correction and &minus;20% Bear Market)</div>
       <div class="chart-wrap"><canvas id="chartEqDrawdown"></canvas></div>
       <div class="source">
-        <span>Source: Computed in-house from S&amp;P 500 daily closes (Stooq).</span>
+        <span>Source: Computed in-house from S&amp;P 500 daily closes (Yahoo ^GSPC).</span>
         <a href="#" class="csv-link" data-chart="chartEqDrawdown">Download CSV</a>
       </div>
     </div>
@@ -147,7 +147,7 @@
       <div class="subtitle">(Quarterly Ratio &mdash; an Economy-Wide P/E; Long-Run Average ~12 Bolded; Bands: Cheap &lt;9, Fair 9-15, Over-Valued 15-18, Frothy/Bubble &gt;18)</div>
       <div class="chart-wrap"><canvas id="chartEqWilshirePE"></canvas></div>
       <div class="source">
-        <span>Source: Wilshire 5000 Price Index (FRED WILL5000PR, end-of-quarter close) &divide; Corporate Profits After Tax with IVA &amp; CCAdj (BEA NIPA Table 1.12 via FRED A055RC1Q027SBEA, $B SAAR).</span>
+        <span>Source: Wilshire 5000 Total Market Index (Yahoo ^W5000, end-of-quarter close) &divide; Corporate Profits After Tax with IVA &amp; CCAdj (BEA NIPA Table 1.12 via FRED CPATAX, $B SAAR).</span>
         <a href="#" class="csv-link" data-chart="chartEqWilshirePE">Download CSV</a>
       </div>
     </div>
@@ -157,7 +157,7 @@
       <div class="subtitle">(Tech-Heavy Large Caps vs. Small Caps; Diverging Lines Show When Mega-Cap Tech Pulls Away from the Broader Domestic Economy)</div>
       <div class="chart-wrap"><canvas id="chartEqNdqRut"></canvas></div>
       <div class="source">
-        <span>Source: Computed in-house from Nasdaq Composite (FRED NASDAQCOM) and Russell 2000 (Stooq ^rut, since 1987).</span>
+        <span>Source: Computed in-house from Nasdaq Composite (FRED NASDAQCOM) and Russell 2000 (Yahoo ^RUT, since 1987).</span>
         <a href="#" class="csv-link" data-chart="chartEqNdqRut">Download CSV</a>
       </div>
     </div>
@@ -166,7 +166,7 @@
 
 <footer class="site-footer">
   <div class="wrap">
-    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, BEA, Census, UMich, Conference Board, ICE BofA, Kitco/London Fix, MetalPriceAPI, and Stooq. <a href="/about/">Methodology</a></div>
+    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, BEA, Census, UMich, Conference Board, ICE BofA, Kitco/London Fix, MetalPriceAPI, and Yahoo Finance. <a href="/about/">Methodology</a></div>
     <div>Data refreshes nightly. Last successful build: <span id="build-time">&hellip;</span></div>
   </div>
 </footer>
