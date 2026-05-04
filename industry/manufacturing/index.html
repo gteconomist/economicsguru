@@ -181,6 +181,9 @@ fetch('/data/industry_manufacturing.json', { cache: 'no-cache' })
   .then(r => r.json())
   .then(data => {
     EG.renderIndustryManufacturing(data);
+    // Manufacturing page defaults to 6-month view (re-renders all 6 charts
+    // and highlights the 6m button). Other pages keep their 12m default.
+    EG.applyRange('6m');
     if (data.notice) {
       document.getElementById('notice').style.display = '';
       document.getElementById('notice-text').textContent = data.notice;
