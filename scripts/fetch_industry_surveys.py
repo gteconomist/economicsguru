@@ -239,6 +239,15 @@ def _read_csv_series(path, value_columns):
 ISM_MFG_BASE = "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-pmi-reports/pmi/"
 ISM_SVC_BASE = "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-pmi-reports/services/"
 
+# ismworld.org is JS-rendered (the HTML response body is empty until JS runs),
+# so direct urllib fetches return no content. ISM's official press release is
+# wire-distributed via PR Newswire, which serves static HTML and is cleanly
+# extracted by Tavily. Tavily search finds the latest PR Newswire URL for the
+# month, Tavily extract returns the full press release content, and the same
+# regex parser pulls the values out.
+TAVILY_SEARCH_URL  = "https://api.tavily.com/search"
+TAVILY_EXTRACT_URL = "https://api.tavily.com/extract"
+
 # Patterns are written defensively: the press releases vary slightly but always
 # follow a ", _Index_ registered N percent" or "Index registered N.N percent"
 # structure, with the headline PMI mentioning the month explicitly.
@@ -257,7 +266,9 @@ _MONTH_NAME = r"(January|February|March|April|May|June|July|August|September|Oct
 # Note ® / ™ chars are stripped by _strip_html, so patterns can use \s+ across
 # the "PMI [verb]" boundary even when the rendered page has "PMI® at".
 _PCT = r"\s*(?:percent|%)"  # accepts "52.7 percent", "52.7%", "52.7 %"
-_VERB = r"(?:registered|reading\s+was|came\s+in\s+at|at|was)"
+# Verbs cover both past tense ("registered") and present participle
+# ("registering" -- common in component sentences: "...registering 54.1 percent").
+_VERB = r"(?:register(?:ed|ing)|reading\s+was|came\s+in\s+at|at|was)"
 
 _ISM_MFG_HEADLINE = [
     # "The April Manufacturing PMI registered 52.7 percent" or "...at 52.7%"
@@ -380,109 +391,190 @@ def _debug_dump_text(text, label):
               file=sys.stderr)
 
 
-def _ism_target_months():
-    """Return list of (month_lc, year) tuples to try, newest first.
+def _tavily_post(url, body, timeout=30):
+    """POST JSON to Tavily; return parsed JSON response. Raises on error."""
+    api_key = os.environ.get("TAVILY_API_KEY")
+    if not api_key:
+        raise RuntimeError("TAVILY_API_KEY env var is not set")
+    data = json.dumps(body).encode("utf-8")
+    req = request.Request(url, data=data, headers={
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+    })
+    with request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read().decode("utf-8"))
 
-    ISM Mfg publishes 1st business day of next month. ISM Services 3rd. So at
-    any point in the month, the latest *available* reading is the prior month
-    -- but on the very 1st of the month, the prior month's data may or may not
-    have been published yet. We try the 1-month-ago first, then 2-months-ago.
+
+def tavily_search(query, include_domains=None, max_results=3):
+    body = {"query": query, "max_results": max_results}
+    if include_domains:
+        body["include_domains"] = include_domains
+    payload = _tavily_post(TAVILY_SEARCH_URL, body)
+    return payload.get("results", [])
+
+
+def tavily_extract(url):
+    payload = _tavily_post(TAVILY_EXTRACT_URL, {"urls": [url]})
+    results = payload.get("results", [])
+    if not results:
+        failed = payload.get("failed_results", [])
+        err = (failed[0].get("error") if failed else "no results")
+        raise RuntimeError(f"Tavily extract failed for {url}: {err}")
+    return results[0].get("raw_content", "")
+
+
+def _csv_latest_month(path):
+    """Return the latest 'YYYY-MM' present in a canonical CSV, or None."""
+    if not path.exists():
+        return None
+    latest = None
+    with path.open() as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            m = _normalize_month((row.get("month") or "").strip())
+            if m and (latest is None or m > latest):
+                latest = m
+    return latest
+
+
+def _ism_target_dates():
+    """Yield (Month_full, year, target_month_label) tuples newest-first.
+
+    Newest-first so the scraper hits the latest available release first and
+    bails after success. Three months back covers any plausible release-delay
+    edge cases (e.g. running on the 1st of the month before that month's
+    release lands).
     """
     today = dt.date.today()
-    candidates = []
-    cur = today.replace(day=1)
-    for offset in range(0, 3):
-        d = cur - dt.timedelta(days=1) if offset == 0 else \
-            (cur - dt.timedelta(days=offset * 30)).replace(day=1) - dt.timedelta(days=1)
-        # Snap to first of the prior month for clean offset arithmetic
-        if offset == 0:
-            ref = cur - dt.timedelta(days=1)  # last day of prior month
-        else:
-            ref = (cur.replace(day=1) - dt.timedelta(days=1)).replace(day=1)
-            for _ in range(offset - 1):
-                ref = (ref.replace(day=1) - dt.timedelta(days=1)).replace(day=1)
-        candidates.append((MONTH_NAMES_BY_NUM[ref.month].lower(), ref.year))
-    # Dedupe while preserving order
-    seen, out = set(), []
-    for c in candidates:
-        if c not in seen:
-            seen.add(c); out.append(c)
-    return out
+    ref = today.replace(day=1) - dt.timedelta(days=1)  # last day of prior month
+    for _ in range(3):
+        month = MONTH_NAMES_BY_NUM[ref.month]
+        year = ref.year
+        target = f"{year:04d}-{ref.month:02d}"
+        yield (month, year, target)
+        ref = ref.replace(day=1) - dt.timedelta(days=1)
+
+
+def _scrape_ism_via_tavily(sector, csv_path, headline_patterns,
+                            sub_specs, primary_col):
+    """Generic ISM scraper.
+
+    sector        -- "Manufacturing" or "Services" (drives Tavily query)
+    csv_path      -- the historical CSV (used to skip already-scraped months)
+    headline_patterns -- _ISM_MFG_HEADLINE or _ISM_SVC_HEADLINE
+    sub_specs     -- list of (csv_column, [label_alts...]) tuples
+    primary_col   -- name of the headline column ("total" or "composite")
+
+    Returns list of one row dict, or [] if no fresher data found.
+    """
+    latest_in_csv = _csv_latest_month(csv_path)
+    sector_lc = sector.lower()
+
+    for month_full, year, target in _ism_target_dates():
+        if latest_in_csv and target <= latest_in_csv:
+            print(f"  ISM {sector} {month_full} {year}: already in CSV "
+                  f"(latest={latest_in_csv}); skipping Tavily call",
+                  file=sys.stderr)
+            return []
+
+        # Tavily search for the official PR Newswire release for this month
+        query = f"ISM {sector} PMI {month_full} {year} prnewswire"
+        try:
+            results = tavily_search(query,
+                                    include_domains=["prnewswire.com"],
+                                    max_results=3)
+        except Exception as e:
+            print(f"  ISM {sector} Tavily search failed for "
+                  f"{month_full} {year}: {e}", file=sys.stderr)
+            continue
+        if not results:
+            print(f"  ISM {sector} Tavily search returned no results for "
+                  f"{month_full} {year}", file=sys.stderr)
+            continue
+
+        # Pick the first result whose URL contains the sector keyword, the
+        # lowercase month name, AND the year. Don't fall back to any other URL
+        # -- the wrong sector's release would parse as garbage and pollute the
+        # CSV. If no exact match, this month's release just isn't out yet;
+        # iterate to the prior month.
+        chosen_url = None
+        for r in results:
+            u = r.get("url", "")
+            if sector_lc in u.lower() and month_full.lower() in u.lower() \
+                    and str(year) in u:
+                chosen_url = u
+                break
+        if not chosen_url:
+            print(f"  ISM {sector} {month_full} {year}: no matching PR Newswire "
+                  f"URL in search results; release not yet published",
+                  file=sys.stderr)
+            continue
+
+        # Tavily extract the full release content
+        try:
+            raw = tavily_extract(chosen_url)
+        except Exception as e:
+            print(f"  ISM {sector} Tavily extract failed for {chosen_url}: {e}",
+                  file=sys.stderr)
+            continue
+        text = _strip_html(raw)
+
+        headline = _find_headline(text, headline_patterns, sector)
+        if not headline:
+            print(f"  ISM {sector} {month_full} {year}: headline pattern not "
+                  f"matched in extracted content; skipping",
+                  file=sys.stderr)
+            _debug_dump_text(text, f"ISM {sector} {month_full} {year}")
+            continue
+        value, month_name = headline
+        # Year is from our search context (we asked for this month/year).
+        # Use the parsed month_name to confirm the press release is about it.
+        if month_name.lower() != month_full.lower():
+            print(f"  ISM {sector} {month_full} {year}: parsed month "
+                  f"{month_name!r} doesn't match requested {month_full!r}; "
+                  f"trying next iteration", file=sys.stderr)
+            continue
+
+        m_label = f"{year:04d}-{MONTHS_FULL[month_name]:02d}"
+        row = {"month": m_label, primary_col: value}
+        for col, label_alts in sub_specs:
+            v = _find_subindex(text, label_alts)
+            if v is not None:
+                row[col] = v
+        print(f"  ISM {sector} scraped from {chosen_url}: {row}",
+              file=sys.stderr)
+        return [row]
+
+    return []
 
 
 def scrape_ism_manufacturing():
-    """Try the most recent month URLs; return list of {month, total, employment, ...}."""
-    for month_lc, year_hint in _ism_target_months():
-        url = ISM_MFG_BASE + month_lc + "/"
-        try:
-            html = _http_get_text(url)
-        except Exception as e:
-            print(f"  ISM Mfg fetch failed at {url}: {e}", file=sys.stderr)
-            continue
-        text = _strip_html(html)
-        headline = _find_headline(text, _ISM_MFG_HEADLINE, "Manufacturing")
-        if not headline:
-            print(f"  ISM Mfg {month_lc}: headline pattern not matched; skipping", file=sys.stderr)
-            _debug_dump_text(text, f"ISM Mfg {month_lc}")
-            continue
-        pmi, month_name = headline
-        # Year disambiguation: pages reuse /april/ each year; pull the year out
-        # of the page if a 4-digit year appears near the month name.
-        year = year_hint
-        ym = re.search(rf"\b{month_name}\s+(20\d\d)", text, re.IGNORECASE)
-        if ym:
-            year = int(ym.group(1))
-        month_num = MONTHS_FULL[month_name]
-        m_label = f"{year:04d}-{month_num:02d}"
-
-        emp = _find_subindex(text, ["Employment"])
-        no  = _find_subindex(text, ["New Orders"])
-        bo  = _find_subindex(text, ["Backlog of Orders", "Backlog"])
-        pp  = _find_subindex(text, ["Prices"])
-
-        row = {"month": m_label, "total": pmi}
-        if emp is not None: row["employment"]   = emp
-        if no  is not None: row["new_orders"]   = no
-        if bo  is not None: row["backlog"]      = bo
-        if pp  is not None: row["prices_paid"]  = pp
-        print(f"  ISM Mfg scraped from {url}: {row}", file=sys.stderr)
-        return [row]
-    return []
+    return _scrape_ism_via_tavily(
+        sector="Manufacturing",
+        csv_path=ISM_MFG_CSV,
+        headline_patterns=_ISM_MFG_HEADLINE,
+        primary_col="total",
+        sub_specs=[
+            ("employment",   ["Employment"]),
+            ("new_orders",   ["New Orders"]),
+            ("backlog",      ["Backlog of Orders", "Backlog"]),
+            ("prices_paid",  ["Prices"]),
+        ],
+    )
 
 
 def scrape_ism_services():
-    for month_lc, year_hint in _ism_target_months():
-        url = ISM_SVC_BASE + month_lc + "/"
-        try:
-            html = _http_get_text(url)
-        except Exception as e:
-            print(f"  ISM Svc fetch failed at {url}: {e}", file=sys.stderr)
-            continue
-        text = _strip_html(html)
-        headline = _find_headline(text, _ISM_SVC_HEADLINE, "Services")
-        if not headline:
-            print(f"  ISM Svc {month_lc}: headline pattern not matched; skipping", file=sys.stderr)
-            _debug_dump_text(text, f"ISM Svc {month_lc}")
-            continue
-        composite, month_name = headline
-        year = year_hint
-        ym = re.search(rf"\b{month_name}\s+(20\d\d)", text, re.IGNORECASE)
-        if ym:
-            year = int(ym.group(1))
-        month_num = MONTHS_FULL[month_name]
-        m_label = f"{year:04d}-{month_num:02d}"
-
-        emp = _find_subindex(text, ["Employment"])
-        no  = _find_subindex(text, ["New Orders"])
-        pp  = _find_subindex(text, ["Prices"])
-
-        row = {"month": m_label, "composite": composite}
-        if emp is not None: row["employment"] = emp
-        if no  is not None: row["new_orders"] = no
-        if pp  is not None: row["prices"]     = pp
-        print(f"  ISM Svc scraped from {url}: {row}", file=sys.stderr)
-        return [row]
-    return []
+    return _scrape_ism_via_tavily(
+        sector="Services",
+        csv_path=ISM_SVC_CSV,
+        headline_patterns=_ISM_SVC_HEADLINE,
+        primary_col="composite",
+        sub_specs=[
+            ("employment",   ["Employment"]),
+            ("new_orders",   ["New Orders"]),
+            ("prices",       ["Prices"]),
+        ],
+    )
 
 
 # ============================================================ Cass scraper
