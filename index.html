@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Economics Guru &mdash; Live US Economic Data</title>
-<meta name="description" content="Live US economic data dashboards: inflation (CPI, PPI, PCE), labor market, housing, GDP, consumer (retail sales, sentiment), rates &amp; markets (Treasury yields, Fed Funds, credit spreads), and more. Updated daily from BLS, FRED, BEA, and Census.">
+<meta name="description" content="Live US economic data dashboards: inflation (CPI, PPI, PCE), labor market, housing, GDP, consumer (retail sales, sentiment), rates &amp; markets (Treasury yields, Fed Funds, credit spreads, equities, commodities), industry (industrial production, capacity utilization, factory orders), and more. Updated daily from BLS, FRED, BEA, Census, EIA, and ISM.">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/assets/styles.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -50,6 +50,7 @@
       <a href="/gdp/">GDP</a>
       <a href="/consumer/">Consumer</a>
       <a href="/rates/">Rates</a>
+      <a href="/industry/">Industry</a>
       <a href="/about/">About</a>
     </nav>
   </div>
@@ -58,7 +59,7 @@
 <main>
   <section class="hero">
     <h1 style="font-family:var(--font-display); color:var(--navy); font-weight:800; margin:0 0 10px;">Live US economic data, updated daily.</h1>
-    <p>Charts, KPIs, and downloadable series for the indicators that matter most &mdash; sourced directly from BLS, FRED, BEA, the Census Bureau, and ICE BofA. Built as a companion to <a href="https://www.alfiemeek.com" target="_blank" rel="noopener">Alfie Meek&rsquo;s Weekly Economic Update</a>.</p>
+    <p>Charts, KPIs, and downloadable series for the indicators that matter most &mdash; sourced directly from BLS, FRED, BEA, the Census Bureau, EIA, and ICE BofA. Built as a companion to <a href="https://www.alfiemeek.com" target="_blank" rel="noopener">Alfie Meek&rsquo;s Weekly Economic Update</a>.</p>
   </section>
 
   <div class="topic-grid">
@@ -92,11 +93,11 @@
       <h3>Rates &amp; Markets</h3>
       <p>Treasury yield curve, 10-year yield, 2s10s recession indicator, Fed Funds vs. 10-year, real yields &amp; breakeven inflation, IG vs. HY credit spreads. Equities, commodities, and FX/crypto coming next.</p>
     </a>
-    <div class="topic-card coming">
-      <div class="badge">Coming soon</div>
+    <a class="topic-card" href="/industry/">
+      <div class="badge">Available</div>
       <h3>Industry</h3>
-      <p>Industrial production, capacity utilization, ISM Manufacturing &amp; Services PMIs.</p>
-    </div>
+      <p>Industrial production, capacity utilization, factory orders, capital-goods shipments, electricity generation. ISM Manufacturing &amp; Services PMIs and Cass Freight coming next.</p>
+    </a>
     <div class="topic-card coming">
       <div class="badge">Coming soon</div>
       <h3>Government</h3>
@@ -107,7 +108,7 @@
 
 <footer class="site-footer">
   <div class="wrap">
-    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, BEA, Census, UMich, Conference Board, and ICE BofA. <a href="/about/">Methodology</a></div>
+    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, BEA, Census, EIA, UMich, Conference Board, and ICE BofA. <a href="/about/">Methodology</a></div>
     <div>Data refreshes nightly.</div>
   </div>
 </footer>
