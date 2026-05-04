@@ -78,7 +78,19 @@ def _http_get_text(url, retries=3, timeout=30):
             })
             with request.urlopen(req, timeout=timeout) as r:
                 return r.read().decode("utf-8", errors="replace")
-        except (error.HTTPError, error.URLError, TimeoutError) as e:
+        except error.HTTPError as e:
+            # Don't retry permanent errors (404 = month URL doesn't exist yet,
+            # 410 = gone, 403 = forbidden) -- bail immediately to save the cron
+            # budget. Transient 5xx and network failures keep retrying.
+            if e.code in (403, 404, 410):
+                raise RuntimeError(
+                    f"HTTP fetch failed for {url}: HTTP {e.code} (permanent, no retry)") from e
+            last_err = e
+            wait = 2 ** attempt
+            print(f"  HTTP attempt {attempt+1}/{retries} on {url} failed: {e}; "
+                  f"retrying in {wait}s", file=sys.stderr)
+            time.sleep(wait)
+        except (error.URLError, TimeoutError) as e:
             last_err = e
             wait = 2 ** attempt
             print(f"  HTTP attempt {attempt+1}/{retries} on {url} failed: {e}; "
@@ -93,7 +105,12 @@ def _strip_html(html):
     s = re.sub(r"<[^>]+>", " ", s)
     s = (s.replace("&nbsp;", " ").replace("&amp;", "&")
            .replace("&#x27;", "'").replace("&#39;", "'").replace("&apos;", "'")
-           .replace("&ndash;", "-").replace("&mdash;", "-").replace("&reg;", ""))
+           .replace("&ndash;", "-").replace("&mdash;", "-")
+           .replace("&reg;", "").replace("&trade;", ""))
+    # Strip the actual Unicode ® and ™ characters too -- ISM and Cass press
+    # releases use them inline ("Manufacturing PMI® registered 52.7 percent")
+    # so they sit between words and break \s-anchored regexes if not stripped.
+    s = s.replace("®", "").replace("™", "")
     s = re.sub(r"\s+", " ", s)
     return s
 
@@ -230,16 +247,30 @@ _MONTH_NAME = r"(January|February|March|April|May|June|July|August|September|Oct
 
 # Headline patterns -- whichever matches first wins. We get both the index value
 # AND the month name out of the same regex so we know which calendar month the
-# row represents.
+# row represents. Patterns are listed strictest-first, fallbacks broaden the
+# match to handle the ISM website's ongoing wording tweaks.
+#
+# Note ® / ™ chars are stripped by _strip_html, so patterns can use \s+ across
+# the "PMI [registered]" boundary even when the page renders "PMI® registered".
 _ISM_MFG_HEADLINE = [
-    re.compile(rf"Manufacturing\s+PMI\s+registered\s+{_NUM}\s+percent\s+in\s+{_MONTH_NAME}", re.IGNORECASE),
+    # "The April Manufacturing PMI registered 52.7 percent" / "...was 52.7 percent"
+    re.compile(rf"{_MONTH_NAME}\s+Manufacturing\s+PMI\s+(?:registered|reading\s+was|came\s+in\s+at|was)\s+{_NUM}\s+percent", re.IGNORECASE),
+    # "Manufacturing PMI registered 52.7 percent in April"
+    re.compile(rf"Manufacturing\s+PMI\s+(?:registered|was|reading\s+was|came\s+in\s+at)\s+{_NUM}\s+percent\s+in\s+{_MONTH_NAME}", re.IGNORECASE),
+    # Loose: "April ... Manufacturing PMI ... 52.7 percent" (any glue)
+    re.compile(rf"{_MONTH_NAME}[^.]{{0,80}}?Manufacturing\s+PMI[^.]{{0,80}}?{_NUM}\s+percent", re.IGNORECASE),
+    # Loose: "Manufacturing PMI ... 52.7 percent ... in April"
+    re.compile(rf"Manufacturing\s+PMI[^.]{{0,80}}?{_NUM}\s+percent[^.]{{0,80}}?in\s+{_MONTH_NAME}", re.IGNORECASE),
+    # Last-ditch: "PMI registered 52.7 percent in April" (no Manufacturing prefix)
     re.compile(rf"PMI\s+registered\s+{_NUM}\s+percent\s+in\s+{_MONTH_NAME}", re.IGNORECASE),
-    re.compile(rf"{_MONTH_NAME}\s+Manufacturing\s+PMI[^.]{{0,200}}?{_NUM}\s+percent", re.IGNORECASE),
 ]
 _ISM_SVC_HEADLINE = [
-    re.compile(rf"Services\s+PMI\s+registered\s+{_NUM}\s+percent\s+in\s+{_MONTH_NAME}", re.IGNORECASE),
-    re.compile(rf"Services\s+PMI[^.]{{0,80}}?{_NUM}\s+percent\s+in\s+{_MONTH_NAME}", re.IGNORECASE),
-    re.compile(rf"{_MONTH_NAME}\s+Services\s+PMI[^.]{{0,200}}?{_NUM}\s+percent", re.IGNORECASE),
+    re.compile(rf"{_MONTH_NAME}\s+Services\s+PMI\s+(?:registered|reading\s+was|came\s+in\s+at|was)\s+{_NUM}\s+percent", re.IGNORECASE),
+    re.compile(rf"Services\s+PMI\s+(?:registered|was|reading\s+was|came\s+in\s+at)\s+{_NUM}\s+percent\s+in\s+{_MONTH_NAME}", re.IGNORECASE),
+    re.compile(rf"{_MONTH_NAME}[^.]{{0,80}}?Services\s+PMI[^.]{{0,80}}?{_NUM}\s+percent", re.IGNORECASE),
+    re.compile(rf"Services\s+PMI[^.]{{0,80}}?{_NUM}\s+percent[^.]{{0,80}}?in\s+{_MONTH_NAME}", re.IGNORECASE),
+    # Some ISM Services releases use "Services Index" or "ISM Services Index"
+    re.compile(rf"{_MONTH_NAME}[^.]{{0,80}}?Services\s+Index[^.]{{0,80}}?{_NUM}\s+percent", re.IGNORECASE),
 ]
 
 def _find_headline(text, patterns):
@@ -256,14 +287,27 @@ def _find_headline(text, patterns):
 
 
 def _find_subindex(text, label_alts):
-    """Find the first occurrence of '{label} Index registered N.N percent' for any label alt."""
+    """Find the first occurrence of '{label} Index registered N.N percent' for any label alt.
+
+    The press releases vary -- sometimes 'Index registered', 'Index was', 'Index
+    came in at', 'Index reading was', etc. We allow any glue text within
+    bounded distance.
+    """
     for label in label_alts:
-        # Allow any wording between Index and the percentage (some releases say
-        # "registered", others "indicated", etc.), capped to keep regex bounded.
-        pat = re.compile(
-            rf"{re.escape(label)}\s+Index[^.]{{0,200}}?{_NUM}\s+percent",
+        esc = re.escape(label)
+        # Strict: "Employment Index registered 46.4 percent"
+        strict = re.compile(
+            esc + r"\s+Index\s+(?:registered|was|reading\s+was|came\s+in\s+at)\s+" +
+            _NUM + r"\s+percent",
             re.IGNORECASE)
-        m = pat.search(text)
+        m = strict.search(text)
+        if m:
+            return float(m.group(1))
+        # Loose: "Employment Index ... 46.4 percent" (capped to 150 chars of glue)
+        loose = re.compile(
+            esc + r"\s+Index[^.]{0,150}?" + _NUM + r"\s+percent",
+            re.IGNORECASE)
+        m = loose.search(text)
         if m:
             return float(m.group(1))
     return None
