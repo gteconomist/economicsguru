@@ -120,10 +120,13 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_industry_manufacturing.py
 
-      # No env vars -- this step reads ISM and Cass CSVs from data/historical/.
-      # The CSVs are committed to the repo and updated manually each month from
-      # Macrobond exports (same pattern as the precious-metals Kitco baseline).
-      - name: Refresh Industry / Surveys data from local CSV baselines
+      # ISM data (no public API, JS-rendered website) is fetched via Tavily
+      # search + extract on the official PR Newswire wire distribution. Cass
+      # data is fetched directly from cassinfo.com/.../{month}-{year}. Both
+      # idempotently append to the historical CSV baselines.
+      - name: Refresh Industry / Surveys data (ISM via Tavily, Cass direct)
+        env:
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         continue-on-error: true
         run: python scripts/fetch_industry_surveys.py
 
