@@ -262,7 +262,10 @@ def main():
         ("MCUMFN",    "Capacity Utilization: Manufacturing"),
         ("AMTMNO",    "New Orders: Total Manufacturing"),
         ("AMXTNO",    "New Orders: Mfg ex Transportation (Core)"),
+        ("DGORDER",   "New Orders: Durable Goods (Total)"),
         ("ADXTNO",    "New Orders: Durable Goods ex Transportation"),
+        ("AMNMNO",    "New Orders: Nondurable Goods"),
+        ("NEWORDER",  "New Orders: Nondefense Capital Goods Ex Aircraft (Core Capex)"),
         ("ATCGVS",    "Shipments: Total Capital Goods"),
         ("ANDEVS",    "Shipments: Nondefense Capital Goods"),
         ("ANXAVS",    "Shipments: Nondef Cap Goods ex Aircraft"),
@@ -309,10 +312,13 @@ def main():
     tcu    = fred_data.get("TCU",    [])
     mcumfn = fred_data.get("MCUMFN", [])
 
-    # ----- Factory Orders M-M% -----
-    fo_total = pct_change_mom(fred_data.get("AMTMNO", []))
-    fo_core  = pct_change_mom(fred_data.get("AMXTNO", []))
-    fo_dur   = pct_change_mom(fred_data.get("ADXTNO", []))
+    # ----- Factory Orders M-M% (six series, in display order) -----
+    fo_total       = pct_change_mom(fred_data.get("AMTMNO",   []))
+    fo_core        = pct_change_mom(fred_data.get("AMXTNO",   []))
+    fo_durable     = pct_change_mom(fred_data.get("DGORDER",  []))
+    fo_core_dur    = pct_change_mom(fred_data.get("ADXTNO",   []))
+    fo_nondurable  = pct_change_mom(fred_data.get("AMNMNO",   []))
+    fo_core_capex  = pct_change_mom(fred_data.get("NEWORDER", []))
 
     # ----- Capital Goods Shipments M-M% -----
     sh_tot   = pct_change_mom(fred_data.get("ATCGVS", []))
@@ -336,8 +342,9 @@ def main():
     }
 
     latest_candidates = [s[-1][0] for s in (indpro, ipman, tcu, mcumfn,
-                                            fred_data.get("AMTMNO", []),
-                                            fred_data.get("ANXAVS", [])) if s]
+                                            fred_data.get("AMTMNO",   []),
+                                            fred_data.get("NEWORDER", []),
+                                            fred_data.get("ANXAVS",   [])) if s]
     latest_label = max(latest_candidates) if latest_candidates else None
 
     out = {
@@ -360,11 +367,14 @@ def main():
             "mfg":   to_label_pairs(mcumfn, decimals=2),
         },
 
-        # Factory Orders M-M%
+        # Factory Orders M-M% (six series, in display order)
         "factory_orders": {
-            "total_mom":        to_label_pairs(fo_total, decimals=2),
-            "core_mom":         to_label_pairs(fo_core,  decimals=2),
-            "core_durable_mom": to_label_pairs(fo_dur,   decimals=2),
+            "total_mom":        to_label_pairs(fo_total,       decimals=2),
+            "core_mom":         to_label_pairs(fo_core,        decimals=2),
+            "durable_mom":      to_label_pairs(fo_durable,     decimals=2),
+            "core_durable_mom": to_label_pairs(fo_core_dur,    decimals=2),
+            "nondurable_mom":   to_label_pairs(fo_nondurable,  decimals=2),
+            "core_capex_mom":   to_label_pairs(fo_core_capex,  decimals=2),
         },
 
         # Capital Goods Shipments M-M%
