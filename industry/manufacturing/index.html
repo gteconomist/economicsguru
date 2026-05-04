@@ -90,8 +90,8 @@
   <div class="controls">
     <span class="label-text">Time range:</span>
     <div class="range-toggle">
-      <button data-range="6m">6 mo</button>
-      <button data-range="12m" class="active">12 mo</button>
+      <button data-range="6m" class="active">6 mo</button>
+      <button data-range="12m">12 mo</button>
       <button data-range="5y">5 yr</button>
       <button data-range="10y">10 yr</button>
       <button data-range="20y">20 yr</button>
@@ -136,10 +136,10 @@
 
     <div class="chart-card">
       <div class="title">U.S. Factory Orders &mdash; Monthly % Change</div>
-      <div class="subtitle">(Manufacturers&rsquo; New Orders; Seasonally Adjusted; Total / Excluding Transportation = &ldquo;Core&rdquo; / Core Durable Goods)</div>
+      <div class="subtitle">(Manufacturers&rsquo; New Orders; Seasonally Adjusted; Total Manufacturing / Mfg Ex. Trans. = &ldquo;Core&rdquo; / Durable Goods / Core Durable / Nondurable / Core Capex Orders)</div>
       <div class="chart-wrap"><canvas id="chartIndMfgFactoryOrders"></canvas></div>
       <div class="source">
-        <span>Source: Census M3 via FRED &mdash; AMTMNO (Total), AMXTNO (Mfg ex Transportation), ADXTNO (Durable Goods ex Transportation).</span>
+        <span>Source: Census M3 via FRED &mdash; AMTMNO (Total), AMXTNO (Mfg ex Trans), DGORDER (Durable), ADXTNO (Durable ex Trans), AMNMNO (Nondurable; orders = shipments by Census convention), NEWORDER (Core Capex = Nondef. Capital Goods ex Aircraft).</span>
         <a href="#" class="csv-link" data-chart="chartIndMfgFactoryOrders">Download CSV</a>
       </div>
     </div>
