@@ -107,7 +107,7 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_commodities.py
 
-      - name: Refresh Equities data from Stooq + FRED
+      - name: Refresh Equities data from Yahoo Finance + FRED
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         continue-on-error: true
@@ -138,7 +138,7 @@ jobs:
           python -c "import json; d=json.load(open('data/consumer.json')); print('Consumer latest:', d['latest_label']); print('Retail MoM kpi:', d['kpis']['retail_mom']); print('PI MoM kpi:', d['kpis']['pi_mom']); print('UMich kpi:', d['kpis']['umich_sentiment']); print('CB CCI kpi:', d['kpis']['cb_confidence']); print('UMich components loaded:', d.get('umich_components_loaded')); print('CB CSV loaded:', d.get('cb_loaded'))" 2>/dev/null || echo "skip consumer summary"
           python -c "import json; d=json.load(open('data/treasuries.json')); print('Treasuries latest:', d['latest_label']); print('10Y kpi:', d['kpis']['y10y']); print('2s10s spread kpi:', d['kpis']['spread']); print('Fed Funds kpi:', d['kpis']['ffr']); print('Curve maturities:', [p['maturity'] for p in d['yield_curve_today']])" 2>/dev/null || echo "skip treasuries summary"
           python -c "import json; d=json.load(open('data/commodities.json')); print('Commodities latest:', d['latest_label']); print('Gold kpi:', d['kpis']['gold']); print('Silver kpi:', d['kpis']['silver']); print('Platinum kpi:', d['kpis']['platinum']); print('G/S ratio kpi:', d['kpis']['gs_ratio']); print('WTI kpi:', d['kpis']['wti']); print('CSV baseline loaded:', d.get('metals_csv_loaded')); print('MetalPriceAPI ok:', d.get('metalprice_succeeded'))" 2>/dev/null || echo "skip commodities summary"
-          python -c "import json; d=json.load(open('data/equities.json')); print('Equities latest:', d['latest_label']); print('SPX kpi:', d['kpis']['spx']); print('Nasdaq kpi:', d['kpis']['nasdaq']); print('Dow kpi:', d['kpis']['dow']); print('Russell kpi:', d['kpis']['russell']); print('VIX kpi:', d['kpis']['vix']); print('SPX drawdown kpi:', d['kpis']['spx_drawdown']); pe=d.get('wilshire_pe', []); print('Wilshire/PE quarters:', len(pe)); print('Wilshire/PE latest:', pe[-1] if pe else None); print('Profits after tax (IVA+CCAdj) latest:', d.get('profits_after_tax', [None])[-1]); print('Stooq ok:', d.get('stooq_succeeded')); print('FRED ok:', d.get('fred_succeeded'))" 2>/dev/null || echo "skip equities summary"
+          python -c "import json; d=json.load(open('data/equities.json')); print('Equities latest:', d['latest_label']); print('SPX kpi:', d['kpis']['spx']); print('Nasdaq kpi:', d['kpis']['nasdaq']); print('Dow kpi:', d['kpis']['dow']); print('Russell kpi:', d['kpis']['russell']); print('VIX kpi:', d['kpis']['vix']); print('SPX drawdown kpi:', d['kpis']['spx_drawdown']); pe=d.get('wilshire_pe', []); print('Wilshire/PE quarters:', len(pe)); print('Wilshire/PE latest:', pe[-1] if pe else None); print('Profits after tax (IVA+CCAdj) latest:', d.get('profits_after_tax', [None])[-1]); print('Yahoo ok:', d.get('yahoo_succeeded')); print('FRED ok:', d.get('fred_succeeded'))" 2>/dev/null || echo "skip equities summary"
           exit 0
 
       # Auto-commit fresh data files + CSV baselines if their content materially
