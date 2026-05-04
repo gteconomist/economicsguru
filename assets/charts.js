@@ -2958,6 +2958,9 @@ function applyRange(range) {
   } else if (CURRENT_PAGE === 'industry-manufacturing') {
     const view = rangedViewIndustryManufacturing(RAW_DATA, range);
     renderAllIndustryManufacturing(view); registerAllCsvsIndustryManufacturing(view);
+  } else if (CURRENT_PAGE === 'industry-surveys') {
+    const view = rangedViewIndustrySurveys(RAW_DATA, range);
+    renderAllIndustrySurveys(view); registerAllCsvsIndustrySurveys(view);
   } else {
     const view = rangedView(RAW_DATA, range);
     renderAll(view); registerAllCsvs(view);
@@ -4225,6 +4228,301 @@ function renderKpisIndustryManufacturing(data) {
 }
 
 // =========================================================
+// Industry &mdash; Surveys (ISM Manufacturing, ISM Services, Cass Freight)
+// =========================================================
+//
+// Six charts:
+//   chartIndSurveysIsmMfg            — ISM Manufacturing PMI long-run line
+//   chartIndSurveysIsmMfgComponents  — Mfg components: distance-from-50 bars
+//   chartIndSurveysIsmSvc            — ISM Services Composite + sub-indices
+//   chartIndSurveysPmiComposite      — Mfg PMI vs Services Composite overlay
+//   chartIndSurveysCassLevel         — Cass freight index level (1990-)
+//   chartIndSurveysCassYoy           — Cass freight Y-Y% bar chart
+
+function rangedViewIndustrySurveys(data, range) {
+  const n = RANGE_MONTHS[range] || Infinity;
+  const m = data.ism_manufacturing || {};
+  const s = data.ism_services      || {};
+  const c = data.cass_freight      || {};
+  return {
+    ism_manufacturing: {
+      total:       tail(m.total       || [], n),
+      employment:  tail(m.employment  || [], n),
+      new_orders:  tail(m.new_orders  || [], n),
+      backlog:     tail(m.backlog     || [], n),
+      prices_paid: tail(m.prices_paid || [], n),
+    },
+    ism_services: {
+      composite:   tail(s.composite   || [], n),
+      employment:  tail(s.employment  || [], n),
+      new_orders:  tail(s.new_orders  || [], n),
+      prices:      tail(s.prices      || [], n),
+    },
+    cass_freight: {
+      index:       tail(c.index       || [], n),
+      yoy_pct:     tail(c.yoy_pct     || [], n),
+    },
+    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+  };
+}
+
+function fmtIdxIndSurv(v)        { return v == null ? 'n/a' : v.toFixed(1); }
+function fmtIdxLevelIndSurv(v)   { return v == null ? 'n/a' : v.toFixed(3); }
+function fmtPctSignedIndSurv(v)  { return v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%'; }
+function fmtDistFromFiftyIndSurv(v) { return v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(1); }
+
+// Chart 1: ISM Manufacturing — long-run line + 50 reference
+function buildIndSurveysIsmMfg(view) {
+  const m = view.ism_manufacturing || {};
+  const series = m.total || [];
+  const labels = series.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'ISM Manufacturing PMI', data: series.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.4, pointRadius: pr, fill: false },
+        { label: '50 (Expansion / Contraction)', data: labels.map(()=>50),
+          borderColor: BRAND.ink, borderWidth: 1.4, borderDash: [], pointRadius: 0, fill: false, order: 99 },
+      ],
+    },
+    options: baseOptions(fmtIdxIndSurv),
+  };
+}
+
+// Chart 2: ISM Manufacturing components — bars represent (value - 50)
+function buildIndSurveysIsmMfgComponents(view) {
+  const m = view.ism_manufacturing || {};
+  // Use Total's labels as the canonical x-axis (it's the densest series)
+  const totalSeries = m.total || [];
+  const labels = totalSeries.map(r => shortLabel(r[0]));
+  const dateLabels = totalSeries.map(r => r[0]);
+  const minus50 = (pairs) => {
+    const map = new Map(pairs.map(r => [r[0], r[1]]));
+    return dateLabels.map(d => map.has(d) ? map.get(d) - 50 : null);
+  };
+  return {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'ISM: Total Index',          data: minus50(totalSeries),
+          backgroundColor: BRAND.navy,    borderColor: BRAND.navy,    borderWidth: 1 },
+        { label: 'ISM: Employment Index',     data: minus50(m.employment  || []),
+          backgroundColor: BRAND.mustard, borderColor: BRAND.mustard, borderWidth: 1 },
+        { label: 'ISM: New Orders Index',     data: minus50(m.new_orders  || []),
+          backgroundColor: BRAND.silver,  borderColor: BRAND.silver,  borderWidth: 1 },
+        { label: 'ISM: Backlog of Orders Index', data: minus50(m.backlog  || []),
+          backgroundColor: BRAND.teal,    borderColor: BRAND.teal,    borderWidth: 1 },
+        { label: 'ISM: Commodity Prices Paid',   data: minus50(m.prices_paid || []),
+          backgroundColor: BRAND.khaki,   borderColor: BRAND.khaki,   borderWidth: 1 },
+      ],
+    },
+    options: baseOptions(fmtDistFromFiftyIndSurv),
+  };
+}
+
+// Chart 3: ISM Services Composite + sub-indices
+function buildIndSurveysIsmSvc(view) {
+  const s = view.ism_services || {};
+  const series = s.composite || [];
+  const labels = series.map(r => shortLabel(r[0]));
+  const dateLabels = series.map(r => r[0]);
+  const align = (pairs) => {
+    const map = new Map(pairs.map(r => [r[0], r[1]]));
+    return dateLabels.map(d => map.has(d) ? map.get(d) : null);
+  };
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Composite Index', data: series.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.6, pointRadius: pr, fill: false },
+        { label: 'Services Employment Index', data: align(s.employment || []),
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.2, borderWidth: 2.0, pointRadius: pr, fill: false, borderDash: [5, 5] },
+        { label: 'New Orders Index', data: align(s.new_orders || []),
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.2, borderWidth: 2.0, pointRadius: pr, fill: false, borderDash: [5, 5] },
+        { label: 'Prices Index', data: align(s.prices || []),
+          borderColor: BRAND.khaki, backgroundColor: BRAND.khaki,
+          tension: 0.2, borderWidth: 2.0, pointRadius: pr, fill: false, borderDash: [5, 5] },
+        { label: '50 (Expansion / Contraction)', data: labels.map(()=>50),
+          borderColor: BRAND.ink, borderWidth: 1.4, pointRadius: 0, fill: false, order: 99 },
+      ],
+    },
+    options: baseOptions(fmtIdxIndSurv),
+  };
+}
+
+// Chart 4: PMI Composite — Manufacturing PMI vs Services Composite overlay
+function buildIndSurveysPmiComposite(view) {
+  const m = view.ism_manufacturing || {};
+  const s = view.ism_services      || {};
+  // Use the union of dates so both lines plot fully when their histories differ
+  const dateSet = new Set();
+  (m.total || []).forEach(r => dateSet.add(r[0]));
+  (s.composite || []).forEach(r => dateSet.add(r[0]));
+  const dates  = [...dateSet].sort();
+  const labels = dates.map(shortLabel);
+  const mfgMap = new Map((m.total || []).map(r => [r[0], r[1]]));
+  const svcMap = new Map((s.composite || []).map(r => [r[0], r[1]]));
+  const mfgAligned = dates.map(d => mfgMap.has(d) ? mfgMap.get(d) : null);
+  const svcAligned = dates.map(d => svcMap.has(d) ? svcMap.get(d) : null);
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'ISM Manufacturing PMI', data: mfgAligned,
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.4, pointRadius: pr, fill: false, spanGaps: true },
+        { label: 'ISM Services Composite', data: svcAligned,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.2, borderWidth: 2.4, pointRadius: pr, fill: false, spanGaps: true },
+        { label: '50 (Expansion / Contraction)', data: labels.map(()=>50),
+          borderColor: BRAND.ink, borderWidth: 1.4, pointRadius: 0, fill: false, order: 99 },
+      ],
+    },
+    options: baseOptions(fmtIdxIndSurv),
+  };
+}
+
+// Chart 5: Cass Freight Index — level (long-run)
+function buildIndSurveysCassLevel(view) {
+  const c = view.cass_freight || {};
+  const series = c.index || [];
+  const labels = series.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Cass Freight Volume Index (Jan 1990 = 1.000)', data: series.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.4, pointRadius: pr, fill: false },
+        { label: '1.000 (1990 baseline)', data: labels.map(()=>1.0),
+          borderColor: BRAND.silver, borderWidth: 1.0, borderDash: [4,4], pointRadius: 0, fill: false, order: 99 },
+      ],
+    },
+    options: baseOptions(fmtIdxLevelIndSurv),
+  };
+}
+
+// Chart 6: Cass Freight — Year-Over-Year % bars (signed colors)
+function buildIndSurveysCassYoy(view) {
+  const c = view.cass_freight || {};
+  const series = c.yoy_pct || [];
+  const labels = series.map(r => shortLabel(r[0]));
+  const vals   = series.map(r => r[1]);
+  const colors = vals.map(v => (v != null && v < 0) ? BRAND.coral : BRAND.navy);
+  return {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Cass Freight Volume Y-Y %', data: vals,
+          backgroundColor: colors, borderColor: colors, borderWidth: 1 },
+        { label: '0% line', type: 'line', data: labels.map(()=>0),
+          borderColor: BRAND.silver, borderWidth: 1.0, borderDash: [4,4], pointRadius: 0, fill: false, order: 99 },
+      ],
+    },
+    options: baseOptions(fmtPctSignedIndSurv),
+  };
+}
+
+const INDUSTRY_SURVEYS_BUILDERS = {
+  chartIndSurveysIsmMfg:           buildIndSurveysIsmMfg,
+  chartIndSurveysIsmMfgComponents: buildIndSurveysIsmMfgComponents,
+  chartIndSurveysIsmSvc:           buildIndSurveysIsmSvc,
+  chartIndSurveysPmiComposite:     buildIndSurveysPmiComposite,
+  chartIndSurveysCassLevel:        buildIndSurveysCassLevel,
+  chartIndSurveysCassYoy:          buildIndSurveysCassYoy,
+};
+
+function renderAllIndustrySurveys(view) {
+  Object.entries(INDUSTRY_SURVEYS_BUILDERS).forEach(([id, builder]) => {
+    const cfg = builder(view);
+    if (cfg) makeChart(id, cfg);
+  });
+}
+
+function registerAllCsvsIndustrySurveys(view) {
+  const m = view.ism_manufacturing || {};
+  const s = view.ism_services      || {};
+  const c = view.cass_freight      || {};
+
+  registerCsv('chartIndSurveysIsmMfg', 'ism-manufacturing-pmi.csv',
+    ['Month', 'ISM Manufacturing PMI'],
+    m.total || []);
+
+  registerCsv('chartIndSurveysIsmMfgComponents', 'ism-manufacturing-components.csv',
+    ['Month', 'Total Index', 'Employment', 'New Orders', 'Backlog of Orders', 'Commodity Prices Paid'],
+    mergeSeries([m.total || [], m.employment || [], m.new_orders || [], m.backlog || [], m.prices_paid || []]));
+
+  registerCsv('chartIndSurveysIsmSvc', 'ism-services-index.csv',
+    ['Month', 'Composite Index', 'Services Employment', 'New Orders', 'Prices'],
+    mergeSeries([s.composite || [], s.employment || [], s.new_orders || [], s.prices || []]));
+
+  registerCsv('chartIndSurveysPmiComposite', 'pmi-composite-mfg-vs-services.csv',
+    ['Month', 'ISM Manufacturing PMI', 'ISM Services Composite'],
+    mergeSeries([m.total || [], s.composite || []]));
+
+  registerCsv('chartIndSurveysCassLevel', 'cass-freight-volume-index.csv',
+    ['Month', 'Cass Volume Index (Jan 1990 = 1.000)'],
+    c.index || []);
+
+  registerCsv('chartIndSurveysCassYoy', 'cass-freight-yoy-percent.csv',
+    ['Month', 'Cass Freight Volume Y-Y %'],
+    c.yoy_pct || []);
+}
+
+function renderKpisIndustrySurveys(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const fmtIdx   = v => (v == null ? 'n/a' : v.toFixed(1));
+  const fmtLevel = v => (v == null ? 'n/a' : v.toFixed(3));
+  const fmtPct   = v => (v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%');
+  // Up = good for everything except Cass YoY where coral/navy is by sign anyway.
+  // For diffusion indices, "up" = good (more expansion); deltas are in index points.
+  const KPI_DEFS = [
+    { key: 'ism_mfg_total',      label: 'ISM Manufacturing PMI',     accent: BRAND.navy,    format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
+    { key: 'ism_mfg_new_orders', label: 'ISM Mfg: New Orders',       accent: BRAND.mustard, format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
+    { key: 'ism_svc_composite',  label: 'ISM Services Composite',    accent: BRAND.teal,    format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
+    { key: 'ism_svc_new_orders', label: 'ISM Services: New Orders',  accent: BRAND.khaki,   format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
+    { key: 'cass_level',         label: 'Cass Freight Index',        accent: BRAND.green,   format: fmtLevel, unit: 'pts',  goodDir: 'up' },
+    { key: 'cass_yoy',           label: 'Cass Freight Y-Y %',        accent: BRAND.coral,   format: fmtPct,   unit: 'pp',   goodDir: 'up' },
+  ];
+  kpiHost.innerHTML = KPI_DEFS.map(def => {
+    const k = (data.kpis || {})[def.key] || { value: null, delta: null, label: null };
+    const arrow = k.delta == null ? '–' : (k.delta > 0 ? '▲' : (k.delta < 0 ? '▼' : '▬'));
+    const deltaTxt = k.delta == null ? 'no prior data'
+                                     : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} ${def.unit} vs prior month`;
+    let cls = 'flat';
+    if (k.delta != null && k.delta !== 0) {
+      if (def.goodDir === 'up')   cls = (k.delta > 0 ? 'up' : 'down');
+      if (def.goodDir === 'down') cls = (k.delta > 0 ? 'down' : 'up');
+    }
+    const periodTxt = k.label ? `as of ${formatLabelLong(k.label)}` : '';
+    return `
+      <div class="kpi" style="border-top-color:${def.accent}">
+        <div class="label">${def.label}</div>
+        <div class="value">${def.format(k.value)}</div>
+        <div class="delta ${cls}">${arrow} ${deltaTxt}</div>
+        <div class="delta-yoy" style="color:var(--ink-soft); font-weight:600;">${periodTxt}</div>
+      </div>`;
+  }).join('');
+}
+
+// =========================================================
 // Public API
 // =========================================================
 window.EG = {
@@ -4624,5 +4922,35 @@ window.EG = {
     };
     const id = map[chartKey] || 'chartIndMfgIpMom';
     if (INDUSTRY_MFG_BUILDERS[id]) makeChart(id, INDUSTRY_MFG_BUILDERS[id](view));
+  },
+
+  renderIndustrySurveys(data) {
+    CURRENT_PAGE = 'industry-surveys';
+    RAW_DATA = data;
+    const m = document.getElementById('latest-month');
+    if (m) m.textContent = formatLabelLong(data.latest_label);
+    renderKpisIndustrySurveys(data);
+    const view = rangedViewIndustrySurveys(data, CURRENT_RANGE);
+    renderAllIndustrySurveys(view); registerAllCsvsIndustrySurveys(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  // Embed mode for Industry / Surveys:
+  // chartKey ∈ 'ism-mfg' | 'ism-mfg-components' | 'ism-svc' | 'pmi-composite' | 'cass-level' | 'cass-yoy'
+  renderIndustrySurveysEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'industry-surveys';
+    RAW_DATA = data;
+    if (range && RANGE_MONTHS[range]) CURRENT_RANGE = range;
+    const view = rangedViewIndustrySurveys(data, CURRENT_RANGE);
+    const map = {
+      'ism-mfg':            'chartIndSurveysIsmMfg',
+      'ism-mfg-components': 'chartIndSurveysIsmMfgComponents',
+      'ism-svc':            'chartIndSurveysIsmSvc',
+      'pmi-composite':      'chartIndSurveysPmiComposite',
+      'cass-level':         'chartIndSurveysCassLevel',
+      'cass-yoy':           'chartIndSurveysCassYoy',
+    };
+    const id = map[chartKey] || 'chartIndSurveysIsmMfg';
+    if (INDUSTRY_SURVEYS_BUILDERS[id]) makeChart(id, INDUSTRY_SURVEYS_BUILDERS[id](view));
   },
 };
