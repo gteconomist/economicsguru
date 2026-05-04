@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Industry Surveys &mdash; ISM Manufacturing, ISM Services, Cass Freight &mdash; Economics Guru</title>
+<meta name="description" content="Live US industry survey dashboard: ISM Manufacturing PMI (with Employment / New Orders / Backlog / Prices components), ISM Services PMI (with Employment / New Orders / Prices), and the Cass Freight Index of volume shipments. Survey data via the Institute for Supply Management and Cass Information Systems. Refreshed monthly.">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/assets/styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  .interactivity-hint { margin: 10px 0 16px; font-size: 12.5px; font-style: italic; color: var(--ink-on-navy-soft); }
+  .chart-card .source { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; }
+  .chart-card .csv-link { font-size: 11px; font-weight: 700; color: var(--mustard); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; text-decoration: none; }
+  .chart-card .csv-link::before { content: '\2193  '; }
+  .chart-card .csv-link:hover { text-decoration: underline; }
+  .controls { display: flex; gap: 12px; align-items: center; margin: 4px 0 0; flex-wrap: wrap; }
+  .controls .label-text { font-size: 12px; color: var(--ink-on-navy-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  /* Diffusion-index KPI: up = good for everything except prices.
+     Delta is in index points, e.g. "+0.6 pts vs prior month". */
+  .kpi .delta-pct {
+    display: block; margin-top: 2px;
+    font-size: 11.5px; font-weight: 600;
+    color: var(--ink-soft); letter-spacing: 0.02em;
+  }
+  .kpi .delta-pct.up   { color: #5a7a30; }
+  .kpi .delta-pct.down { color: #b94a3a; }
+  .kpi .delta-pct.flat { color: var(--ink-soft); }
+
+  .subnav {
+    display: flex; gap: 0; align-items: stretch; flex-wrap: wrap;
+    margin: 8px 0 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+  }
+  .subnav a, .subnav span {
+    padding: 8px 14px; font-size: 12.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: #f3ecd0; text-decoration: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    opacity: 0.7;
+  }
+  .subnav a:hover { opacity: 1; text-decoration: none; }
+  .subnav a.active { color: var(--mustard); border-bottom-color: var(--mustard); opacity: 1; }
+  .subnav .disabled { color: #9ba3ab; cursor: not-allowed; opacity: 0.7; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">Economics<span class="tag">Guru</span></div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/inflation/">Inflation</a>
+      <a href="/labor/">Labor</a>
+      <a href="/housing/">Housing</a>
+      <a href="/gdp/">GDP</a>
+      <a href="/consumer/">Consumer</a>
+      <a href="/rates/">Rates</a>
+      <a href="/industry/" class="active">Industry</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <nav class="subnav">
+    <a href="/industry/manufacturing/">Manufacturing &amp; Production</a>
+    <a href="/industry/surveys/" class="active">Surveys (ISM, Cass)</a>
+  </nav>
+  <div class="page-header">
+    <h1>Industry Surveys &mdash; ISM &amp; Cass</h1>
+    <div class="subtitle">The forward-looking layer on top of the hard manufacturing data: monthly diffusion indices from the Institute for Supply Management (Manufacturing and Services PMIs and their sub-indices), plus the Cass Freight Index from Cass Information Systems &mdash; a volume gauge built from billions of dollars of payments processed each month. PMIs above 50 = expansion; below 50 = contraction.</div>
+    <div class="latest">Latest data: <strong id="latest-month">&hellip;</strong></div>
+  </div>
+
+  <div class="notice" id="notice" style="display:none">
+    <strong>Data note:</strong> <span id="notice-text"></span>
+  </div>
+
+  <div id="kpis" class="kpi-grid"></div>
+
+  <div class="controls">
+    <span class="label-text">Time range:</span>
+    <div class="range-toggle">
+      <button data-range="12m" class="active">12 mo</button>
+      <button data-range="5y">5 yr</button>
+      <button data-range="10y">10 yr</button>
+      <button data-range="20y">20 yr</button>
+      <button data-range="max">Max</button>
+    </div>
+  </div>
+
+  <div class="interactivity-hint">
+    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post. The time range applies to all six charts at once. The Cass Index is published with a one-month lag (Mar reading appears in late April), so it usually trails the ISM data by one month.
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="title">ISM Manufacturing Index</div>
+      <div class="subtitle">(Diffusion Index, Seasonally Adjusted; 50 = Expansion / Contraction Threshold; Long-Run History from 1948)</div>
+      <div class="chart-wrap"><canvas id="chartIndSurveysIsmMfg"></canvas></div>
+      <div class="source">
+        <span>Source: Institute for Supply Management (ISM) &mdash; Manufacturing PMI. Long-run average ~52; recessions push the index into the low-40s or below.</span>
+        <a href="#" class="csv-link" data-chart="chartIndSurveysIsmMfg">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">ISM Manufacturing Index &mdash; Major Components</div>
+      <div class="subtitle">(Diffusion Indices; Bars Represent Distance From 50; SA &mdash; Total / Employment / New Orders / Backlog / Commodity Prices)</div>
+      <div class="chart-wrap"><canvas id="chartIndSurveysIsmMfgComponents"></canvas></div>
+      <div class="source">
+        <span>Source: Institute for Supply Management (ISM). Backlog of Orders begins 1993, Commodity Prices begins 2003 (Macrobond series start).</span>
+        <a href="#" class="csv-link" data-chart="chartIndSurveysIsmMfgComponents">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">ISM Services Index</div>
+      <div class="subtitle">(Diffusion Index, Seasonally Adjusted &mdash; Composite + Employment / New Orders / Prices Sub-Indices)</div>
+      <div class="chart-wrap"><canvas id="chartIndSurveysIsmSvc"></canvas></div>
+      <div class="source">
+        <span>Source: Institute for Supply Management (ISM) &mdash; Services Report on Business. Composite begins July 1997.</span>
+        <a href="#" class="csv-link" data-chart="chartIndSurveysIsmSvc">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Composite PMI &mdash; Manufacturing vs. Services</div>
+      <div class="subtitle">(ISM Manufacturing Total + ISM Services Composite on One Chart, with the 50 Threshold; Quick Read on Whether the Whole Economy Is Expanding)</div>
+      <div class="chart-wrap"><canvas id="chartIndSurveysPmiComposite"></canvas></div>
+      <div class="source">
+        <span>Source: Institute for Supply Management (ISM) &mdash; Manufacturing and Services PMIs. Services dominates US output (~80% of GDP) but Manufacturing tends to lead at cycle turning points.</span>
+        <a href="#" class="csv-link" data-chart="chartIndSurveysPmiComposite">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Cass Freight Index &mdash; Volume of Shipments</div>
+      <div class="subtitle">(Index Level; Jan 1990 = 1.000; NSA &mdash; Captures the Real Movement of Goods Across All Modes of Transportation)</div>
+      <div class="chart-wrap"><canvas id="chartIndSurveysCassLevel"></canvas></div>
+      <div class="source">
+        <span>Source: Cass Information Systems &mdash; Volume Index of Freight Shipments. Built from billions of dollars of freight invoices processed each month; covers truckload, less-than-truckload, rail, intermodal, parcel, and air.</span>
+        <a href="#" class="csv-link" data-chart="chartIndSurveysCassLevel">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Cass Freight Shipments &mdash; Year-Over-Year %</div>
+      <div class="subtitle">(Volume Index, % Change vs. Same Month a Year Ago; Cycle View &mdash; Negative for Most of the Post-2022 Freight Recession)</div>
+      <div class="chart-wrap"><canvas id="chartIndSurveysCassYoy"></canvas></div>
+      <div class="source">
+        <span>Source: Computed in-house from Cass Information Systems Volume Index. Negative bars (coral) = freight contracting vs. last year; positive (navy) = freight expanding.</span>
+        <a href="#" class="csv-link" data-chart="chartIndSurveysCassYoy">Download CSV</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public and licensed data from BLS, FRED, BEA, Census, EIA, ICE BofA, Yahoo Finance, MetalPriceAPI, ISM, and Cass Information Systems. <a href="/about/">Methodology</a></div>
+    <div>Data refreshes nightly. Last successful build: <span id="build-time">&hellip;</span></div>
+  </div>
+</footer>
+
+<script src="/assets/charts.js"></script>
+<script>
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+fetch('/data/industry_surveys.json', { cache: 'no-cache' })
+  .then(r => r.json())
+  .then(data => {
+    EG.renderIndustrySurveys(data);
+    if (data.notice) {
+      document.getElementById('notice').style.display = '';
+      document.getElementById('notice-text').textContent = data.notice;
+    }
+    if (data.build_time) {
+      document.getElementById('build-time').textContent =
+        new Date(data.build_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    document.querySelector('main').insertAdjacentHTML('afterbegin',
+      '<div class="notice"><strong>Could not load data.</strong> Try refreshing in a moment.</div>');
+  });
+</script>
+
+</body>
+</html>
