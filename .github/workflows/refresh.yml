@@ -120,13 +120,20 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_industry_manufacturing.py
 
+      # No env vars -- this step reads ISM and Cass CSVs from data/historical/.
+      # The CSVs are committed to the repo and updated manually each month from
+      # Macrobond exports (same pattern as the precious-metals Kitco baseline).
+      - name: Refresh Industry / Surveys data from local CSV baselines
+        continue-on-error: true
+        run: python scripts/fetch_industry_surveys.py
+
       # Show data summary, but don't fail the workflow if some files are missing
       # (a fetch step may have hit a quota or rate-limit). Each line is wrapped
       # so a missing/empty JSON prints a warning and we keep going.
       - name: Show generated data summary
         run: |
           set +e
-          for f in inflation ppi labor pce housing_existing housing_new housing_permits gdp consumer treasuries commodities equities industry_manufacturing; do
+          for f in inflation ppi labor pce housing_existing housing_new housing_permits gdp consumer treasuries commodities equities industry_manufacturing industry_surveys; do
             if [[ -s "data/${f}.json" ]]; then
               echo "OK  data/${f}.json ($(stat -c%s data/${f}.json) bytes)"
             else
@@ -147,6 +154,7 @@ jobs:
           python -c "import json; d=json.load(open('data/commodities.json')); print('Commodities latest:', d['latest_label']); print('Gold kpi:', d['kpis']['gold']); print('Silver kpi:', d['kpis']['silver']); print('Platinum kpi:', d['kpis']['platinum']); print('G/S ratio kpi:', d['kpis']['gs_ratio']); print('WTI kpi:', d['kpis']['wti']); print('CSV baseline loaded:', d.get('metals_csv_loaded')); print('MetalPriceAPI ok:', d.get('metalprice_succeeded'))" 2>/dev/null || echo "skip commodities summary"
           python -c "import json; d=json.load(open('data/equities.json')); print('Equities latest:', d['latest_label']); print('SPX kpi:', d['kpis']['spx']); print('Nasdaq kpi:', d['kpis']['nasdaq']); print('Dow kpi:', d['kpis']['dow']); print('Russell kpi:', d['kpis']['russell']); print('VIX kpi:', d['kpis']['vix']); print('SPX drawdown kpi:', d['kpis']['spx_drawdown']); pe=d.get('wilshire_pe', []); print('Wilshire/PE quarters:', len(pe)); print('Wilshire/PE latest:', pe[-1] if pe else None); print('Profits after tax (IVA+CCAdj) latest:', d.get('profits_after_tax', [None])[-1]); print('Yahoo ok:', d.get('yahoo_succeeded')); print('FRED ok:', d.get('fred_succeeded'))" 2>/dev/null || echo "skip equities summary"
           python -c "import json; d=json.load(open('data/industry_manufacturing.json')); print('Industry/Mfg latest:', d['latest_label']); print('IP YoY kpi:', d['kpis']['ip_yoy']); print('IP MoM kpi:', d['kpis']['ip_mom']); print('Cap Util Total kpi:', d['kpis']['tcu']); print('Cap Util Mfg kpi:', d['kpis']['mcumfn']); print('Factory Orders kpi:', d['kpis']['factory_orders']); print('Core Capex kpi:', d['kpis']['core_capex']); print('Electricity 12mma rows:', len(d.get('electricity', {}).get('generation_12mma', []))); print('FRED ok:', d.get('fred_succeeded')); print('EIA ok:', d.get('eia_succeeded'))" 2>/dev/null || echo "skip industry-manufacturing summary"
+          python -c "import json; d=json.load(open('data/industry_surveys.json')); print('Industry/Surveys latest:', d['latest_label']); print('ISM Mfg PMI kpi:', d['kpis']['ism_mfg_total']); print('ISM Mfg New Orders kpi:', d['kpis']['ism_mfg_new_orders']); print('ISM Svc Composite kpi:', d['kpis']['ism_svc_composite']); print('ISM Svc New Orders kpi:', d['kpis']['ism_svc_new_orders']); print('Cass level kpi:', d['kpis']['cass_level']); print('Cass YoY kpi:', d['kpis']['cass_yoy']); print('CSV loaded:', d.get('loaded'))" 2>/dev/null || echo "skip industry-surveys summary"
           exit 0
 
       # Auto-commit fresh data files + CSV baselines if their content materially
@@ -157,7 +165,8 @@ jobs:
       #     and the corresponding page renders yesterday's numbers instead of
       #     going blank.
       #  2. The historical CSV baselines (NAR existing-homes, NAHB HMI, UMich
-      #     sentiment, Conference Board, precious metals) keep auto-extending.
+      #     sentiment, Conference Board, precious metals, ISM Mfg, ISM Svcs,
+      #     Cass freight) keep auto-extending.
       # The [skip ci] tag prevents the bot's commit from re-triggering this
       # workflow.
       - name: Commit fresh data files + CSV baselines (if changed)
@@ -183,7 +192,15 @@ jobs:
           done
 
           # CSV baselines -- commit on any change (they're append-only / hand-edited)
-          for f in data/historical/nar_existing_homes.csv data/historical/nahb_hmi.csv data/historical/umich_sentiment.csv data/historical/conference_board.csv data/historical/precious_metals_kitco.csv; do
+          for f in \
+              data/historical/nar_existing_homes.csv \
+              data/historical/nahb_hmi.csv \
+              data/historical/umich_sentiment.csv \
+              data/historical/conference_board.csv \
+              data/historical/precious_metals_kitco.csv \
+              data/historical/ism_manufacturing.csv \
+              data/historical/ism_services.csv \
+              data/historical/cass_freight.csv; do
             if [[ -f "$f" && -n "$(git status --porcelain "$f")" ]]; then
               changed="$changed $f"
             fi
