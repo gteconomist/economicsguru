@@ -3892,7 +3892,7 @@ function renderKpisEquities(data) {
 //   chartIndMfgIpMom         — IP M-M bars (Total + Mfg + Mfg ex MV) with Y-Y line
 //   chartIndMfgIpLong        — IP Y-Y line (left) + M-M bars (right), long-run
 //   chartIndMfgCapUtil       — Capacity Utilization Total + Manufacturing
-//   chartIndMfgFactoryOrders — Factory Orders M-M (Total / Core / Core Durable)
+//   chartIndMfgFactoryOrders — Factory Orders M-M (Total / Core / Durable / Core Durable / Nondurable / Core Capex)
 //   chartIndMfgShipments     — Capital Goods Shipments M-M (Total / Nondef / Core Capex)
 //   chartIndMfgElectricity   — Electricity 12-month MA (left) + CPI Electricity (right)
 
@@ -3918,7 +3918,10 @@ function rangedViewIndustryManufacturing(data, range) {
     factory_orders: {
       total_mom:        tail(fo.total_mom        || [], n),
       core_mom:         tail(fo.core_mom         || [], n),
+      durable_mom:      tail(fo.durable_mom      || [], n),
       core_durable_mom: tail(fo.core_durable_mom || [], n),
+      nondurable_mom:   tail(fo.nondurable_mom   || [], n),
+      core_capex_mom:   tail(fo.core_capex_mom   || [], n),
     },
     shipments: {
       total_capital_mom:         tail(sh.total_capital_mom         || [], n),
@@ -4037,14 +4040,16 @@ function buildIndMfgCapUtil(view) {
   };
 }
 
-// Factory Orders — M-M bars, 3 series
+// Factory Orders — M-M bars, 6 series
+// Order: Total Manufacturing; Mfg Ex. Transportation ("Core"); Durable Goods;
+//        Core Durable Goods; Nondurable Goods; Core Capex (NEWORDER).
 function buildIndMfgFactoryOrders(view) {
   const fo = view.factory_orders || {};
   const labels = (fo.total_mom || []).map(r => shortLabel(r[0]));
-  const coreMap = new Map((fo.core_mom || []).map(r => [r[0], r[1]]));
-  const coreAligned = (fo.total_mom || []).map(r => coreMap.has(r[0]) ? coreMap.get(r[0]) : null);
-  const durMap = new Map((fo.core_durable_mom || []).map(r => [r[0], r[1]]));
-  const durAligned = (fo.total_mom || []).map(r => durMap.has(r[0]) ? durMap.get(r[0]) : null);
+  const align = (key) => {
+    const m = new Map((fo[key] || []).map(r => [r[0], r[1]]));
+    return (fo.total_mom || []).map(r => m.has(r[0]) ? m.get(r[0]) : null);
+  };
   return {
     type: 'bar',
     data: {
@@ -4052,10 +4057,16 @@ function buildIndMfgFactoryOrders(view) {
       datasets: [
         { label: 'Total Manufacturing', data: (fo.total_mom || []).map(r => r[1]),
           backgroundColor: BRAND.navy, borderColor: BRAND.navy, borderWidth: 1 },
-        { label: 'Manufacturing Excluding Transportation ("Core")', data: coreAligned,
+        { label: 'Manufacturing Ex. Transportation ("Core")', data: align('core_mom'),
           backgroundColor: BRAND.mustard, borderColor: BRAND.mustard, borderWidth: 1 },
-        { label: 'Core Durable Goods', data: durAligned,
-          backgroundColor: BRAND.silver, borderColor: BRAND.silver, borderWidth: 1 },
+        { label: 'Durable Goods', data: align('durable_mom'),
+          backgroundColor: BRAND.teal, borderColor: BRAND.teal, borderWidth: 1 },
+        { label: 'Core Durable Goods', data: align('core_durable_mom'),
+          backgroundColor: BRAND.tealLight, borderColor: BRAND.tealLight, borderWidth: 1 },
+        { label: 'Nondurable Goods', data: align('nondurable_mom'),
+          backgroundColor: BRAND.khaki, borderColor: BRAND.khaki, borderWidth: 1 },
+        { label: 'Core Capex (Nondef. Cap. Goods Ex Aircraft)', data: align('core_capex_mom'),
+          backgroundColor: BRAND.coral, borderColor: BRAND.coral, borderWidth: 1 },
         { label: '0% line', type: 'line', data: labels.map(()=>0),
           borderColor: BRAND.silver, borderWidth: 1.0, borderDash: [4,4], pointRadius: 0, fill: false, order: 99 },
       ],
@@ -4183,8 +4194,19 @@ function registerAllCsvsIndustryManufacturing(view) {
     mergeSeries([cu.total || [], cu.mfg || []]));
 
   registerCsv('chartIndMfgFactoryOrders', 'factory-orders-mom.csv',
-    ['Month', 'Total Manufacturing M-M %', 'Mfg ex Transportation (Core) M-M %', 'Core Durable Goods M-M %'],
-    mergeSeries([fo.total_mom || [], fo.core_mom || [], fo.core_durable_mom || []]));
+    ['Month',
+     'Total Manufacturing M-M %',
+     'Mfg ex Transportation (Core) M-M %',
+     'Durable Goods M-M %',
+     'Core Durable Goods M-M %',
+     'Nondurable Goods M-M %',
+     'Core Capex (NDCG ex Aircraft) M-M %'],
+    mergeSeries([fo.total_mom        || [],
+                 fo.core_mom         || [],
+                 fo.durable_mom      || [],
+                 fo.core_durable_mom || [],
+                 fo.nondurable_mom   || [],
+                 fo.core_capex_mom   || []]));
 
   registerCsv('chartIndMfgShipments', 'capital-goods-shipments-mom.csv',
     ['Month', 'Total Capital Goods M-M %', 'Nondefense Capital Goods M-M %', 'Nondef ex Aircraft (Core Capex) M-M %'],
