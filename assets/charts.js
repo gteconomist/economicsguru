@@ -137,6 +137,22 @@ const creamBgPlugin = {
 };
 Chart.register(creamBgPlugin);
 
+// Ensure line datasets render IN FRONT OF bar datasets in mixed charts,
+// so data points aren't hidden behind the bars. Lower `order` = drawn last (on top).
+// Respects any explicit `order` already set on a dataset.
+const lineOnTopPlugin = {
+  id: 'lineOnTop',
+  beforeUpdate(chart) {
+    if (!chart || !chart.data || !chart.data.datasets) return;
+    chart.data.datasets.forEach(ds => {
+      if (ds.order !== undefined) return;
+      const t = ds.type || (chart.config && chart.config.type);
+      ds.order = (t === 'line') ? 0 : 1;
+    });
+  }
+};
+Chart.register(lineOnTopPlugin);
+
 function makeChart(canvasId, config) {
   if (CHART_INSTANCES[canvasId]) CHART_INSTANCES[canvasId].destroy();
   const el = document.getElementById(canvasId);
