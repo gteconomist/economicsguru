@@ -185,6 +185,201 @@ function attachDownloadHandlers() {
       downloadCsv(spec.filename, spec.headers, spec.rows);
     });
   });
+  attachPngHandlers();
+}
+
+// =========================================================
+// PNG download (1100x500, FRED-style — title/subtitle/source baked in)
+// =========================================================
+function ensurePngLinkStyle() {
+  if (document.getElementById('eg-png-link-style')) return;
+  const s = document.createElement('style');
+  s.id = 'eg-png-link-style';
+  s.textContent =
+    '.chart-card .png-link { font-size: 11px; font-weight: 700; color: ' + BRAND.mustard +
+    '; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; ' +
+    'text-decoration: none; margin-left: 14px; cursor: pointer; }' +
+    '.chart-card .png-link::before { content: "\\2193  "; }' +
+    '.chart-card .png-link:hover { text-decoration: underline; }';
+  document.head.appendChild(s);
+}
+
+function getCardMetaForChart(chartId) {
+  // Find the chart-card by walking up from the canvas (more reliable than the link attr)
+  const canvas = document.getElementById(chartId);
+  const card = canvas ? canvas.closest('.chart-card') : null;
+  if (!card) return null;
+  const titleEl    = card.querySelector('.title');
+  const subtitleEl = card.querySelector(':scope > .subtitle')
+                  || card.querySelector('.subtitle');
+  const sourceSpan = card.querySelector('.source > span');
+  return {
+    title:    (titleEl    && titleEl.textContent    || '').trim(),
+    subtitle: (subtitleEl && subtitleEl.textContent || '').trim(),
+    source:   (sourceSpan && sourceSpan.textContent || '').trim(),
+  };
+}
+
+function _slugify(s) {
+  return (s || 'chart').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function _wrapText(ctx, text, maxWidth) {
+  // Naive word-wrap; returns array of lines
+  if (!text) return [];
+  const words = text.split(/\s+/);
+  const lines = [];
+  let cur = '';
+  for (const w of words) {
+    const test = cur ? cur + ' ' + w : w;
+    if (ctx.measureText(test).width > maxWidth && cur) {
+      lines.push(cur); cur = w;
+    } else {
+      cur = test;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+function downloadChartPng(chartId) {
+  const liveChart = CHART_INSTANCES[chartId];
+  if (!liveChart) { console.warn('downloadChartPng: no live chart for', chartId); return; }
+  const meta = getCardMetaForChart(chartId) || { title: chartId, subtitle: '', source: '' };
+
+  // Final image dims
+  const W = 1100, H = 500;
+  const SIDE = 22;          // left/right padding
+  const TOP  = 78;          // title + subtitle band
+  const BOT  = 36;          // source + branding band
+  const chartW = W - 2 * SIDE;
+  const chartH = H - TOP - BOT;
+
+  // Off-screen container for the chart-only render
+  const offWrap = document.createElement('div');
+  offWrap.style.cssText =
+    'position:fixed;left:-99999px;top:0;width:' + chartW + 'px;height:' + chartH + 'px;';
+  const offCanvas = document.createElement('canvas');
+  offCanvas.width  = chartW;
+  offCanvas.height = chartH;
+  offWrap.appendChild(offCanvas);
+  document.body.appendChild(offWrap);
+
+  // Re-build a parallel chart from the live config. Share options/plugins by reference
+  // (so tooltip callbacks, scale tick formatters etc. survive); deep-clone data so
+  // Chart.js's per-instance metadata doesn't cross-pollute the live chart.
+  const liveCfg = liveChart.config || {};
+  const sharedOpts = liveCfg.options || {};
+  const cfg = {
+    type: liveCfg.type,
+    data: JSON.parse(JSON.stringify(liveCfg.data || {})),
+    options: Object.assign({}, sharedOpts, {
+      responsive: false,
+      maintainAspectRatio: false,
+      animation: false,
+      devicePixelRatio: 2,
+    }),
+    plugins: liveCfg.plugins,
+  };
+
+  const offChart = new Chart(offCanvas, cfg);
+
+  // Wait one frame so Chart.js paints before we composite.
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const dpr = 2;
+    const out = document.createElement('canvas');
+    out.width  = W * dpr;
+    out.height = H * dpr;
+    const ctx = out.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    // White background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    // Title
+    ctx.fillStyle = BRAND.navy;
+    ctx.font = '700 22px "Source Sans Pro", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    const titleLines = _wrapText(ctx, meta.title, W - 2 * SIDE);
+    ctx.fillText(titleLines[0] || '', SIDE, 14);
+
+    // Subtitle (italic, smaller, single line)
+    if (meta.subtitle) {
+      ctx.fillStyle = BRAND.inkSoft;
+      ctx.font = 'italic 13px "Source Sans Pro", -apple-system, sans-serif';
+      ctx.fillText(meta.subtitle, SIDE, 44);
+    }
+
+    // Chart image
+    ctx.drawImage(offCanvas, SIDE, TOP, chartW, chartH);
+
+    // Source line (left)
+    if (meta.source) {
+      ctx.fillStyle = BRAND.inkSoft;
+      ctx.font = '11px "Source Sans Pro", -apple-system, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      // Truncate source if too long to leave room for branding
+      const srcMax = W - 2 * SIDE - 220;
+      let src = meta.source;
+      if (ctx.measureText(src).width > srcMax) {
+        while (src.length > 8 && ctx.measureText(src + '...').width > srcMax) {
+          src = src.slice(0, -1);
+        }
+        src += '...';
+      }
+      ctx.fillText(src, SIDE, H - 26);
+    }
+
+    // Branding (right)
+    ctx.fillStyle = BRAND.mustard;
+    ctx.font = '700 12px "Source Sans Pro", -apple-system, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText('economicsguru.com', W - SIDE, H - 26);
+
+    // Trigger download
+    out.toBlob((blob) => {
+      const today = new Date().toISOString().slice(0, 10);
+      const slug  = _slugify(meta.title || chartId);
+      const range = (CURRENT_RANGE || 'view').replace(/[^a-z0-9]/gi, '');
+      const filename = slug + '_' + today + '_' + range + '.png';
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+      try { offChart.destroy(); } catch (_) {}
+      offWrap.remove();
+    }, 'image/png');
+  }));
+}
+
+function attachPngHandlers() {
+  ensurePngLinkStyle();
+  document.querySelectorAll('a.csv-link').forEach(csv => {
+    const chartId = csv.dataset.chart;
+    if (!chartId) return;
+    let png = csv.parentElement.querySelector(
+      'a.png-link[data-chart="' + chartId + '"]');
+    if (!png) {
+      png = document.createElement('a');
+      png.href = '#';
+      png.className = 'png-link';
+      png.dataset.chart = chartId;
+      png.textContent = 'Download PNG';
+      csv.insertAdjacentElement('afterend', png);
+    }
+    if (png.dataset.bound) return;
+    png.dataset.bound = '1';
+    png.addEventListener('click', (e) => {
+      e.preventDefault();
+      downloadChartPng(chartId);
+    });
+  });
 }
 
 // =========================================================
