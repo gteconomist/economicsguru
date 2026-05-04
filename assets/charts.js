@@ -11,7 +11,7 @@ Chart.defaults.font.family = '"Source Sans Pro", -apple-system, BlinkMacSystemFo
 Chart.defaults.font.size = 12;
 Chart.defaults.color = BRAND.navy;
 
-const RANGE_MONTHS = { '12m': 13, '5y': 60, '10y': 120, '20y': 240, 'max': Infinity };
+const RANGE_MONTHS = { '6m': 7, '12m': 13, '5y': 60, '10y': 120, '20y': 240, 'max': Infinity };
 let CURRENT_RANGE = '12m';
 let CURRENT_PAGE  = 'inflation';
 let RAW_DATA = null;
@@ -28,7 +28,7 @@ function formatLabelLong(s){
 
 // Daily-date helpers (treasuries / rates pages emit YYYY-MM-DD labels).
 // Trading-day buckets for the time-range slider on those pages.
-const RANGE_DAYS = { '12m': 252, '5y': 1260, '10y': 2520, '20y': 5040, 'max': Infinity };
+const RANGE_DAYS = { '6m': 126, '12m': 252, '5y': 1260, '10y': 2520, '20y': 5040, 'max': Infinity };
 function shortLabelD(s){
   // 'YYYY-MM-DD' -> "MMM 'YY" so 12m of daily data shows ~12 unique tick labels
   // and Chart.js autoSkip handles density naturally for longer ranges.
@@ -2027,7 +2027,7 @@ function renderKpisPermitsStarts(data) {
 // =========================================================
 // All GDP-page series are quarterly with "YYYYQN" labels. Range buckets in
 // quarters map to the existing "12m / 5y / 10y / 20y / max" slider.
-const RANGE_QUARTERS = { '12m': 5, '5y': 20, '10y': 40, '20y': 80, 'max': Infinity };
+const RANGE_QUARTERS = { '6m': 3, '12m': 5, '5y': 20, '10y': 40, '20y': 80, 'max': Infinity };
 
 function rangedViewGdp(data, range) {
   const n = RANGE_QUARTERS[range] || Infinity;
