@@ -2038,9 +2038,18 @@ function renderKpisGdp(data) {
 // Range / dispatch
 // =========================================================
 // =========================================================
-// Consumer: chart builders
+// Consumer (split into two sub-pages: ISD and RCC)
 // =========================================================
-function rangedViewConsumer(data, range) {
+//
+// As of 2026-05-03 the /consumer/ topic is a hub with two sub-pages:
+//   /consumer/income-spending-debt/   ('consumer-isd')
+//   /consumer/retail-confidence/      ('consumer-rcc')
+// Both fetch the same /data/consumer.json — the page-specific renderers
+// below pick the slice they need.
+
+// ---- Range slicers ----
+
+function rangedViewConsumerRcc(data, range) {
   const n = RANGE_MONTHS[range];
   return {
     retail_total_mom:   tail(data.retail_total_mom || [], n),
@@ -2051,23 +2060,55 @@ function rangedViewConsumer(data, range) {
       key: s.key, label: s.label,
       contribution: tail(s.contribution || [], n),
     })),
+    umich_total:   tail(data.umich_total   || [], n),
+    umich_expect:  tail(data.umich_expect  || [], n),
+    umich_current: tail(data.umich_current || [], n),
+    cb_total:   tail(data.cb_total   || [], n),
+    cb_expect:  tail(data.cb_expect  || [], n),
+    cb_present: tail(data.cb_present || [], n),
+    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+  };
+}
+
+function rangedViewConsumerIsd(data, range) {
+  const n  = RANGE_MONTHS[range];
+  const nQ = RANGE_QUARTERS[range] || Infinity;
+  const debt = data.debt || {};
+  const delq = data.delinquency || {};
+  return {
     pi_mom:    tail(data.pi_mom || [], n),
     dspi_mom:  tail(data.dspi_mom || [], n),
     pce_mom:   tail(data.pce_mom || [], n),
     rpi_mom:   tail(data.rpi_mom || [], n),
     rdspi_mom: tail(data.rdspi_mom || [], n),
     rpce_mom:  tail(data.rpce_mom || [], n),
-    umich_total:   tail(data.umich_total || [], n),
-    umich_expect:  tail(data.umich_expect || [], n),
-    umich_current: tail(data.umich_current || [], n),
-    cb_total:   tail(data.cb_total || [], n),
-    cb_expect:  tail(data.cb_expect || [], n),
-    cb_present: tail(data.cb_present || [], n),
-    kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
+    saving_rate:       tail(data.saving_rate || [], n),
+    interest_payments: tail(data.interest_payments || [], n),
+    revolving:         tail(data.revolving || [], n),
+    revolving_yoy:     tail(data.revolving_yoy || [], n),
+    debt: {
+      credit_card: tail(debt.credit_card || [], nQ),
+      home_equity: tail(debt.home_equity || [], nQ),
+      auto:        tail(debt.auto        || [], nQ),
+      student:     tail(debt.student     || [], nQ),
+      other:       tail(debt.other       || [], nQ),
+      total:       tail(debt.total       || [], nQ),
+    },
+    delinquency: {
+      credit_card: tail(delq.credit_card || [], nQ),
+      mortgage:    tail(delq.mortgage    || [], nQ),
+      auto:        tail(delq.auto        || [], nQ),
+      student:     tail(delq.student     || [], nQ),
+    },
+    kpis: data.kpis,
+    latest_label: data.latest_label,
+    latest_quarter: data.latest_quarter,
+    notice: data.notice,
   };
 }
 
-// Chart 1: Retail MoM bars (Total / ex-MV / Control) + Total YoY line on right axis.
+// ---- RCC builders (existing, unchanged from pre-split) ----
+
 function buildCsRetailMom(view) {
   const labels = view.retail_total_mom.map(r => shortLabel(r[0]));
   const total  = view.retail_total_mom.map(r => r[1]);
@@ -2122,12 +2163,7 @@ function buildCsRetailMom(view) {
   };
 }
 
-// Chart 2: Sector contributions stacked bar (12 NAICS categories) + total MoM line.
 function buildCsRetailSectors(view) {
-  // 12-color palette ordered to roughly track the user's reference image
-  // (441 navy, 442 grey, 444 light teal, 445 medium teal, 446 royal blue,
-  //  447 plum, 448 lime-green, 451 lilac, 452 coral-red, 453 forest, 454 mustard,
-  //  722 khaki).
   const SECTOR_COLORS = [
     '#1e2a4a', '#5b6470', '#7fc7c7', '#3a8d8d', '#2e4a8d',
     '#7d2e7d', '#a8d05f', '#9b8b6a', '#d4624a', '#3a6e3a',
@@ -2145,7 +2181,6 @@ function buildCsRetailSectors(view) {
       barPercentage: 0.92, categoryPercentage: 0.92,
     };
   });
-  // Overlay: total MoM% as a thin line (the bars sum to this, modulo rounding).
   datasets.push({
     type: 'line', label: 'Total Retail MoM (sum)',
     data: view.retail_total_mom.map(r => r[1]),
@@ -2159,7 +2194,6 @@ function buildCsRetailSectors(view) {
   };
   cfg.options.scales.x.stacked = true;
   cfg.options.scales.y.stacked = true;
-  // 13 entries (12 sectors + total line) — keep legend tight.
   cfg.options.plugins.legend.labels.boxWidth  = 10;
   cfg.options.plugins.legend.labels.padding   = 8;
   cfg.options.plugins.legend.labels.font      = { size: 11, weight: '600' };
@@ -2169,7 +2203,6 @@ function buildCsRetailSectors(view) {
   return cfg;
 }
 
-// Charts 3 & 4: Income & Consumption MoM (3 grouped bars, nominal or real).
 function _buildCsIncomeBars(view, keys, labels3) {
   const labels = view[keys[0]].map(r => shortLabel(r[0]));
   return {
@@ -2202,7 +2235,6 @@ function buildCsIncomeReal(view) {
     ['Real Personal Income', 'Real Disposable PI', 'Real Personal Consumption']);
 }
 
-// Charts 5 & 6: 3-line consumer-survey index.
 function _buildCs3Line(totalKey, expectKey, currentKey, totalLabel, expectLabel, currentLabel, view) {
   const total = view[totalKey] || [];
   const labels = total.map(r => shortLabel(r[0]));
@@ -2235,7 +2267,6 @@ function buildCsUmich(view) {
     'Total (ICS)', 'Expectations (ICE)', 'Current Conditions (ICC)', view);
 }
 function buildCsConfBoard(view) {
-  // Graceful empty state if no Conference Board CSV data has been loaded yet.
   if (!view.cb_total || !view.cb_total.length) {
     return {
       type: 'line',
@@ -2254,22 +2285,296 @@ function buildCsConfBoard(view) {
     'CCI (Total)', 'Expectations Index', 'Present Situation Index', view);
 }
 
-const CONSUMER_BUILDERS = {
+// ---- ISD builders (5 new charts) ----
+
+// Saving rate — single line, % of DPI.
+function buildCsSavingRate(view) {
+  const series = view.saving_rate || [];
+  const labels = series.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Personal Saving Rate', data: series.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.4, pointRadius: pr, fill: false },
+      ]
+    },
+    options: baseOptions(v => v == null ? 'n/a' : v.toFixed(1) + '%')
+  };
+}
+
+// Personal Interest Payments — single line, $bn SAAR.
+function buildCsInterestPayments(view) {
+  const series = view.interest_payments || [];
+  if (!series.length) {
+    return {
+      type: 'line',
+      data: {
+        labels: ['—'],
+        datasets: [{
+          label: 'Personal Interest Payments — series unavailable from FRED',
+          data: [null],
+          borderColor: BRAND.silver, backgroundColor: BRAND.silver,
+        }],
+      },
+      options: baseOptions(v => v == null ? 'n/a' : v.toFixed(0))
+    };
+  }
+  const labels = series.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Personal Interest Payments ($bn SAAR)',
+          data: series.map(r => r[1]),
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.2, borderWidth: 2.4, pointRadius: pr, fill: false },
+      ]
+    },
+    options: baseOptions(v => v == null ? 'n/a' : '$' + v.toFixed(0) + 'B')
+  };
+}
+
+// Consumer Credit (less mortgage) — stacked area + total line, quarterly.
+function buildCsConsumerCredit(view) {
+  const debt = view.debt || {};
+  const total = debt.total || [];
+  if (!total.length) {
+    return {
+      type: 'line',
+      data: {
+        labels: ['—'],
+        datasets: [{
+          label: 'No data — populate data/historical/nyfed_household_debt.csv',
+          data: [null],
+          borderColor: BRAND.silver, backgroundColor: BRAND.silver,
+        }],
+      },
+      options: baseOptions(v => v == null ? 'n/a' : '$' + v.toFixed(1) + 'T')
+    };
+  }
+  const labels = total.map(r => shortLabelQ(r[0]));
+
+  // Component palette chosen to track the NY Fed reference image:
+  //   Credit Card  = silver (light gray)
+  //   Home Equity  = khaki  (tan)
+  //   Auto Loans   = navy   (dominant middle band)
+  //   Student      = mustard (bright yellow band)
+  //   Other        = light  (cream-ish gray)
+  const COMPONENTS = [
+    { key: 'credit_card', label: 'Credit Card', color: BRAND.silver },
+    { key: 'home_equity', label: 'Home Equity', color: BRAND.khaki  },
+    { key: 'auto',        label: 'Auto Loans',  color: BRAND.navy   },
+    { key: 'student',     label: 'Student Loans', color: BRAND.mustard },
+    { key: 'other',       label: 'Other Debt',  color: '#cbd2d8'    },
+  ];
+  const datasets = COMPONENTS.map(c => {
+    const lookup = new Map((debt[c.key] || []).map(r => [r[0], r[1]]));
+    const data = total.map(r => lookup.has(r[0]) ? lookup.get(r[0]) : null);
+    return {
+      type: 'line',
+      label: c.label, data,
+      borderColor: c.color, backgroundColor: c.color,
+      borderWidth: 0, pointRadius: 0, tension: 0.0,
+      fill: true, stack: 'debt', spanGaps: true,
+    };
+  });
+  // Total line on top
+  datasets.push({
+    type: 'line',
+    label: 'Total',
+    data: total.map(r => r[1]),
+    borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+    borderWidth: 2.2, pointRadius: 0, fill: false, tension: 0.0,
+  });
+
+  const cfg = {
+    type: 'line',
+    data: { labels, datasets },
+    options: baseOptions(v => v == null ? 'n/a' : '$' + v.toFixed(1) + 'T')
+  };
+  cfg.options.scales.y.stacked = true;
+  cfg.options.scales.x.stacked = false;
+  cfg.options.plugins.tooltip.callbacks.label = ctx =>
+    ctx.parsed.y == null ? `${ctx.dataset.label}: n/a`
+                         : `${ctx.dataset.label}: $${ctx.parsed.y.toFixed(2)}T`;
+  return cfg;
+}
+
+// Revolving Consumer Credit — two lines, dual-axis. Level on the left axis
+// in $T (REVOLSL is published in $B but the level is now ~$1.3T, so $T reads
+// cleaner on the y-axis). YoY % change on the right axis as a second line.
+function buildCsRevolving(view) {
+  const series = view.revolving || [];
+  const labels = series.map(r => shortLabel(r[0]));
+  const yoyMap = new Map((view.revolving_yoy || []).map(r => [r[0], r[1]]));
+  const yoy    = series.map(r => yoyMap.has(r[0]) ? yoyMap.get(r[0]) : null);
+  const pr = pointSizeForLength(labels.length);
+  // REVOLSL is published in $B; convert to $T for the y-axis so the
+  // (now-trillion-scale) level reads naturally.
+  const levelT = series.map(r => r[1] == null ? null : r[1] / 1000);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Revolving Credit ($T)',
+          data: levelT,
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr,
+          fill: false, yAxisID: 'yLevel' },
+        { label: 'YoY % change (right axis)',
+          data: yoy,
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr,
+          fill: false, yAxisID: 'yYoy' },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 8, right: 16, bottom: 4, left: 4 } },
+      interaction: { mode: 'index', intersect: false },
+      animation: { duration: 350 },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, boxHeight: 12, padding: 12, color: BRAND.navy, font: { size: 12, weight: '600' } } },
+        tooltip: {
+          backgroundColor: BRAND.navy, titleColor: '#fff', bodyColor: '#fff',
+          borderColor: BRAND.mustard, borderWidth: 1, padding: 10, cornerRadius: 4,
+          callbacks: {
+            label: ctx => {
+              if (ctx.parsed.y == null) return `${ctx.dataset.label}: n/a`;
+              if (ctx.dataset.yAxisID === 'yYoy') {
+                return `${ctx.dataset.label}: ${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(1)}%`;
+              }
+              return `${ctx.dataset.label}: $${ctx.parsed.y.toFixed(2)}T`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: baseScales(v => v).x,
+        yLevel: axisSpec(v => '$' + v.toFixed(1) + 'T', 'left'),
+        yYoy:   axisSpec(v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`, 'right'),
+      },
+    }
+  };
+}
+
+// Percent of balances 90+ days delinquent — 4-line, quarterly.
+function buildCsDelinquency(view) {
+  const delq = view.delinquency || {};
+  const longest = ['credit_card', 'mortgage', 'auto', 'student']
+    .map(k => delq[k] || [])
+    .reduce((a, b) => (a.length >= b.length ? a : b), []);
+  if (!longest.length) {
+    return {
+      type: 'line',
+      data: {
+        labels: ['—'],
+        datasets: [{
+          label: 'No data — populate data/historical/nyfed_delinquency.csv',
+          data: [null],
+          borderColor: BRAND.silver, backgroundColor: BRAND.silver,
+        }],
+      },
+      options: baseOptions(v => v == null ? 'n/a' : v.toFixed(1) + '%')
+    };
+  }
+  const labels = longest.map(r => shortLabelQ(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  // NY Fed-image color mapping
+  const SERIES = [
+    { key: 'credit_card', label: 'Credit Cards',  color: BRAND.navy    },
+    { key: 'mortgage',    label: 'Mortgages',     color: BRAND.teal    },
+    { key: 'auto',        label: 'Auto Loans',    color: BRAND.coral   },
+    { key: 'student',     label: 'Student Loans', color: BRAND.mustard },
+  ];
+  const datasets = SERIES.map(s => {
+    const lookup = new Map((delq[s.key] || []).map(r => [r[0], r[1]]));
+    const data = longest.map(r => lookup.has(r[0]) ? lookup.get(r[0]) : null);
+    return {
+      label: s.label, data,
+      borderColor: s.color, backgroundColor: s.color,
+      tension: 0.15, borderWidth: 2.2, pointRadius: pr,
+      spanGaps: false, fill: false,
+    };
+  });
+  return {
+    type: 'line',
+    data: { labels, datasets },
+    options: baseOptions(v => v == null ? 'n/a' : v.toFixed(1) + '%')
+  };
+}
+
+// ---- Builder dictionaries ----
+
+const CONSUMER_RCC_BUILDERS = {
   chartCsRetailMom:     buildCsRetailMom,
   chartCsRetailSectors: buildCsRetailSectors,
-  chartCsIncomeNominal: buildCsIncomeNominal,
-  chartCsIncomeReal:    buildCsIncomeReal,
   chartCsUmich:         buildCsUmich,
   chartCsConfBoard:     buildCsConfBoard,
 };
 
-function renderAllConsumer(view) {
-  for (const [id, builder] of Object.entries(CONSUMER_BUILDERS)) {
-    if (document.getElementById(id)) makeChart(id, builder(view));
-  }
+const CONSUMER_ISD_BUILDERS = {
+  chartCsIncomeNominal:    buildCsIncomeNominal,
+  chartCsIncomeReal:       buildCsIncomeReal,
+  chartCsSavingRate:       buildCsSavingRate,
+  chartCsInterestPayments: buildCsInterestPayments,
+  chartCsConsumerCredit:   buildCsConsumerCredit,
+  chartCsRevolving:        buildCsRevolving,
+  chartCsDelinquency:      buildCsDelinquency,
+};
+
+// Combined map for the legacy /consumer/embed/ redirect — chart-key lookup.
+const CONSUMER_BUILDERS = Object.assign({}, CONSUMER_RCC_BUILDERS, CONSUMER_ISD_BUILDERS);
+
+function renderAllConsumerRcc(view) {
+  for (const [id, b] of Object.entries(CONSUMER_RCC_BUILDERS))
+    if (document.getElementById(id)) makeChart(id, b(view));
+}
+function renderAllConsumerIsd(view) {
+  for (const [id, b] of Object.entries(CONSUMER_ISD_BUILDERS))
+    if (document.getElementById(id)) makeChart(id, b(view));
+  // Auto-hide chart cards whose series came back empty (e.g. NY Fed CSV not
+  // yet populated, or Personal Interest Payments unavailable on FRED).
+  const hideIfEmpty = [
+    ['chartCsInterestPayments', (view.interest_payments || []).length],
+    ['chartCsConsumerCredit',   ((view.debt || {}).total || []).length],
+    ['chartCsDelinquency',      Math.max(
+        ((view.delinquency || {}).credit_card || []).length,
+        ((view.delinquency || {}).mortgage    || []).length,
+        ((view.delinquency || {}).auto        || []).length,
+        ((view.delinquency || {}).student     || []).length)],
+  ];
+  hideIfEmpty.forEach(([id, len]) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const card = el.closest('.chart-card');
+    if (card) card.style.display = (len ? '' : 'none');
+  });
 }
 
-function renderKpisConsumer(data) {
+function _kpiHtml(def, k) {
+  let dCls = 'flat';
+  if (k.delta != null && k.delta !== 0) {
+    const isGood = (k.delta > 0 && def.goodDir === 'up') || (k.delta < 0 && def.goodDir === 'down');
+    dCls = isGood ? 'down' : 'up';
+  }
+  const arrow = k.delta == null ? '–' : (k.delta > 0 ? '▲' : (k.delta < 0 ? '▼' : '▬'));
+  return `
+    <div class="kpi" style="border-top-color:${def.accent}">
+      <div class="label">${def.label}</div>
+      <div class="value">${def.valueFmt(k)}</div>
+      <div class="delta ${dCls}">${arrow} ${def.deltaFmt(k)}</div>
+    </div>`;
+}
+
+function renderKpisConsumerRcc(data) {
   const kpiHost = document.getElementById('kpis');
   if (!kpiHost) return;
   const fmtPct1 = v => (v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%');
@@ -2284,14 +2589,6 @@ function renderKpisConsumer(data) {
       valueFmt: k => fmtPct1(k.value),
       deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
       goodDir: 'up' },
-    { key: 'pi_mom', label: 'Personal Income (m/m)', accent: BRAND.teal,
-      valueFmt: k => fmtPct2(k.value),
-      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
-      goodDir: 'up' },
-    { key: 'pce_mom', label: 'Pers. Consumption (m/m)', accent: BRAND.mustard,
-      valueFmt: k => fmtPct2(k.value),
-      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
-      goodDir: 'up' },
     { key: 'umich_sentiment', label: 'UMich Sentiment', accent: BRAND.green,
       valueFmt: k => fmtIdx(k.value),
       deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(1)} vs prior month`,
@@ -2304,11 +2601,57 @@ function renderKpisConsumer(data) {
       goodDir: 'up' },
   ];
   kpiHost.innerHTML = KPI_DEFS.map(def => {
-    const k = data.kpis[def.key] || { value: null, delta: null };
+    const k = (data.kpis || {})[def.key] || { value: null, delta: null };
+    return _kpiHtml(def, k);
+  }).join('');
+}
+
+function renderKpisConsumerIsd(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const fmtPct1 = v => (v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%');
+  const fmtPct2 = v => (v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%');
+  const fmtUSD0 = v => (v == null ? 'n/a' : '$' + v.toFixed(0) + 'B');
+  const fmtUSD2 = v => (v == null ? 'n/a' : '$' + v.toFixed(2) + 'T');
+  const KPI_DEFS = [
+    { key: 'pi_mom', label: 'Personal Income (m/m)', accent: BRAND.teal,
+      valueFmt: k => fmtPct2(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
+      goodDir: 'up' },
+    { key: 'pce_mom', label: 'Pers. Consumption (m/m)', accent: BRAND.mustard,
+      valueFmt: k => fmtPct2(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
+      goodDir: 'up' },
+    { key: 'saving_rate', label: 'Saving Rate', accent: BRAND.green,
+      valueFmt: k => (k.value == null ? 'n/a' : k.value.toFixed(1) + '%'),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(1)} pp vs prior month`,
+      goodDir: 'up' },
+    { key: 'debt_total', label: 'Cons. Credit (ex-mortgage)', accent: BRAND.navy,
+      valueFmt: k => fmtUSD2(k.value),
+      deltaFmt: k => k.delta == null
+        ? (k.note ? '— add CSV data —' : 'no prior data')
+        : `${k.delta > 0 ? '+' : ''}$${k.delta.toFixed(2)}T vs prior quarter`,
+      goodDir: 'neutral' },
+    { key: 'revolving_yoy', label: 'Revolving Debt (y/y)', accent: BRAND.coral,
+      valueFmt: k => fmtPct1(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(1)} pp vs prior month`,
+      goodDir: 'neutral' },
+    { key: 'delq_credit_card', label: 'CC 90+ Day Delinq.', accent: BRAND.khaki,
+      valueFmt: k => (k.value == null ? 'n/a' : k.value.toFixed(1) + '%'),
+      deltaFmt: k => k.delta == null
+        ? (k.note ? '— add CSV data —' : 'no prior data')
+        : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior quarter`,
+      goodDir: 'down' },
+  ];
+  kpiHost.innerHTML = KPI_DEFS.map(def => {
+    const k = (data.kpis || {})[def.key] || { value: null, delta: null };
     let dCls = 'flat';
     if (k.delta != null && k.delta !== 0) {
-      const isGood = (k.delta > 0 && def.goodDir === 'up') || (k.delta < 0 && def.goodDir === 'down');
-      dCls = isGood ? 'down' : 'up';
+      let isGood;
+      if      (def.goodDir === 'up')   isGood = k.delta > 0;
+      else if (def.goodDir === 'down') isGood = k.delta < 0;
+      else                              isGood = null; // neutral
+      dCls = isGood == null ? 'flat' : (isGood ? 'down' : 'up');
     }
     const arrow = k.delta == null ? '–' : (k.delta > 0 ? '▲' : (k.delta < 0 ? '▼' : '▬'));
     return `
@@ -2320,19 +2663,13 @@ function renderKpisConsumer(data) {
   }).join('');
 }
 
-function registerAllCsvsConsumer(view) {
+function registerAllCsvsConsumerRcc(view) {
   registerCsv('chartCsRetailMom', 'retail-sales-mom-and-yoy.csv',
     ['Month', 'Total MoM (%)', 'Ex-MV MoM (%)', 'Control Group MoM (%)', 'Total YoY (%)'],
     mergeSeries([view.retail_total_mom, view.retail_ex_mv_mom, view.retail_control_mom, view.retail_total_yoy]));
   registerCsv('chartCsRetailSectors', 'retail-sales-sector-contributions.csv',
     ['Month', 'Total MoM (%)', ...view.retail_sectors.map(s => s.label + ' (pp)')],
     mergeSeries([view.retail_total_mom, ...view.retail_sectors.map(s => s.contribution)]));
-  registerCsv('chartCsIncomeNominal', 'income-and-consumption-nominal-mom.csv',
-    ['Month', 'Personal Income MoM (%)', 'Disposable PI MoM (%)', 'PCE MoM (%)'],
-    mergeSeries([view.pi_mom, view.dspi_mom, view.pce_mom]));
-  registerCsv('chartCsIncomeReal', 'income-and-consumption-real-mom.csv',
-    ['Month', 'Real PI MoM (%)', 'Real DPI MoM (%)', 'Real PCE MoM (%)'],
-    mergeSeries([view.rpi_mom, view.rdspi_mom, view.rpce_mom]));
   registerCsv('chartCsUmich', 'umich-consumer-sentiment.csv',
     ['Month', 'Total ICS', 'Expectations ICE', 'Current Conditions ICC'],
     mergeSeries([view.umich_total, view.umich_expect, view.umich_current]));
@@ -2340,6 +2677,33 @@ function registerAllCsvsConsumer(view) {
     ['Month', 'CCI', 'Expectations Index', 'Present Situation Index'],
     mergeSeries([view.cb_total, view.cb_expect, view.cb_present]));
 }
+
+function registerAllCsvsConsumerIsd(view) {
+  registerCsv('chartCsIncomeNominal', 'income-and-consumption-nominal-mom.csv',
+    ['Month', 'Personal Income MoM (%)', 'Disposable PI MoM (%)', 'PCE MoM (%)'],
+    mergeSeries([view.pi_mom, view.dspi_mom, view.pce_mom]));
+  registerCsv('chartCsIncomeReal', 'income-and-consumption-real-mom.csv',
+    ['Month', 'Real PI MoM (%)', 'Real DPI MoM (%)', 'Real PCE MoM (%)'],
+    mergeSeries([view.rpi_mom, view.rdspi_mom, view.rpce_mom]));
+  registerCsv('chartCsSavingRate', 'personal-saving-rate.csv',
+    ['Month', 'Saving Rate (%)'],
+    (view.saving_rate || []).map(r => [r[0], r[1]]));
+  registerCsv('chartCsInterestPayments', 'personal-interest-payments.csv',
+    ['Month', 'Personal Interest Payments ($bn SAAR)'],
+    (view.interest_payments || []).map(r => [r[0], r[1]]));
+  const debt = view.debt || {};
+  registerCsv('chartCsConsumerCredit', 'consumer-credit-by-category.csv',
+    ['Quarter', 'Credit Card ($T)', 'Home Equity ($T)', 'Auto ($T)', 'Student ($T)', 'Other ($T)', 'Total ex-Mortgage ($T)'],
+    mergeSeries([debt.credit_card || [], debt.home_equity || [], debt.auto || [], debt.student || [], debt.other || [], debt.total || []]));
+  registerCsv('chartCsRevolving', 'revolving-consumer-credit.csv',
+    ['Month', 'Revolving Credit ($bn SAAR)', 'YoY % Change'],
+    mergeSeries([view.revolving || [], view.revolving_yoy || []]));
+  const delq = view.delinquency || {};
+  registerCsv('chartCsDelinquency', 'pct-balances-90day-delinquent.csv',
+    ['Quarter', 'Credit Cards (%)', 'Mortgages (%)', 'Auto (%)', 'Student (%)'],
+    mergeSeries([delq.credit_card || [], delq.mortgage || [], delq.auto || [], delq.student || []]));
+}
+
 
 function applyRange(range) {
   CURRENT_RANGE = range;
@@ -2365,9 +2729,12 @@ function applyRange(range) {
   } else if (CURRENT_PAGE === 'gdp') {
     const view = rangedViewGdp(RAW_DATA, range);
     renderAllGdp(view); registerAllCsvsGdp(view);
-  } else if (CURRENT_PAGE === 'consumer') {
-    const view = rangedViewConsumer(RAW_DATA, range);
-    renderAllConsumer(view); registerAllCsvsConsumer(view);
+  } else if (CURRENT_PAGE === 'consumer-isd') {
+    const view = rangedViewConsumerIsd(RAW_DATA, range);
+    renderAllConsumerIsd(view); registerAllCsvsConsumerIsd(view);
+  } else if (CURRENT_PAGE === 'consumer-rcc') {
+    const view = rangedViewConsumerRcc(RAW_DATA, range);
+    renderAllConsumerRcc(view); registerAllCsvsConsumerRcc(view);
   } else if (CURRENT_PAGE === 'treasuries') {
     const view = rangedViewTreasuries(RAW_DATA, range);
     renderAllTreasuries(view); registerAllCsvsTreasuries(view);
@@ -2986,12 +3353,11 @@ function rangedViewEquities(data, range) {
 }
 
 // Equity formatters
-function fmtIdx(v)    { return v == null ? 'n/a' : v.toLocaleString('en-US', { maximumFractionDigits: 2 }); }
-function fmtIdx0(v)   { return v == null ? 'n/a' : v.toLocaleString('en-US', { maximumFractionDigits: 0 }); }
-function fmtPct1(v)   { return v == null ? 'n/a' : v.toFixed(1) + '%'; }
-function fmtPct2(v)   { return v == null ? 'n/a' : v.toFixed(2) + '%'; }
-function fmtRatio2Eq(v) { return v == null ? 'n/a' : v.toFixed(2); }
-function fmtIndex100Eq(v) { return v == null ? 'n/a' : v.toFixed(1); }
+function fmtIdxEq(v)        { return v == null ? 'n/a' : v.toLocaleString('en-US', { maximumFractionDigits: 2 }); }
+function fmtIdx0Eq(v)       { return v == null ? 'n/a' : v.toLocaleString('en-US', { maximumFractionDigits: 0 }); }
+function fmtPct1Eq(v)       { return v == null ? 'n/a' : v.toFixed(1) + '%'; }
+function fmtRatio2Eq(v)     { return v == null ? 'n/a' : v.toFixed(2); }
+function fmtIndex100Eq(v)   { return v == null ? 'n/a' : v.toFixed(1); }
 
 function buildEqSpx(view) {
   // S&P 500 daily close, navy line.
@@ -3007,7 +3373,7 @@ function buildEqSpx(view) {
           tension: 0.15, borderWidth: 2.5, pointRadius: pr, fill: false },
       ],
     },
-    options: baseOptions(fmtIdx0),
+    options: baseOptions(fmtIdx0Eq),
   };
 }
 
@@ -3076,7 +3442,7 @@ function buildEqVix(view) {
           borderColor: BRAND.navy, borderWidth: 1.2, borderDash: [4,4], pointRadius: 0, fill: false },
       ],
     },
-    options: baseOptions(fmtIdx),
+    options: baseOptions(fmtIdxEq),
   };
 }
 
@@ -3103,7 +3469,7 @@ function buildEqDrawdown(view) {
           borderColor: BRAND.navy, borderWidth: 1.2, borderDash: [4,4], pointRadius: 0, fill: false },
       ],
     },
-    options: baseOptions(fmtPct1, { scales: { min: yMin, max: 2 } }),
+    options: baseOptions(fmtPct1Eq, { scales: { min: yMin, max: 2 } }),
   };
 }
 
@@ -3138,7 +3504,7 @@ function buildEqWilshirePE(view) {
 
   // Semi-transparent band colors -- light enough that the line and gridlines
   // remain readable on top.
-  const cheapFill  = 'rgba(244, 232, 178, 0.55)';   // pale cream (BRAND.chartBg-ish)
+  const cheapFill  = 'rgba(244, 232, 178, 0.55)';   // pale cream
   const fairFill   = 'rgba(106, 142, 61, 0.18)';    // green
   const overFill   = 'rgba(140, 100, 160, 0.22)';   // muted purple
   const bubbleFill = 'rgba(212, 98, 74, 0.18)';     // coral
@@ -3184,7 +3550,6 @@ function buildEqWilshirePE(view) {
 function buildEqNdqRut(view) {
   // Nasdaq Composite vs Russell 2000, both rebased to 100 at the start of the
   // window. Captures the divergence between mega-cap tech and small caps.
-  // Use the Nasdaq date axis as reference (denser than Russell pre-1987).
   const labels = view.nasdaq.map(r => shortLabelD(r[0]));
   const pr = pointSizeForLength(labels.length);
   const ndqDates = view.nasdaq.map(r => r[0]);
@@ -3278,9 +3643,9 @@ function renderKpisEquities(data) {
       // For drawdown: rising dd value (toward 0) is a recovery (good) = green.
       // For everything else: rising = green.
       if (def.isVix) {
-        dCls = (k.delta_pct > 0 ? 'down' : 'up'); // up vol -> coral, down vol -> green
+        dCls = (k.delta_pct > 0 ? 'down' : 'up');
       } else if (def.isDrawdown) {
-        dCls = (k.delta_pct > 0 ? 'up' : 'down'); // dd up toward 0 -> green; falling -> coral
+        dCls = (k.delta_pct > 0 ? 'up' : 'down');
       } else {
         dCls = (k.delta_pct > 0 ? 'up' : 'down');
       }
@@ -3288,7 +3653,6 @@ function renderKpisEquities(data) {
     const arrow = k.delta_pct == null ? '-' : (k.delta_pct > 0 ? '▲' : (k.delta_pct < 0 ? '▼' : '▬'));
     let valHtml;
     if (def.isDrawdown) {
-      // Drawdown is in %; suffix with %.
       valHtml = (k.value == null ? 'n/a' : k.value.toFixed(2) + '%');
     } else {
       valHtml = fmtVal(k.value, def.decimals);
@@ -3523,34 +3887,66 @@ window.EG = {
     if (GDP_BUILDERS[id]) makeChart(id, GDP_BUILDERS[id](view));
   },
 
-  renderConsumer(data) {
-    CURRENT_PAGE = 'consumer';
+  renderConsumerRcc(data) {
+    CURRENT_PAGE = 'consumer-rcc';
     RAW_DATA = data;
     const m = document.getElementById('latest-month');
     if (m) m.textContent = formatLabelLong(data.latest_label);
-    renderKpisConsumer(data);
-    const view = rangedViewConsumer(data, CURRENT_RANGE);
-    renderAllConsumer(view); registerAllCsvsConsumer(view);
+    renderKpisConsumerRcc(data);
+    const view = rangedViewConsumerRcc(data, CURRENT_RANGE);
+    renderAllConsumerRcc(view); registerAllCsvsConsumerRcc(view);
     attachDownloadHandlers(); wireRangeToggle();
   },
 
-  // Embed mode for Consumer:
-  // chartKey ∈ 'retail' | 'sectors' | 'incomenom' | 'incomereal' | 'umich' | 'confboard'
-  renderConsumerEmbed(chartKey, data, range) {
-    CURRENT_PAGE = 'consumer';
+  renderConsumerIsd(data) {
+    CURRENT_PAGE = 'consumer-isd';
+    RAW_DATA = data;
+    const m = document.getElementById('latest-month');
+    if (m) m.textContent = formatLabelLong(data.latest_label);
+    const q = document.getElementById('latest-quarter');
+    if (q) q.textContent = data.latest_quarter
+      ? formatLabelLongQ(data.latest_quarter) : 'no NY Fed data uploaded yet';
+    renderKpisConsumerIsd(data);
+    const view = rangedViewConsumerIsd(data, CURRENT_RANGE);
+    renderAllConsumerIsd(view); registerAllCsvsConsumerIsd(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  // Embed mode for Consumer (Retail & Confidence sub-page):
+  // chartKey ∈ 'retail' | 'sectors' | 'umich' | 'confboard'
+  renderConsumerRccEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'consumer-rcc';
     RAW_DATA = data;
     if (range && RANGE_MONTHS[range]) CURRENT_RANGE = range;
-    const view = rangedViewConsumer(data, CURRENT_RANGE);
+    const view = rangedViewConsumerRcc(data, CURRENT_RANGE);
     const map = {
       retail:     'chartCsRetailMom',
       sectors:    'chartCsRetailSectors',
-      incomenom:  'chartCsIncomeNominal',
-      incomereal: 'chartCsIncomeReal',
       umich:      'chartCsUmich',
       confboard:  'chartCsConfBoard',
     };
     const id = map[chartKey] || 'chartCsRetailMom';
-    if (CONSUMER_BUILDERS[id]) makeChart(id, CONSUMER_BUILDERS[id](view));
+    if (CONSUMER_RCC_BUILDERS[id]) makeChart(id, CONSUMER_RCC_BUILDERS[id](view));
+  },
+
+  // Embed mode for Consumer (Income / Spending / Debt sub-page):
+  // chartKey ∈ 'incomenom' | 'incomereal' | 'savingrate' | 'interest' | 'credit' | 'revolving' | 'delinquency'
+  renderConsumerIsdEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'consumer-isd';
+    RAW_DATA = data;
+    if (range && (RANGE_MONTHS[range] || RANGE_QUARTERS[range])) CURRENT_RANGE = range;
+    const view = rangedViewConsumerIsd(data, CURRENT_RANGE);
+    const map = {
+      incomenom:   'chartCsIncomeNominal',
+      incomereal:  'chartCsIncomeReal',
+      savingrate:  'chartCsSavingRate',
+      interest:    'chartCsInterestPayments',
+      credit:      'chartCsConsumerCredit',
+      revolving:   'chartCsRevolving',
+      delinquency: 'chartCsDelinquency',
+    };
+    const id = map[chartKey] || 'chartCsIncomeNominal';
+    if (CONSUMER_ISD_BUILDERS[id]) makeChart(id, CONSUMER_ISD_BUILDERS[id](view));
   },
 
   renderTreasuries(data) {
