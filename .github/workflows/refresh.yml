@@ -105,12 +105,17 @@ jobs:
         # from burning a MetalPriceAPI call (free tier is 100/month).
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         env:
-          FRED_API_KEY:       ${{ secrets.FRED_API_KEY }}
-          # METALPRICE_API_KEY paused through 2026-05-25 — quota nearly exhausted.
-          # Re-enable on/after 2026-05-25 by uncommenting the line below.
-          # METALPRICE_API_KEY: ${{ secrets.METALPRICE_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         continue-on-error: true
-        run: python scripts/fetch_commodities.py
+        run: |
+          # Auto-pause MetalPriceAPI through 2026-05-24 (quota nearly exhausted
+          # this cycle). Resumes automatically on/after 2026-05-25.
+          if [[ "$(date -u +%Y-%m-%d)" > "2026-05-24" ]]; then
+            export METALPRICE_API_KEY="${{ secrets.METALPRICE_API_KEY }}"
+          else
+            echo "MetalPriceAPI paused until 2026-05-25 (quota conservation)"
+          fi
+          python scripts/fetch_commodities.py
 
       - name: Refresh Equities data from Yahoo Finance + FRED
         env:
