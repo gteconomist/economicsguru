@@ -11766,7 +11766,11 @@
     ],
     [
       "2026-02",
-      6882.0
+      6922.0
+    ],
+    [
+      "2026-03",
+      6866.0
     ]
   ],
   "jolts_hires": [
@@ -12928,7 +12932,11 @@
     ],
     [
       "2026-02",
-      4849.0
+      4899.0
+    ],
+    [
+      "2026-03",
+      5554.0
     ]
   ],
   "jolts_quits": [
@@ -14090,7 +14098,11 @@
     ],
     [
       "2026-02",
-      2974.0
+      3046.0
+    ],
+    [
+      "2026-03",
+      3171.0
     ]
   ],
   "kpis": {
@@ -14119,22 +14131,22 @@
       "label": "2026-03"
     },
     "openings": {
-      "value": 6882.0,
-      "delta": -358.0,
+      "value": 6866.0,
+      "delta": -56.0,
       "unit": "k",
-      "label": "2026-02"
+      "label": "2026-03"
     },
     "quits": {
-      "value": 2974.0,
-      "delta": -157.0,
+      "value": 3171.0,
+      "delta": 125.0,
       "unit": "k",
-      "label": "2026-02"
+      "label": "2026-03"
     }
   },
   "latest_label": "2026-03",
   "ces_latest": "2026-03",
   "cps_latest": "2026-03",
-  "jolts_latest": "2026-02",
-  "build_time": "2026-05-03T11:43:35Z",
+  "jolts_latest": "2026-03",
+  "build_time": "2026-05-05T16:37:10Z",
   "notice": "The BLS Employment Situation release for October 2025 is missing from the source data. Charts skip the missing month; month-over-month changes are not shown for the month immediately following."
 }
