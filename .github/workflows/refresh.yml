@@ -101,9 +101,14 @@ jobs:
         run: python scripts/fetch_treasuries.py
 
       - name: Refresh Commodities data from Stooq + FRED + MetalPriceAPI
+        # Gate to scheduled/manual runs only -- prevents every content push
+        # from burning a MetalPriceAPI call (free tier is 100/month).
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         env:
           FRED_API_KEY:       ${{ secrets.FRED_API_KEY }}
-          METALPRICE_API_KEY: ${{ secrets.METALPRICE_API_KEY }}
+          # METALPRICE_API_KEY paused through 2026-05-25 — quota nearly exhausted.
+          # Re-enable on/after 2026-05-25 by uncommenting the line below.
+          # METALPRICE_API_KEY: ${{ secrets.METALPRICE_API_KEY }}
         continue-on-error: true
         run: python scripts/fetch_commodities.py
 
