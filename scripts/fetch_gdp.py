@@ -44,10 +44,14 @@ def _bea_get(table, freq="Q"):
     key = os.environ.get("BEA_API_KEY")
     if not key:
         raise RuntimeError("BEA_API_KEY env var is not set.")
+    # BEA NIPA returns intermittent 500s for Year=ALL on larger tables.
+    # Send an explicit year list instead -- same data, no server-side blow-up.
+    end_year = dt.date.today().year
+    years = ",".join(str(y) for y in range(START_YEAR, end_year + 1))
     params = {
         "UserID": key, "method": "GetData",
         "datasetname": "NIPA", "TableName": table,
-        "Frequency": freq, "Year": "ALL", "ResultFormat": "JSON",
+        "Frequency": freq, "Year": years, "ResultFormat": "JSON",
     }
     url = "https://apps.bea.gov/api/data/?" + parse.urlencode(params)
     with request.urlopen(url, timeout=60) as r:
