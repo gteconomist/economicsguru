@@ -153,10 +153,107 @@ const lineOnTopPlugin = {
 };
 Chart.register(lineOnTopPlugin);
 
+// =========================================================
+// Readout-style tooltip
+// Renders chart values into a panel BELOW the chart (inside
+// the same .chart-card) instead of as a floating overlay.
+// On mobile this prevents the tooltip from covering the
+// chart; on desktop it gives a stable, scannable readout.
+// Embed pages (no .chart-card) keep the default tooltip.
+// =========================================================
+(function injectReadoutStyles(){
+  if (document.getElementById('eg-readout-styles')) return;
+  const css = `
+    .eg-readout {
+      margin-top: 8px;
+      padding: 8px 10px;
+      background: ${BRAND.navy};
+      color: #fff;
+      border-left: 3px solid ${BRAND.mustard};
+      border-radius: 4px;
+      font: 12px/1.4 "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      min-height: 38px;
+      box-sizing: border-box;
+    }
+    .eg-readout-title { font-weight: 700; margin-bottom: 4px; font-size: 12px; opacity: 0.92; }
+    .eg-readout-body  { display: grid; grid-template-columns: 1fr; gap: 2px; }
+    .eg-readout-row   { display: flex; align-items: center; gap: 8px; line-height: 1.35; }
+    .eg-readout-swatch { display: inline-block; width: 11px; height: 11px; border-radius: 2px; flex: 0 0 11px; border: 1px solid rgba(255,255,255,0.25); }
+    .eg-readout-label  { flex: 1; min-width: 0; }
+    .eg-readout-placeholder { color: rgba(255,255,255,0.65); font-style: italic; font-size: 12px; }
+    @media (min-width: 720px) {
+      .eg-readout-body { grid-template-columns: 1fr 1fr; column-gap: 16px; }
+    }
+  `;
+  const style = document.createElement('style');
+  style.id = 'eg-readout-styles';
+  style.textContent = css;
+  document.head.appendChild(style);
+})();
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function externalTooltipHandler(context) {
+  const { chart, tooltip } = context;
+  const canvas = chart.canvas;
+  const wrap = canvas && canvas.parentNode;
+  if (!wrap || !wrap.parentNode) return;
+
+  let readout = wrap.nextElementSibling;
+  if (!readout || !readout.classList || !readout.classList.contains('eg-readout')) {
+    readout = document.createElement('div');
+    readout.className = 'eg-readout';
+    readout.innerHTML = '<span class="eg-readout-placeholder">Tap a bar or point for values</span>';
+    wrap.parentNode.insertBefore(readout, wrap.nextSibling);
+  }
+
+  if (tooltip.opacity === 0) return; // keep the most recent values visible
+
+  const titleLines = tooltip.title || [];
+  const bodyLines  = (tooltip.body || []).map(b => b.lines);
+  const colors     = tooltip.labelColors || [];
+
+  let html = '';
+  if (titleLines.length) {
+    html += '<div class="eg-readout-title">' + titleLines.map(escapeHtml).join('<br>') + '</div>';
+  }
+  html += '<div class="eg-readout-body">';
+  bodyLines.forEach((lines, i) => {
+    const c = colors[i] || {};
+    const swatch = c.backgroundColor || c.borderColor || '#ccc';
+    lines.forEach(line => {
+      html += '<div class="eg-readout-row">' +
+        '<span class="eg-readout-swatch" style="background:' + escapeHtml(swatch) + '"></span>' +
+        '<span class="eg-readout-label">' + escapeHtml(line) + '</span>' +
+        '</div>';
+    });
+  });
+  html += '</div>';
+  readout.innerHTML = html;
+}
+
 function makeChart(canvasId, config) {
   if (CHART_INSTANCES[canvasId]) CHART_INSTANCES[canvasId].destroy();
   const el = document.getElementById(canvasId);
   if (!el) return null;
+  // Use the readout-style tooltip when this canvas is inside a .chart-card
+  // (the main site). Embed pages without .chart-card keep the default tooltip.
+  if (el.closest && el.closest('.chart-card')) {
+    config.options = config.options || {};
+    config.options.plugins = config.options.plugins || {};
+    config.options.plugins.tooltip = Object.assign(
+      {}, config.options.plugins.tooltip || {},
+      { enabled: false, external: externalTooltipHandler }
+    );
+    // Reset readout when re-rendering (e.g. range slider change)
+    const wrap = el.parentNode;
+    const sib = wrap && wrap.nextElementSibling;
+    if (sib && sib.classList && sib.classList.contains('eg-readout')) {
+      sib.innerHTML = '<span class="eg-readout-placeholder">Tap a bar or point for values</span>';
+    }
+  }
   CHART_INSTANCES[canvasId] = new Chart(el, config);
   return CHART_INSTANCES[canvasId];
 }
