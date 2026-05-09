@@ -140,7 +140,7 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_industry_surveys.py
         
-     - name: Refresh Government data from FRED + Treasury Fiscal Data
+      - name: Refresh Government data from FRED + Treasury Fiscal Data
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         continue-on-error: true
