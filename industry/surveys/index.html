@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Industry Surveys &mdash; ISM Manufacturing, ISM Services, Cass Freight &mdash; Economics Guru</title>
-<meta name="description" content="Live US industry survey dashboard: ISM Manufacturing PMI (with Employment / New Orders / Backlog / Prices components), ISM Services PMI (with Employment / New Orders / Prices), and the Cass Freight Index of volume shipments. Survey data via the Institute for Supply Management and Cass Information Systems. Refreshed monthly.">
+<title>Industry Surveys &mdash; ISM Manufacturing, ISM Services, Cass Freight, NFIB &mdash; Economics Guru</title>
+<meta name="description" content="Live US industry survey dashboard: ISM Manufacturing PMI (with Employment / New Orders / Backlog / Prices components), ISM Services PMI (with Employment / New Orders / Prices), the Cass Freight Index of volume shipments, and the NFIB Small Business Optimism + Uncertainty Indices with the latest single-most-important-problem snapshot. Survey data via ISM, Cass Information Systems, and NFIB. Refreshed monthly.">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="/assets/styles.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -73,8 +73,8 @@
     <a href="/industry/surveys/" class="active">Surveys (ISM, Cass)</a>
   </nav>
   <div class="page-header">
-    <h1>Industry Surveys &mdash; ISM &amp; Cass</h1>
-    <div class="subtitle">The forward-looking layer on top of the hard manufacturing data: monthly diffusion indices from the Institute for Supply Management (Manufacturing and Services PMIs and their sub-indices), plus the Cass Freight Index from Cass Information Systems &mdash; a volume gauge built from billions of dollars of payments processed each month. PMIs above 50 = expansion; below 50 = contraction.</div>
+    <h1>Industry Surveys &mdash; ISM, Cass &amp; NFIB</h1>
+    <div class="subtitle">The forward-looking layer on top of the hard manufacturing data: monthly diffusion indices from the Institute for Supply Management (Manufacturing and Services PMIs and their sub-indices), the Cass Freight Index from Cass Information Systems &mdash; a volume gauge built from billions of dollars of payments processed each month &mdash; and the NFIB Small Business Optimism and Uncertainty Indices, which capture how main-street America is feeling. PMIs above 50 = expansion; below 50 = contraction. NFIB Optimism above 98 (the 52-year average) = small business confidence above trend.</div>
     <div class="latest">Latest data: <strong id="latest-month">&hellip;</strong></div>
   </div>
 
@@ -96,7 +96,7 @@
   </div>
 
   <div class="interactivity-hint">
-    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post. The time range applies to all six charts at once. The Cass Index is published with a one-month lag (Mar reading appears in late April), so it usually trails the ISM data by one month.
+    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post. The time range applies to all line charts at once (the &ldquo;Single Most Important Problem&rdquo; doughnut is always the latest survey). The Cass Index publishes with a one-month lag (Mar reading appears mid-April); NFIB releases on the second Tuesday of each month covering the prior month&rsquo;s survey.
   </div>
 
   <div class="chart-grid">
@@ -141,16 +141,6 @@
     </div>
 
     <div class="chart-card">
-      <div class="title">Cass Freight Index &mdash; Volume of Shipments</div>
-      <div class="subtitle">(Index Level; Jan 1990 = 1.000; NSA &mdash; Captures the Real Movement of Goods Across All Modes of Transportation)</div>
-      <div class="chart-wrap"><canvas id="chartIndSurveysCassLevel"></canvas></div>
-      <div class="source">
-        <span>Source: Cass Information Systems &mdash; Volume Index of Freight Shipments. Built from billions of dollars of freight invoices processed each month; covers truckload, less-than-truckload, rail, intermodal, parcel, and air.</span>
-        <a href="#" class="csv-link" data-chart="chartIndSurveysCassLevel">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
       <div class="title">Cass Freight Shipments &mdash; Year-Over-Year %</div>
       <div class="subtitle">(Volume Index, % Change vs. Same Month a Year Ago; Cycle View &mdash; Negative for Most of the Post-2022 Freight Recession)</div>
       <div class="chart-wrap"><canvas id="chartIndSurveysCassYoy"></canvas></div>
@@ -159,12 +149,42 @@
         <a href="#" class="csv-link" data-chart="chartIndSurveysCassYoy">Download CSV</a>
       </div>
     </div>
+
+    <div class="chart-card">
+      <div class="title">NFIB Small Business Optimism Index</div>
+      <div class="subtitle">(Diffusion-Style Index, Seasonally Adjusted; 1986 = 100; Long-Run History from Late 1974, with the 52-Year ~98 Average Shown as a Dashed Reference Line)</div>
+      <div class="chart-wrap"><canvas id="chartIndSurveysNfibOptimism"></canvas></div>
+      <div class="source">
+        <span>Source: National Federation of Independent Business (NFIB) Research Foundation &mdash; Small Business Economic Trends (SBET). Released the second Tuesday of each month based on a survey of NFIB member firms.</span>
+        <a href="#" class="csv-link" data-chart="chartIndSurveysNfibOptimism">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">NFIB Small Business Uncertainty Index</div>
+      <div class="subtitle">(Net %, Seasonally Adjusted; Higher = More Uncertain; Historical Average ~68 Shown as a Dashed Reference Line; Series Begins 1986)</div>
+      <div class="chart-wrap"><canvas id="chartIndSurveysNfibUncertainty"></canvas></div>
+      <div class="source">
+        <span>Source: National Federation of Independent Business (NFIB) Research Foundation &mdash; Small Business Economic Trends. Built from owners' net responses to six forward-looking SBET questions.</span>
+        <a href="#" class="csv-link" data-chart="chartIndSurveysNfibUncertainty">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">NFIB &mdash; Single Most Important Problem (Latest Survey)</div>
+      <div class="subtitle">(Share of Small Business Owners Citing Each Issue as Their Top Problem; NSA; Snapshot Updates Monthly with Each SBET Release)</div>
+      <div class="chart-wrap" style="max-width:680px; margin:0 auto;"><canvas id="chartIndSurveysNfibProblems"></canvas></div>
+      <div class="source">
+        <span>Source: National Federation of Independent Business (NFIB) Research Foundation &mdash; SBET. The nine published categories rarely sum to 100% &mdash; the residual is shown as &ldquo;Other / none&rdquo;.</span>
+        <a href="#" class="csv-link" data-chart="chartIndSurveysNfibProblems">Download CSV</a>
+      </div>
+    </div>
   </div>
 </main>
 
 <footer class="site-footer">
   <div class="wrap">
-    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public and licensed data from BLS, FRED, BEA, Census, EIA, ICE BofA, Yahoo Finance, MetalPriceAPI, ISM, and Cass Information Systems. <a href="/about/">Methodology</a></div>
+    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public and licensed data from BLS, FRED, BEA, Census, EIA, ICE BofA, Yahoo Finance, MetalPriceAPI, ISM, Cass Information Systems, and NFIB. <a href="/about/">Methodology</a></div>
     <div>Data refreshes nightly. Last successful build: <span id="build-time">&hellip;</span></div>
   </div>
 </footer>
