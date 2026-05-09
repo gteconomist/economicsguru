@@ -108,6 +108,10 @@ main { max-width: 1200px; margin: 0 auto; padding: 28px 24px 48px; }
   font-family: var(--font-display); font-size: 26px; font-weight: 700;
   color: var(--navy); margin-top: 4px; line-height: 1.1;
 }
+.kpi .sub-value {
+  font-size: 13px; font-weight: 600; color: var(--ink-soft);
+  margin-top: 2px; line-height: 1.2;
+}
 .kpi .delta { font-size: 12px; margin-top: 4px; color: var(--ink-soft); font-weight: 500; }
 .kpi .delta.up   { color: var(--coral); }
 .kpi .delta.down { color: var(--teal); }
