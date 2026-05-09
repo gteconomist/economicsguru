@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Government &amp; Fiscal Policy &mdash; Economics Guru</title>
+<meta name="description" content="Live US government and fiscal-policy dashboard: federal debt outstanding (daily), government employment (federal/state/local), federal outlays vs. receipts, M2 money supply, Federal Reserve balance sheet, tariff revenue, federal interest expense, and debt as a percent of GDP. Updated daily from the U.S. Treasury, FRED, and the Bureau of Labor Statistics.">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/assets/styles.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  .interactivity-hint { margin: 10px 0 16px; font-size: 12.5px; font-style: italic; color: var(--ink-on-navy-soft); }
+  .chart-card .source { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; }
+  .chart-card .csv-link { font-size: 11px; font-weight: 700; color: var(--mustard); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; text-decoration: none; }
+  .chart-card .csv-link::before { content: '\2193  '; }
+  .chart-card .csv-link:hover { text-decoration: underline; }
+  .controls { display: flex; gap: 12px; align-items: center; margin: 4px 0 0; flex-wrap: wrap; }
+  .controls .label-text { font-size: 12px; color: var(--ink-on-navy-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <div class="brand">Economics<span class="tag">Guru</span></div>
+    <nav>
+      <a href="/">Home</a>
+      <a href="/inflation/">Inflation</a>
+      <a href="/labor/">Labor</a>
+      <a href="/housing/">Housing</a>
+      <a href="/gdp/">GDP</a>
+      <a href="/consumer/">Consumer</a>
+      <a href="/rates/">Rates</a>
+      <a href="/industry/">Industry</a>
+      <a href="/government/" class="active">Government</a>
+      <a href="/about/">About</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="page-header">
+    <h1>US Government &amp; Fiscal Policy</h1>
+    <div class="subtitle">The size of the federal balance sheet, the people who staff government, the cash flowing in and out of Treasury, the money supply that backs it all, and the Federal Reserve&rsquo;s footprint on top &mdash; eight charts that together describe the financial weight of the U.S. public sector. Sourced live from the U.S. Treasury (Fiscal Data API), the Federal Reserve via FRED, and the Bureau of Labor Statistics.</div>
+    <div class="latest">Latest data: <strong id="latest-month">&hellip;</strong></div>
+  </div>
+
+  <div class="notice" id="notice" style="display:none">
+    <strong>Data note:</strong> <span id="notice-text"></span>
+  </div>
+
+  <div id="kpis" class="kpi-grid"></div>
+
+  <div class="controls">
+    <span class="label-text">Time range:</span>
+    <div class="range-toggle">
+      <button data-range="5y" class="active">5 yr</button>
+      <button data-range="10y">10 yr</button>
+      <button data-range="20y">20 yr</button>
+      <button data-range="max">Max</button>
+    </div>
+  </div>
+
+  <div class="interactivity-hint">
+    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV. Time range applies to all charts at once &mdash; some series only run back a few decades, in which case &ldquo;Max&rdquo; will show the full available history.
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="title">Federal Debt Outstanding</div>
+      <div class="subtitle">(Total Public Debt, $ Trillions, Daily; Vertical Lines Mark Each Trillion-Dollar Threshold Crossed)</div>
+      <div class="chart-wrap"><canvas id="chartGovDebt"></canvas></div>
+      <div class="source">
+        <span>Source: U.S. Treasury Fiscal Data &mdash; Debt to the Penny.</span>
+        <a href="#" class="csv-link" data-chart="chartGovDebt">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Government Employment</div>
+      <div class="subtitle">(Thousands of Workers; Federal, State, and Local on a Single Axis)</div>
+      <div class="chart-wrap"><canvas id="chartGovEmp"></canvas></div>
+      <div class="source">
+        <span>Source: BLS Current Employment Statistics via FRED &mdash; CES9091000001 (Federal), CES9092000001 (State), CES9093000001 (Local).</span>
+        <a href="#" class="csv-link" data-chart="chartGovEmp">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Federal Outlays vs. Receipts</div>
+      <div class="subtitle">(Trailing-12-Month Sums, $ Billions; The Gap Between the Lines = the Federal Deficit)</div>
+      <div class="chart-wrap"><canvas id="chartGovOutRcpt"></canvas></div>
+      <div class="source">
+        <span>Source: U.S. Treasury Monthly Treasury Statement via FRED &mdash; MTSO133FMS (Outlays), MTSR133FMS (Receipts).</span>
+        <a href="#" class="csv-link" data-chart="chartGovOutRcpt">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">M2 Money Supply</div>
+      <div class="subtitle">(Level in $ Trillions on Left Axis; Year-over-Year Percent Change on Right Axis)</div>
+      <div class="chart-wrap"><canvas id="chartGovM2"></canvas></div>
+      <div class="source">
+        <span>Source: Federal Reserve H.6 via FRED &mdash; M2SL.</span>
+        <a href="#" class="csv-link" data-chart="chartGovM2">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Federal Reserve Balance Sheet</div>
+      <div class="subtitle">(Stacked Composition: Treasuries, Mortgage-Backed Securities, All Other Assets, $ Billions, Weekly; Green Lines = Easing Programs Announced, Red Lines = Tightening / QT Began)</div>
+      <div class="chart-wrap"><canvas id="chartGovFedBS"></canvas></div>
+      <div class="source">
+        <span>Source: Federal Reserve H.4.1 via FRED &mdash; WALCL (Total Assets), TREAST (Treasuries), WSHOMCB (MBS); &ldquo;Other&rdquo; computed as the residual.</span>
+        <a href="#" class="csv-link" data-chart="chartGovFedBS">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Tariff Revenue</div>
+      <div class="subtitle">(Customs Duties Collected, $ Billions, Monthly; Gold Areas = Trump Terms in Office, Gray Areas = NBER Recessions)</div>
+      <div class="chart-wrap"><canvas id="chartGovTariffs"></canvas></div>
+      <div class="source">
+        <span>Source: U.S. Treasury Monthly Treasury Statement (Receipts by Source) via the Treasury Fiscal Data API.</span>
+        <a href="#" class="csv-link" data-chart="chartGovTariffs">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Federal Interest Expense</div>
+      <div class="subtitle">(Annualized Quarterly Rate, $ Billions; The Cost of Servicing Existing Debt &mdash; Now the Third-Largest Federal Outlay)</div>
+      <div class="chart-wrap"><canvas id="chartGovInterest"></canvas></div>
+      <div class="source">
+        <span>Source: BEA NIPA Table 3.2 via FRED &mdash; A091RC1Q027SBEA (Federal Government Current Expenditures: Interest Payments).</span>
+        <a href="#" class="csv-link" data-chart="chartGovInterest">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Federal Debt as Percent of GDP</div>
+      <div class="subtitle">(Total Public Debt &divide; Nominal GDP, %, Quarterly; The Single Most-Cited Sustainability Metric)</div>
+      <div class="chart-wrap"><canvas id="chartGovDebtGdp"></canvas></div>
+      <div class="source">
+        <span>Source: U.S. Treasury / BEA via FRED &mdash; GFDEGDQ188S.</span>
+        <a href="#" class="csv-link" data-chart="chartGovDebtGdp">Download CSV</a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, BEA, Census, UMich, Conference Board, ICE BofA, and the U.S. Treasury Fiscal Data API. <a href="/about/">Methodology</a></div>
+    <div>Data refreshes nightly. Last successful build: <span id="build-time">&hellip;</span></div>
+  </div>
+</footer>
+
+<script src="/assets/charts.js"></script>
+<script>
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+fetch('/data/government.json', { cache: 'no-cache' })
+  .then(r => r.json())
+  .then(data => {
+    EG.renderGovernment(data);
+    if (data.notice) {
+      document.getElementById('notice').style.display = '';
+      document.getElementById('notice-text').textContent = data.notice;
+    }
+    if (data.build_time) {
+      document.getElementById('build-time').textContent =
+        new Date(data.build_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    document.querySelector('main').insertAdjacentHTML('afterbegin',
+      '<div class="notice"><strong>Could not load data.</strong> Try refreshing in a moment.</div>');
+  });
+</script>
+
+</body>
+</html>
