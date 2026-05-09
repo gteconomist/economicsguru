@@ -4363,6 +4363,7 @@ function rangedViewIndustrySurveys(data, range) {
   const m = data.ism_manufacturing || {};
   const s = data.ism_services      || {};
   const c = data.cass_freight      || {};
+  const nf = data.nfib_sbet         || {};
   return {
     ism_manufacturing: {
       total:       tail(m.total       || [], n),
@@ -4380,6 +4381,11 @@ function rangedViewIndustrySurveys(data, range) {
     cass_freight: {
       index:       tail(c.index       || [], n),
       yoy_pct:     tail(c.yoy_pct     || [], n),
+    },
+    nfib_sbet: {
+      optimism:        tail(nf.optimism    || [], n),
+      uncertainty:     tail(nf.uncertainty || [], n),
+      problems_latest: nf.problems_latest  || [],   // pie -- not range-sliced
     },
     kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
   };
@@ -4558,13 +4564,98 @@ function buildIndSurveysCassYoy(view) {
   };
 }
 
+// Chart 7: NFIB Small Business Optimism Index (line, with 52-yr ~98 average reference)
+function buildIndSurveysNfibOptimism(view) {
+  const nf = view.nfib_sbet || {};
+  const series = nf.optimism || [];
+  const labels = series.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'NFIB Small Business Optimism Index', data: series.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.4, pointRadius: pr, fill: false },
+        { label: '52-year average (~98)', data: labels.map(()=>98),
+          borderColor: BRAND.silver, borderWidth: 1.2, borderDash: [5,5], pointRadius: 0, fill: false, order: 99 },
+      ],
+    },
+    options: baseOptions(fmtIdxIndSurv),
+  };
+}
+
+// Chart 8: NFIB Uncertainty Index (line, with historical ~68 average reference)
+function buildIndSurveysNfibUncertainty(view) {
+  const nf = view.nfib_sbet || {};
+  const series = nf.uncertainty || [];
+  const labels = series.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'NFIB Small Business Uncertainty Index', data: series.map(r => r[1]),
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.2, borderWidth: 2.4, pointRadius: pr, fill: false },
+        { label: 'Historical average (~68)', data: labels.map(()=>68),
+          borderColor: BRAND.silver, borderWidth: 1.2, borderDash: [5,5], pointRadius: 0, fill: false, order: 99 },
+      ],
+    },
+    options: baseOptions(fmtIdxIndSurv),
+  };
+}
+
+// Chart 9: NFIB "Single most important problem" -- doughnut of the latest survey
+function buildIndSurveysNfibProblems(view) {
+  const nf = view.nfib_sbet || {};
+  const problems = nf.problems_latest || [];
+  const labels = problems.map(p => p.label);
+  const data   = problems.map(p => p.value);
+  // Color palette for the slices -- map to BRAND tokens, repeating last 2 if needed
+  const palette = [
+    BRAND.navy, BRAND.mustard, BRAND.coral, BRAND.teal, BRAND.khaki,
+    BRAND.green, BRAND.silver, '#7A6F4A', '#9C5C44', '#C8C2A8',
+  ];
+  const colors = labels.map((_, i) => palette[i % palette.length]);
+  return {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [
+        { data, backgroundColor: colors, borderColor: '#ffffff', borderWidth: 2 },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { color: '#22282e', boxWidth: 12, padding: 8, font: { size: 11.5 } } },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              const v = ctx.parsed;
+              return `${ctx.label}: ${v.toFixed(0)}%`;
+            }
+          }
+        },
+      },
+      cutout: '55%',
+    },
+  };
+}
+
 const INDUSTRY_SURVEYS_BUILDERS = {
   chartIndSurveysIsmMfg:           buildIndSurveysIsmMfg,
   chartIndSurveysIsmMfgComponents: buildIndSurveysIsmMfgComponents,
   chartIndSurveysIsmSvc:           buildIndSurveysIsmSvc,
   chartIndSurveysPmiComposite:     buildIndSurveysPmiComposite,
-  chartIndSurveysCassLevel:        buildIndSurveysCassLevel,
   chartIndSurveysCassYoy:          buildIndSurveysCassYoy,
+  chartIndSurveysNfibOptimism:     buildIndSurveysNfibOptimism,
+  chartIndSurveysNfibUncertainty:  buildIndSurveysNfibUncertainty,
+  chartIndSurveysNfibProblems:     buildIndSurveysNfibProblems,
 };
 
 function renderAllIndustrySurveys(view) {
@@ -4595,13 +4686,21 @@ function registerAllCsvsIndustrySurveys(view) {
     ['Month', 'ISM Manufacturing PMI', 'ISM Services Composite'],
     mergeSeries([m.total || [], s.composite || []]));
 
-  registerCsv('chartIndSurveysCassLevel', 'cass-freight-volume-index.csv',
-    ['Month', 'Cass Volume Index (Jan 1990 = 1.000)'],
-    c.index || []);
-
   registerCsv('chartIndSurveysCassYoy', 'cass-freight-yoy-percent.csv',
     ['Month', 'Cass Freight Volume Y-Y %'],
     c.yoy_pct || []);
+
+  const nf = view.nfib_sbet || {};
+  registerCsv('chartIndSurveysNfibOptimism', 'nfib-optimism-index.csv',
+    ['Month', 'NFIB Small Business Optimism Index'],
+    nf.optimism || []);
+  registerCsv('chartIndSurveysNfibUncertainty', 'nfib-uncertainty-index.csv',
+    ['Month', 'NFIB Uncertainty Index'],
+    nf.uncertainty || []);
+  // For the pie -- single snapshot row, exported as label,value pairs
+  registerCsv('chartIndSurveysNfibProblems', 'nfib-most-important-problem-latest.csv',
+    ['Category', 'Percent of small business owners (latest survey)'],
+    (nf.problems_latest || []).map(p => [p.label, p.value]));
 }
 
 function renderKpisIndustrySurveys(data) {
@@ -4613,12 +4712,13 @@ function renderKpisIndustrySurveys(data) {
   // Up = good for everything except Cass YoY where coral/navy is by sign anyway.
   // For diffusion indices, "up" = good (more expansion); deltas are in index points.
   const KPI_DEFS = [
-    { key: 'ism_mfg_total',      label: 'ISM Manufacturing PMI',     accent: BRAND.navy,    format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
-    { key: 'ism_mfg_new_orders', label: 'ISM Mfg: New Orders',       accent: BRAND.mustard, format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
-    { key: 'ism_svc_composite',  label: 'ISM Services Composite',    accent: BRAND.teal,    format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
-    { key: 'ism_svc_new_orders', label: 'ISM Services: New Orders',  accent: BRAND.khaki,   format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
-    { key: 'cass_level',         label: 'Cass Freight Index',        accent: BRAND.green,   format: fmtLevel, unit: 'pts',  goodDir: 'up' },
-    { key: 'cass_yoy',           label: 'Cass Freight Y-Y %',        accent: BRAND.coral,   format: fmtPct,   unit: 'pp',   goodDir: 'up' },
+    { key: 'ism_mfg_total',      label: 'ISM Manufacturing PMI',       accent: BRAND.navy,    format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
+    { key: 'ism_mfg_new_orders', label: 'ISM Mfg: New Orders',         accent: BRAND.mustard, format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
+    { key: 'ism_svc_composite',  label: 'ISM Services Composite',      accent: BRAND.teal,    format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
+    { key: 'ism_svc_new_orders', label: 'ISM Services: New Orders',    accent: BRAND.khaki,   format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
+    { key: 'cass_yoy',           label: 'Cass Freight Y-Y %',          accent: BRAND.coral,   format: fmtPct,   unit: 'pp',   goodDir: 'up' },
+    { key: 'nfib_optimism',      label: 'NFIB Optimism Index',         accent: BRAND.green,   format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
+    { key: 'nfib_uncertainty',   label: 'NFIB Uncertainty Index',      accent: BRAND.silver,  format: fmtIdx,   unit: 'pts',  goodDir: 'down' },
   ];
   kpiHost.innerHTML = KPI_DEFS.map(def => {
     const k = (data.kpis || {})[def.key] || { value: null, delta: null, label: null };
@@ -5055,7 +5155,7 @@ window.EG = {
   },
 
   // Embed mode for Industry / Surveys:
-  // chartKey ∈ 'ism-mfg' | 'ism-mfg-components' | 'ism-svc' | 'pmi-composite' | 'cass-level' | 'cass-yoy'
+  // chartKey ∈ 'ism-mfg' | 'ism-mfg-components' | 'ism-svc' | 'pmi-composite' | 'cass-yoy' | 'nfib-optimism' | 'nfib-uncertainty' | 'nfib-problems'
   renderIndustrySurveysEmbed(chartKey, data, range) {
     CURRENT_PAGE = 'industry-surveys';
     RAW_DATA = data;
@@ -5066,8 +5166,10 @@ window.EG = {
       'ism-mfg-components': 'chartIndSurveysIsmMfgComponents',
       'ism-svc':            'chartIndSurveysIsmSvc',
       'pmi-composite':      'chartIndSurveysPmiComposite',
-      'cass-level':         'chartIndSurveysCassLevel',
       'cass-yoy':           'chartIndSurveysCassYoy',
+      'nfib-optimism':      'chartIndSurveysNfibOptimism',
+      'nfib-uncertainty':   'chartIndSurveysNfibUncertainty',
+      'nfib-problems':      'chartIndSurveysNfibProblems',
     };
     const id = map[chartKey] || 'chartIndSurveysIsmMfg';
     if (INDUSTRY_SURVEYS_BUILDERS[id]) makeChart(id, INDUSTRY_SURVEYS_BUILDERS[id](view));
