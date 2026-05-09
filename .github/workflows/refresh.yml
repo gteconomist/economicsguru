@@ -139,6 +139,12 @@ jobs:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         continue-on-error: true
         run: python scripts/fetch_industry_surveys.py
+        
+     - name: Refresh Government data from FRED + Treasury Fiscal Data
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        continue-on-error: true
+        run: python scripts/fetch_government.py
 
       # Show data summary, but don't fail the workflow if some files are missing
       # (a fetch step may have hit a quota or rate-limit). Each line is wrapped
