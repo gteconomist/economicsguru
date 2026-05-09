@@ -152,7 +152,7 @@ jobs:
       - name: Show generated data summary
         run: |
           set +e
-          for f in inflation ppi labor pce housing_existing housing_new housing_permits gdp consumer treasuries commodities equities industry_manufacturing industry_surveys; do
+          for f in inflation ppi labor pce housing_existing housing_new housing_permits gdp consumer treasuries commodities equities industry_manufacturing industry_surveys government; do
             if [[ -s "data/${f}.json" ]]; then
               echo "OK  data/${f}.json ($(stat -c%s data/${f}.json) bytes)"
             else
