@@ -3058,6 +3058,9 @@ function applyRange(range) {
   } else if (CURRENT_PAGE === 'industry-surveys') {
     const view = rangedViewIndustrySurveys(RAW_DATA, range);
     renderAllIndustrySurveys(view); registerAllCsvsIndustrySurveys(view);
+  } else if (CURRENT_PAGE === 'government') {
+    const view = rangedViewGovernment(RAW_DATA, range);
+    renderAllGovernment(view); registerAllCsvsGovernment(view);
   } else {
     const view = rangedView(RAW_DATA, range);
     renderAll(view); registerAllCsvs(view);
@@ -4743,8 +4746,567 @@ function renderKpisIndustrySurveys(data) {
 // =========================================================
 // Public API
 // =========================================================
+// =========================================================
+// Government & Fiscal Policy page (MIXED cadence: daily / weekly / monthly / quarterly)
+// =========================================================
+//
+// Eight charts on /government/. The series have different native cadences:
+//   - Federal debt: daily      (Treasury Fiscal Data)
+//   - Fed BS:      weekly      (FRED H.4.1)
+//   - Employment / Outlays / Receipts / M2 / Tariffs: monthly
+//   - Interest expense / Debt-to-GDP: quarterly
+//
+// The page-level range toggle picks a TIME WINDOW (5y / 10y / 20y / Max).
+// Each ranged-view trims its underlying series by that window using a
+// date-string filter (works equally on YYYY-MM-DD, YYYY-MM, and YYYY-QN).
+//
+// Two new global plugins are introduced for the page:
+//   - verticalEventLinesPlugin: vertical lines at named ISO dates
+//     (used for $1T debt crossings + QE/QT events on the Fed BS)
+//   - politicalShadingPlugin:   shaded x-bands between two ISO dates
+//     (used for Trump-term gold + recession gray on the tariff chart)
+// Both plugins read from chart.config._verticalEvents / ._shadingRegions
+// alongside chart.config._origDates (the un-formatted ISO label vector
+// the formatted chart.data.labels were derived from).
+
+// ---------- Date / range helpers ----------
+const RANGE_YEARS_GOV = { '5y': 5, '10y': 10, '20y': 20, 'max': Infinity };
+
+function _yearsAgoIso(years) {
+  if (years === Infinity) return '0000-00-00';
+  const t = new Date();
+  t.setFullYear(t.getFullYear() - years);
+  return t.toISOString().slice(0, 10);
+}
+
+// Filter [[isoDate, v], ...] to entries whose date >= cutoff.
+// String comparison works for ISO dates and ISO months ("2021-01" < "2021-01-04"
+// is true so monthly series aren't accidentally trimmed by a daily cutoff).
+function _sliceByDate(pairs, cutoff) {
+  if (cutoff === '0000-00-00') return pairs.slice();
+  return pairs.filter(p => p[0] >= cutoff);
+}
+
+// Quarterly labels in the source JSON are emitted as 'YYYY-MM' (first month
+// of each quarter). Format them as "Q1 '24" for display.
+function _shortLabelFromIsoMonth(s) {
+  const [y, m] = s.split('-').map(Number);
+  if (!y || !m) return s;
+  // Heuristic: if the label is the first month of a quarter (1, 4, 7, 10),
+  // render as Q-style. Otherwise render as month-style.
+  if ([1, 4, 7, 10].includes(m) && /-(?:01|04|07|10)$/.test(s)) {
+    const q = ((m - 1) / 3 | 0) + 1;
+    return "Q" + q + " '" + String(y).slice(2);
+  }
+  return new Date(y, m - 1, 1).toLocaleString('en-US', { month: 'short', year: '2-digit' });
+}
+
+// ---------- Plugins (registered globally) ----------
+//
+// These two plugins use the standard Chart.js v4 plugin-options pattern:
+// per-chart configuration is passed via `chart.options.plugins.<pluginId>`
+// (Chart.js resolves and forwards it as the third argument to each hook).
+// Each plugin reads:
+//   options.events / options.regions  -- the markers / bands to draw
+//   options.origDates                 -- the underlying ISO date vector
+//                                        (must be aligned with chart.data.labels)
+const verticalEventLinesPlugin = {
+  id: 'verticalEventLines',
+  defaults: { events: [], origDates: [] },
+  afterDatasetsDraw(chart, _args, options) {
+    const events = options && options.events;
+    const dates  = options && options.origDates;
+    if (!events || !events.length || !dates || !dates.length) return;
+    const { ctx, chartArea } = chart;
+    const xScale = chart.scales && chart.scales.x;
+    if (!chartArea || !xScale) return;
+    ctx.save();
+    events.forEach(ev => {
+      // Find the first index whose ISO date is >= ev.date. Linear search is
+      // fine: at most ~2k entries on a 20yr daily-chart slice.
+      let idx = -1;
+      for (let i = 0; i < dates.length; i++) {
+        if (dates[i] >= ev.date) { idx = i; break; }
+      }
+      if (idx < 0) return;
+      const xPx = xScale.getPixelForValue(idx);
+      if (xPx < chartArea.left || xPx > chartArea.right) return;
+      ctx.strokeStyle = ev.color || '#a02828';
+      ctx.lineWidth = ev.lineWidth || 1.25;
+      if (ev.dash) ctx.setLineDash(ev.dash); else ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(xPx, chartArea.top);
+      ctx.lineTo(xPx, chartArea.bottom);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+};
+Chart.register(verticalEventLinesPlugin);
+
+// Reads chart.options.plugins.politicalShading = {regions, origDates}.
+// Drawn before the datasets so chart lines stay visible on top.
+const politicalShadingPlugin = {
+  id: 'politicalShading',
+  defaults: { regions: [], origDates: [] },
+  beforeDatasetsDraw(chart, _args, options) {
+    const regions = options && options.regions;
+    const dates   = options && options.origDates;
+    if (!regions || !regions.length || !dates || !dates.length) return;
+    const { ctx, chartArea } = chart;
+    const xScale = chart.scales && chart.scales.x;
+    if (!chartArea || !xScale) return;
+    ctx.save();
+    regions.forEach(r => {
+      // Resolve start to first index with date >= r.start; if start is before
+      // the first label, clamp to the chart's left edge.
+      let i0 = 0;
+      while (i0 < dates.length && dates[i0] < r.start) i0++;
+      if (i0 >= dates.length) return;
+      let i1;
+      if (r.end == null) {
+        i1 = dates.length - 1;
+      } else {
+        i1 = i0;
+        while (i1 < dates.length - 1 && dates[i1 + 1] <= r.end) i1++;
+      }
+      const x0 = xScale.getPixelForValue(i0);
+      const x1 = xScale.getPixelForValue(i1);
+      const left  = Math.max(chartArea.left,  Math.min(x0, x1));
+      const right = Math.min(chartArea.right, Math.max(x0, x1));
+      if (right <= left) return;
+      ctx.globalAlpha = r.alpha != null ? r.alpha : 0.18;
+      ctx.fillStyle   = r.color;
+      ctx.fillRect(left, chartArea.top, right - left, chartArea.bottom - chartArea.top);
+    });
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+};
+Chart.register(politicalShadingPlugin);
+
+// ---------- Ranged view (per-cadence slicing) ----------
+function rangedViewGovernment(data, range) {
+  const years = RANGE_YEARS_GOV[range] != null ? RANGE_YEARS_GOV[range] : 5;
+  const cutoff = _yearsAgoIso(years);
+  return {
+    fed_debt_daily:                _sliceByDate(data.fed_debt_daily || [], cutoff),
+    fed_debt_trillion_crossings:   (data.fed_debt_trillion_crossings || [])
+                                     .filter(c => c[0] >= cutoff),
+
+    emp_federal:                   _sliceByDate(data.emp_federal || [], cutoff.slice(0, 7)),
+    emp_state:                     _sliceByDate(data.emp_state   || [], cutoff.slice(0, 7)),
+    emp_local:                     _sliceByDate(data.emp_local   || [], cutoff.slice(0, 7)),
+
+    outlays_monthly:               _sliceByDate(data.outlays_monthly  || [], cutoff.slice(0, 7)),
+    receipts_monthly:              _sliceByDate(data.receipts_monthly || [], cutoff.slice(0, 7)),
+    outlays_12m:                   _sliceByDate(data.outlays_12m  || [], cutoff.slice(0, 7)),
+    receipts_12m:                  _sliceByDate(data.receipts_12m || [], cutoff.slice(0, 7)),
+
+    m2_level:                      _sliceByDate(data.m2_level || [], cutoff.slice(0, 7)),
+    m2_yoy:                        _sliceByDate(data.m2_yoy   || [], cutoff.slice(0, 7)),
+
+    fed_bs_total:                  _sliceByDate(data.fed_bs_total      || [], cutoff),
+    fed_bs_treasuries:             _sliceByDate(data.fed_bs_treasuries || [], cutoff),
+    fed_bs_mbs:                    _sliceByDate(data.fed_bs_mbs        || [], cutoff),
+    fed_bs_other:                  _sliceByDate(data.fed_bs_other      || [], cutoff),
+    fed_bs_events:                 (data.fed_bs_events || [])
+                                     .filter(e => e.date >= cutoff),
+
+    tariff_monthly:                _sliceByDate(data.tariff_monthly || [], cutoff.slice(0, 7)),
+    tariff_12m:                    _sliceByDate(data.tariff_12m     || [], cutoff.slice(0, 7)),
+    trump_terms:                   data.trump_terms || [],
+    recessions:                    data.recessions  || [],
+
+    interest_expense:              _sliceByDate(data.interest_expense || [], cutoff.slice(0, 7)),
+    debt_to_gdp:                   _sliceByDate(data.debt_to_gdp      || [], cutoff.slice(0, 7)),
+
+    kpis:           data.kpis,
+    latest_label:   data.latest_label,
+    notice:         data.notice,
+  };
+}
+
+// ---------- Formatters ----------
+function _fmtTrillion(v) { return v == null ? 'n/a' : '$' + v.toFixed(2) + 'T'; }
+function _fmtBillion(v)  { return v == null ? 'n/a' : '$' + v.toLocaleString('en-US', { maximumFractionDigits: 0 }) + 'B'; }
+function _fmtThousands(v){ return v == null ? 'n/a' : (v / 1000).toFixed(2) + 'M'; }   // employment series are in thousands -> show as millions
+function _fmtPctSigned(v){ if (v == null) return 'n/a'; const sign = v > 0 ? '+' : ''; return sign + v.toFixed(1) + '%'; }
+function _fmtPctPlain(v) { return v == null ? 'n/a' : v.toFixed(1) + '%'; }
+
+// ---------- Builders ----------
+
+// (1) Federal debt (daily, $T) with vertical $1T-crossing markers
+function buildGovDebt(view) {
+  const data = view.fed_debt_daily || [];
+  const labels    = data.map(r => shortLabelD(r[0]));
+  const origDates = data.map(r => r[0]);
+  const pr = pointSizeForLength(labels.length);
+
+  // One vertical line per integer-trillion crossing, in coral.
+  const events = (view.fed_debt_trillion_crossings || []).map(c => ({
+    date:  c[0],
+    color: '#a02828',
+    lineWidth: 1.25,
+  }));
+
+  const cfg = {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Federal Debt (Total Public Debt, $T)',
+        data: data.map(r => r[1]),
+        borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+        tension: 0.10, borderWidth: 2.0, pointRadius: pr, fill: false,
+      }],
+    },
+    options: baseOptions(_fmtTrillion),
+  };
+  cfg.options.plugins.verticalEventLines = { events, origDates };
+  return cfg;
+}
+
+// (2) Government employment (federal / state / local on a single axis)
+function buildGovEmp(view) {
+  const fed   = view.emp_federal || [];
+  const state = view.emp_state   || [];
+  const local = view.emp_local   || [];
+  const labels    = fed.map(r => shortLabel(r[0]));
+  const origDates = fed.map(r => r[0]);
+  const sMap = new Map(state.map(r => [r[0], r[1]]));
+  const lMap = new Map(local.map(r => [r[0], r[1]]));
+  const stateA = fed.map(r => sMap.has(r[0]) ? sMap.get(r[0]) : null);
+  const localA = fed.map(r => lMap.has(r[0]) ? lMap.get(r[0]) : null);
+
+  // Y-axis is in thousands of workers. Display in millions for readability.
+  const yFmt = v => v == null ? 'n/a' : (v / 1000).toFixed(2) + 'M';
+  return _bareCfg('line', {
+    labels,
+    datasets: [
+      { label: 'Local Government',   data: localA,
+        borderColor: BRAND.teal,    backgroundColor: BRAND.teal,
+        tension: 0.15, borderWidth: 2.2, pointRadius: 0, fill: false, spanGaps: true },
+      { label: 'State Government',   data: stateA,
+        borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+        tension: 0.15, borderWidth: 2.2, pointRadius: 0, fill: false, spanGaps: true },
+      { label: 'Federal Government', data: fed.map(r => r[1]),
+        borderColor: BRAND.navy,    backgroundColor: BRAND.navy,
+        tension: 0.15, borderWidth: 2.2, pointRadius: 0, fill: false },
+    ],
+  }, yFmt, origDates);
+}
+
+// (3) Federal outlays vs receipts (12-mo rolling sums, $B)
+function buildGovOutRcpt(view) {
+  const out  = view.outlays_12m  || [];
+  const rcpt = view.receipts_12m || [];
+  const labels    = out.map(r => shortLabel(r[0]));
+  const origDates = out.map(r => r[0]);
+  const rMap = new Map(rcpt.map(r => [r[0], r[1]]));
+  const rA   = out.map(r => rMap.has(r[0]) ? rMap.get(r[0]) : null);
+  return _bareCfg('line', {
+    labels,
+    datasets: [
+      { label: 'Outlays (Trailing 12 Months, $B)',  data: out.map(r => r[1]),
+        borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+        tension: 0.10, borderWidth: 2.4, pointRadius: 0, fill: false },
+      { label: 'Receipts (Trailing 12 Months, $B)', data: rA,
+        borderColor: BRAND.green, backgroundColor: BRAND.green,
+        tension: 0.10, borderWidth: 2.4, pointRadius: 0, fill: false, spanGaps: true },
+    ],
+  }, _fmtBillion, origDates);
+}
+
+// (4) M2 money supply: dual-axis (level $T left, YoY % right)
+function buildGovM2(view) {
+  const lv  = view.m2_level || [];
+  const yoy = view.m2_yoy   || [];
+  const labels    = lv.map(r => shortLabel(r[0]));
+  const origDates = lv.map(r => r[0]);
+  const yMap = new Map(yoy.map(r => [r[0], r[1]]));
+  const yoyA = lv.map(r => yMap.has(r[0]) ? yMap.get(r[0]) : null);
+  // Series in source is $B; show on left axis in $T for readability.
+  const lvT = lv.map(r => r[1] != null ? +(r[1] / 1000).toFixed(3) : null);
+  const yLvFmt  = v => v == null ? 'n/a' : '$' + v.toFixed(2) + 'T';
+  const yYoyFmt = v => v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+
+  const cfg = {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'M2 Level ($T, left axis)',  data: lvT,
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.15, borderWidth: 2.4, pointRadius: 0, fill: false, yAxisID: 'y' },
+        { label: 'M2 YoY % (right axis)',     data: yoyA,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.15, borderWidth: 2.0, pointRadius: 0, fill: false, spanGaps: true, yAxisID: 'y2' },
+      ],
+    },
+    options: {
+      ...baseOptions(yLvFmt),
+      scales: {
+        x: baseScales(yLvFmt).x,
+        y:  axisSpec(yLvFmt,  'left'),
+        y2: axisSpec(yYoyFmt, 'right'),
+      },
+    },
+  };
+  // Per-series tooltip formatter (left axis = $T, right axis = %)
+  cfg.options.plugins.tooltip.callbacks.label = ctx => {
+    const fmt = ctx.dataset.yAxisID === 'y2' ? yYoyFmt : yLvFmt;
+    return `${ctx.dataset.label}: ${ctx.parsed.y == null ? 'n/a' : fmt(ctx.parsed.y)}`;
+  };
+  return cfg;
+}
+
+// (5) Federal Reserve Balance Sheet: stacked area (Treasuries / MBS / Other)
+//     + total line on top + QE/QT vertical lines.
+function buildGovFedBS(view) {
+  const tot   = view.fed_bs_total      || [];
+  const treas = view.fed_bs_treasuries || [];
+  const mbs   = view.fed_bs_mbs        || [];
+  const other = view.fed_bs_other      || [];
+  const labels    = tot.map(r => shortLabelD(r[0]));
+  const origDates = tot.map(r => r[0]);
+  const tMap = new Map(treas.map(r => [r[0], r[1]]));
+  const mMap = new Map(mbs.map(r => [r[0], r[1]]));
+  const oMap = new Map(other.map(r => [r[0], r[1]]));
+  const treasA = tot.map(r => tMap.has(r[0]) ? tMap.get(r[0]) : null);
+  const mbsA   = tot.map(r => mMap.has(r[0]) ? mMap.get(r[0]) : null);
+  const otherA = tot.map(r => oMap.has(r[0]) ? oMap.get(r[0]) : null);
+
+  const events = (view.fed_bs_events || []).map(e => ({
+    date:  e.date,
+    color: e.kind === 'easing' ? '#5a7a30' : '#b94a3a',   // green / coral-red
+    lineWidth: 1.25,
+  }));
+
+  const cfg = {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        // Stacked composition (drawn back-to-front: Treasuries first / bottom)
+        { type: 'line', label: 'U.S. Treasuries',  data: treasA,
+          borderColor: '#9b8b6a', backgroundColor: '#cbb98c',
+          borderWidth: 0, pointRadius: 0, tension: 0.0,
+          fill: 'origin', stack: 'fed_bs', spanGaps: true },
+        { type: 'line', label: 'Mortgage-Backed Securities', data: mbsA,
+          borderColor: BRAND.silver, backgroundColor: '#aab2ba',
+          borderWidth: 0, pointRadius: 0, tension: 0.0,
+          fill: '-1', stack: 'fed_bs', spanGaps: true },
+        { type: 'line', label: 'All Other Assets',  data: otherA,
+          borderColor: BRAND.navy, backgroundColor: '#5b7ba1',
+          borderWidth: 0, pointRadius: 0, tension: 0.0,
+          fill: '-1', stack: 'fed_bs', spanGaps: true },
+        // Total line on top (no fill, NOT stacked)
+        { type: 'line', label: 'Total Assets',  data: tot.map(r => r[1]),
+          borderColor: BRAND.black, backgroundColor: BRAND.black,
+          borderWidth: 1.6, pointRadius: 0, tension: 0.0, fill: false },
+      ],
+    },
+    options: baseOptions(_fmtBillion),
+  };
+  // Stack the y-axis (composition); x-axis stays linear.
+  cfg.options.scales.y.stacked = true;
+  cfg.options.scales.x.stacked = false;
+  // Tooltip: show component values (the implicit stacked rendering otherwise
+  // reports stacked y-values, which would mislead about what each band is).
+  cfg.options.plugins.tooltip.callbacks.label = ctx =>
+    `${ctx.dataset.label}: ${ctx.parsed.y == null ? 'n/a' : '$' + Math.round(ctx.parsed.y).toLocaleString() + 'B'}`;
+  cfg.options.plugins.verticalEventLines = { events, origDates };
+  return cfg;
+}
+
+// (6) Tariff revenue: monthly $B with Trump-term gold + recession gray shading
+function buildGovTariffs(view) {
+  const m  = view.tariff_monthly || [];
+  const r  = view.tariff_12m     || [];
+  const labels    = m.map(p => shortLabel(p[0]));
+  const origDates = m.map(p => p[0]);
+  const rMap = new Map(r.map(p => [p[0], p[1]]));
+  const rA = m.map(p => rMap.has(p[0]) ? rMap.get(p[0]) : null);
+
+  // Shading regions:
+  //  Trump-term GOLD bands (lower opacity so the line is still readable);
+  //  Recession GRAY bands.
+  const regions = [];
+  (view.trump_terms || []).forEach(t => {
+    regions.push({ start: t[0], end: t[1], color: BRAND.mustard, alpha: 0.20 });
+  });
+  (view.recessions || []).forEach(t => {
+    regions.push({ start: t[0], end: t[1], color: BRAND.silver, alpha: 0.32 });
+  });
+
+  const cfg = {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Customs Duties Collected (Monthly, $B)', data: m.map(p => p[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.10, borderWidth: 1.6, pointRadius: 0, fill: false },
+        { label: 'Trailing 12-Month Sum ($B)', data: rA,
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.10, borderWidth: 2.4, pointRadius: 0, fill: false, spanGaps: true,
+          borderDash: [6, 3] },
+      ],
+    },
+    options: baseOptions(_fmtBillion),
+  };
+  cfg.options.plugins.politicalShading = { regions, origDates };
+  return cfg;
+}
+
+// (7) Federal interest expense (quarterly, $B annualized)
+function buildGovInterest(view) {
+  const ie = view.interest_expense || [];
+  const labels    = ie.map(p => _shortLabelFromIsoMonth(p[0]));
+  const origDates = ie.map(p => p[0]);
+  return _bareCfg('line', {
+    labels,
+    datasets: [
+      { label: 'Interest Payments (Annualized Quarterly Rate, $B)',
+        data: ie.map(p => p[1]),
+        borderColor: BRAND.coral, backgroundColor: 'rgba(212,98,74,0.18)',
+        tension: 0.15, borderWidth: 2.4, pointRadius: 0, fill: 'origin' },
+    ],
+  }, _fmtBillion, origDates);
+}
+
+// (8) Federal debt as percent of GDP (quarterly)
+function buildGovDebtGdp(view) {
+  const d = view.debt_to_gdp || [];
+  const labels    = d.map(p => _shortLabelFromIsoMonth(p[0]));
+  const origDates = d.map(p => p[0]);
+  return _bareCfg('line', {
+    labels,
+    datasets: [
+      { label: 'Federal Debt / Nominal GDP (%)',
+        data: d.map(p => p[1]),
+        borderColor: BRAND.navy, backgroundColor: 'rgba(0,48,87,0.16)',
+        tension: 0.15, borderWidth: 2.4, pointRadius: 0, fill: 'origin' },
+    ],
+  }, _fmtPctPlain, origDates);
+}
+
+// Small helper: build a vanilla line config with the standard option set.
+// (origDates is unused here — only charts that activate verticalEventLines
+//  or politicalShading need it, and those builders set it explicitly.)
+function _bareCfg(type, data, yFmt, _origDatesUnused) {
+  return { type, data, options: baseOptions(yFmt) };
+}
+
+// ---------- Render plumbing ----------
+const GOVERNMENT_BUILDERS = {
+  chartGovDebt:     buildGovDebt,
+  chartGovEmp:      buildGovEmp,
+  chartGovOutRcpt:  buildGovOutRcpt,
+  chartGovM2:       buildGovM2,
+  chartGovFedBS:    buildGovFedBS,
+  chartGovTariffs:  buildGovTariffs,
+  chartGovInterest: buildGovInterest,
+  chartGovDebtGdp:  buildGovDebtGdp,
+};
+
+function renderAllGovernment(view) {
+  Object.entries(GOVERNMENT_BUILDERS).forEach(([id, builder]) => {
+    const cfg = builder(view);
+    if (cfg) makeChart(id, cfg);
+  });
+}
+
+function registerAllCsvsGovernment(view) {
+  registerCsv('chartGovDebt', 'federal-debt-daily.csv',
+    ['Date', 'Total Public Debt ($T)'], view.fed_debt_daily || []);
+
+  registerCsv('chartGovEmp', 'government-employment.csv',
+    ['Month', 'Federal (Thousands)', 'State (Thousands)', 'Local (Thousands)'],
+    mergeSeries([view.emp_federal || [], view.emp_state || [], view.emp_local || []]));
+
+  registerCsv('chartGovOutRcpt', 'federal-outlays-vs-receipts-12m.csv',
+    ['Month', 'Outlays 12-Month Sum ($B)', 'Receipts 12-Month Sum ($B)'],
+    mergeSeries([view.outlays_12m || [], view.receipts_12m || []]));
+
+  registerCsv('chartGovM2', 'm2-money-supply.csv',
+    ['Month', 'M2 Level ($B)', 'M2 YoY (%)'],
+    mergeSeries([view.m2_level || [], view.m2_yoy || []]));
+
+  registerCsv('chartGovFedBS', 'federal-reserve-balance-sheet.csv',
+    ['Week', 'Total ($B)', 'U.S. Treasuries ($B)', 'MBS ($B)', 'All Other ($B)'],
+    mergeSeries([view.fed_bs_total || [], view.fed_bs_treasuries || [],
+                 view.fed_bs_mbs   || [], view.fed_bs_other      || []]));
+
+  registerCsv('chartGovTariffs', 'tariff-revenue.csv',
+    ['Month', 'Customs Duties Monthly ($B)', 'Trailing 12-Month Sum ($B)'],
+    mergeSeries([view.tariff_monthly || [], view.tariff_12m || []]));
+
+  registerCsv('chartGovInterest', 'federal-interest-expense.csv',
+    ['Quarter', 'Interest Payments (Annualized, $B)'], view.interest_expense || []);
+
+  registerCsv('chartGovDebtGdp', 'federal-debt-as-pct-gdp.csv',
+    ['Quarter', 'Federal Debt / GDP (%)'], view.debt_to_gdp || []);
+}
+
+function renderKpisGovernment(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const k = data.kpis || {};
+  const fmtT  = v => v == null ? 'n/a' : '$' + v.toFixed(2) + 'T';
+  const fmtB  = v => v == null ? 'n/a' : '$' + v.toLocaleString('en-US', { maximumFractionDigits: 0 }) + 'B';
+  const fmtMm = v => v == null ? 'n/a' : (v / 1000).toFixed(2) + 'M workers';
+  const fmtP  = v => v == null ? 'n/a' : v.toFixed(1) + '%';
+  const lbl = x => x && x.label ? x.label : '-';
+  const def = [
+    { key: 'fed_debt_T',   label: 'Federal Debt',           fmt: fmtT,  accent: BRAND.navy   },
+    { key: 'debt_to_gdp',  label: 'Debt as % of GDP',       fmt: fmtP,  accent: BRAND.navySoft },
+    { key: 'deficit_12m_B',label: 'Federal Deficit (12-Mo)',fmt: fmtB,  accent: BRAND.coral  },
+    { key: 'interest_B',   label: 'Interest Expense (Ann.)',fmt: fmtB,  accent: BRAND.coral  },
+    { key: 'gov_emp_total',label: 'Total Govt Workers',     fmt: fmtMm, accent: BRAND.teal   },
+    { key: 'm2_yoy_pct',   label: 'M2 Year-over-Year',      fmt: fmtP,  accent: BRAND.mustard },
+    { key: 'fed_bs_B',     label: 'Fed Balance Sheet',      fmt: fmtB,  accent: BRAND.khaki  },
+    { key: 'tariff_12m_B', label: 'Tariffs (12-Mo Sum)',    fmt: fmtB,  accent: BRAND.green  },
+  ];
+  kpiHost.innerHTML = def.map(d => {
+    const v = (k[d.key] || {}).value;
+    return `
+      <div class="kpi" style="border-top-color:${d.accent}">
+        <div class="label">${d.label}</div>
+        <div class="value">${d.fmt(v)}</div>
+        <div class="delta-bps flat">as of ${escapeHtml(lbl(k[d.key]))}</div>
+      </div>`;
+  }).join('');
+}
 window.EG = {
   BRAND, shortLabel, baseOptions, applyRange,
+  renderGovernment(data) {
+    CURRENT_PAGE = 'government';
+    RAW_DATA = data;
+    const lm = document.getElementById('latest-month');
+    if (lm) lm.textContent = data.latest_label || '-';
+    renderKpisGovernment(data);
+    const view = rangedViewGovernment(data, CURRENT_RANGE);
+    renderAllGovernment(view);
+    registerAllCsvsGovernment(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  renderGovernmentEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'government';
+    RAW_DATA = data;
+    if (range && RANGE_YEARS_GOV[range] != null) CURRENT_RANGE = range;
+    const view = rangedViewGovernment(data, CURRENT_RANGE);
+    const map = {
+      debt:'chartGovDebt', employment:'chartGovEmp', outlays:'chartGovOutRcpt',
+      m2:'chartGovM2', fedbs:'chartGovFedBS', tariffs:'chartGovTariffs',
+      interest:'chartGovInterest', debtgdp:'chartGovDebtGdp',
+    };
+    const id = map[chartKey] || 'chartGovDebt';
+    if (GOVERNMENT_BUILDERS[id]) makeChart(id, GOVERNMENT_BUILDERS[id](view));
+  },
+
 
   renderInflation(data) {
     CURRENT_PAGE = 'inflation';
