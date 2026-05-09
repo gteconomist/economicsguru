@@ -186,8 +186,9 @@ def main():
     u6_rate           = values(raw["LNS13327709"], 1)
     lfp_rate          = values(raw["LNS11300000"], 1)
 
-    payroll_mom   = diff_level(raw["CES0000000001"], 0)
-    payroll_level = values(raw["CES0000000001"], 0)
+    payroll_mom              = diff_level(raw["CES0000000001"], 0)
+    payroll_level            = values(raw["CES0000000001"], 0)
+    household_employment_mom = diff_level(raw["LNS12000000"], 0)
 
     ahe_yoy          = yoy(raw["CES0500000003"])
     avg_weekly_hours = values(raw["CES0500000002"], 1)
@@ -212,8 +213,9 @@ def main():
         "unemployment_rate": unemployment_rate,
         "u6_rate":           u6_rate,
         "lfp_rate":          lfp_rate,
-        "payroll_mom":       payroll_mom,
-        "payroll_level":     payroll_level,
+        "payroll_mom":              payroll_mom,
+        "payroll_level":            payroll_level,
+        "household_employment_mom": household_employment_mom,
         "ahe_yoy":           ahe_yoy,
         "avg_weekly_hours":  avg_weekly_hours,
         "ft_level":          ft_level,
