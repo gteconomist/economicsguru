@@ -4976,25 +4976,39 @@ function buildGovEmp(view) {
   const origDates = fed.map(r => r[0]);
   const sMap = new Map(state.map(r => [r[0], r[1]]));
   const lMap = new Map(local.map(r => [r[0], r[1]]));
-  const stateA = fed.map(r => sMap.has(r[0]) ? sMap.get(r[0]) : null);
-  const localA = fed.map(r => lMap.has(r[0]) ? lMap.get(r[0]) : null);
+  // State + Local combined: only present when both inputs have a value for that month.
+  const stateLocalA = fed.map(r => {
+    const s = sMap.get(r[0]); const l = lMap.get(r[0]);
+    return (s == null || l == null) ? null : s + l;
+  });
 
-  // Y-axis is in thousands of workers. Display in millions for readability.
+  // Both axes are in thousands of workers. Display in millions for readability.
   const yFmt = v => v == null ? 'n/a' : (v / 1000).toFixed(2) + 'M';
-  return _bareCfg('line', {
-    labels,
-    datasets: [
-      { label: 'Local Government',   data: localA,
-        borderColor: BRAND.teal,    backgroundColor: BRAND.teal,
-        tension: 0.15, borderWidth: 2.2, pointRadius: 0, fill: false, spanGaps: true },
-      { label: 'State Government',   data: stateA,
-        borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
-        tension: 0.15, borderWidth: 2.2, pointRadius: 0, fill: false, spanGaps: true },
-      { label: 'Federal Government', data: fed.map(r => r[1]),
-        borderColor: BRAND.navy,    backgroundColor: BRAND.navy,
-        tension: 0.15, borderWidth: 2.2, pointRadius: 0, fill: false },
-    ],
-  }, yFmt, origDates);
+  const cfg = {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Federal Government (left axis)', data: fed.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.15, borderWidth: 2.4, pointRadius: 0, fill: false, yAxisID: 'y' },
+        { label: 'State + Local Government (right axis)', data: stateLocalA,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.15, borderWidth: 2.4, pointRadius: 0, fill: false, spanGaps: true, yAxisID: 'y2' },
+      ],
+    },
+    options: {
+      ...baseOptions(yFmt),
+      scales: {
+        x: baseScales(yFmt).x,
+        y:  axisSpec(yFmt, 'left'),
+        y2: axisSpec(yFmt, 'right'),
+      },
+    },
+  };
+  cfg.options.plugins.tooltip.callbacks.label = ctx =>
+    `${ctx.dataset.label}: ${ctx.parsed.y == null ? 'n/a' : yFmt(ctx.parsed.y)}`;
+  return cfg;
 }
 
 // (3) Federal outlays vs receipts (12-mo rolling sums, $B)
