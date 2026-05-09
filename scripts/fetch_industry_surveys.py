@@ -54,6 +54,7 @@ OUT_PATH       = REPO_ROOT / "data" / "industry_surveys.json"
 ISM_MFG_CSV  = HISTORICAL_DIR / "ism_manufacturing.csv"
 ISM_SVC_CSV  = HISTORICAL_DIR / "ism_services.csv"
 CASS_CSV     = HISTORICAL_DIR / "cass_freight.csv"
+NFIB_CSV     = HISTORICAL_DIR / "nfib_sbet.csv"
 
 UA = "Mozilla/5.0 (compatible; economicsguru.com data refresh; +https://economicsguru.com/about/)"
 
@@ -233,6 +234,24 @@ def _read_csv_series(path, value_columns):
         out[col].sort(key=lambda x: x[0])
     return out
 
+
+def _last_csv_row(path):
+    """Return the most-recent row of a canonical CSV as a dict {col: str_value},
+    or None if the file is missing/empty. Used by the NFIB problems pie."""
+    if not path.exists():
+        return None
+    rows = []
+    with path.open() as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            m = _normalize_month((row.get("month") or "").strip())
+            if not m:
+                continue
+            rows.append((m, row))
+    if not rows:
+        return None
+    rows.sort(key=lambda x: x[0])
+    return rows[-1][1]
 
 # ============================================================ ISM scrapers
 
@@ -714,6 +733,237 @@ def _to_iso_pairs(pairs, decimals=2):
 
 # ============================================================ Main
 
+# ============================================================ NFIB SBET scraper
+#
+# Source: https://www.nfib.com/news/monthly_report/sbet/
+#
+# The NFIB SBET landing page is server-rendered WordPress -- a plain urllib
+# fetch returns the full content (no Tavily / JS rendering needed). NFIB
+# posts the latest month around the second Tuesday and the same URL updates
+# in place each month.
+#
+# Two regex passes:
+#   1. Headline -- "Optimism Index <verb> X.X points in <Month> to YY.Y"
+#      and "Uncertainty Index <verb> X points <from <prev_month>> to YY"
+#   2. Single-most-important-problem percents -- one sentence per category,
+#      always containing "single most important" or "top business problem".
+#      Numbers may be digits ("19%") or word-form ("Ten percent of business
+#      owners reported labor costs..."). We support both.
+#
+# Idempotent: if the latest CSV row already contains all 11 NFIB columns
+# for the survey month, no upsert occurs. New month + new components are
+# both appended in a single pass.
+
+NFIB_URL = "https://www.nfib.com/news/monthly_report/sbet/"
+
+_NFIB_VERB = r"(?:rose|fell|increased|decreased|declined|gained|dropped|climbed|jumped|edged\s+up|ticked\s+up|edged\s+down|ticked\s+down)"
+
+_NUM = r"\d+(?:\.\d+)?"          # 95 or 95.8 -- never grabs trailing punctuation
+_INT = r"\d+"
+
+_NFIB_OPTIMISM_PATTERNS = [
+    # "Optimism Index fell 3.0 points in March to 95.8"
+    re.compile(
+        r"NFIB\s+Small\s+Business\s+Optimism\s+Index\s+" + _NFIB_VERB +
+        r"\s+(" + _NUM + r")\s+points?\s+in\s+(\w+)\s+to\s+(" + _NUM + r")",
+        re.IGNORECASE),
+    # "Optimism Index fell 3.0 points to 95.8 in March"
+    re.compile(
+        r"NFIB\s+Small\s+Business\s+Optimism\s+Index\s+" + _NFIB_VERB +
+        r"\s+(" + _NUM + r")\s+points?\s+to\s+(" + _NUM + r")\s+in\s+(\w+)",
+        re.IGNORECASE),
+    # Looser fallback: "Optimism Index ... to 95.8" plus separate month detection
+    re.compile(
+        r"Small\s+Business\s+Optimism\s+Index[^.]{0,80}?to\s+(" + _NUM + r")",
+        re.IGNORECASE),
+]
+
+_NFIB_UNCERTAINTY_PATTERNS = [
+    # "Uncertainty Index rose 4 points from February to 92"
+    re.compile(
+        r"Uncertainty\s+Index\s+" + _NFIB_VERB +
+        r"\s+(" + _NUM + r")\s+points?\s+(?:from\s+\w+\s+)?to\s+(" + _INT + r")",
+        re.IGNORECASE),
+    # "Uncertainty Index ... to 92"
+    re.compile(
+        r"Uncertainty\s+Index[^.]{0,80}?to\s+(" + _INT + r")",
+        re.IGNORECASE),
+]
+
+_NFIB_PROBLEM_TOPICS = [
+    # column_key                       regex matching the topic phrasing
+    ("taxes",                          re.compile(r"\btaxes\b",                                re.IGNORECASE)),
+    ("labor_quality",                  re.compile(r"labor\s*quality",                          re.IGNORECASE)),
+    ("inflation",                      re.compile(r"inflation",                                re.IGNORECASE)),
+    ("poor_sales",                     re.compile(r"poor\s*sales",                             re.IGNORECASE)),
+    ("labor_costs",                    re.compile(r"labor\s*costs",                            re.IGNORECASE)),
+    ("insurance",                      re.compile(r"(?:cost\s+or\s+availability\s+of\s+)?insurance", re.IGNORECASE)),
+    ("regulations",                    re.compile(r"government\s*regulations?(?:\s+and\s+red\s+tape)?", re.IGNORECASE)),
+    ("competition",                    re.compile(r"competition\s+from\s+large\s+businesses?", re.IGNORECASE)),
+    ("interest_rates",                 re.compile(r"financing(?:\s+and\s+interest\s+rates?)?|interest\s+rates?", re.IGNORECASE)),
+]
+
+_WORD_NUM = {
+    "zero":0,"one":1,"two":2,"three":3,"four":4,"five":5,"six":6,"seven":7,"eight":8,"nine":9,
+    "ten":10,"eleven":11,"twelve":12,"thirteen":13,"fourteen":14,"fifteen":15,"sixteen":16,
+    "seventeen":17,"eighteen":18,"nineteen":19,"twenty":20,"twenty-one":21,"twenty-two":22,
+    "twenty-three":23,"twenty-four":24,"twenty-five":25,
+}
+
+def _nfib_extract_pct(sentence):
+    """Return integer percent if sentence starts with '<num>%' or '<word> percent'."""
+    md = re.search(r"(\d+)\s*%", sentence)
+    if md:
+        try:
+            return int(md.group(1))
+        except ValueError:
+            pass
+    mw = re.match(r"\s*([A-Za-z\-]+)\s+percent", sentence)
+    if mw and mw.group(1).lower() in _WORD_NUM:
+        return _WORD_NUM[mw.group(1).lower()]
+    return None
+
+
+def _nfib_survey_month(text):
+    """Find the survey month from the canonical sentence at the bottom of the page."""
+    m = re.search(r"survey\s+was\s+conducted\s+in\s+(\w+)\s+(\d{4})", text, re.IGNORECASE)
+    if m:
+        mon = MONTHS_FULL.get(m.group(1).capitalize())
+        yr  = int(m.group(2))
+        if mon:
+            return f"{yr:04d}-{mon:02d}"
+    return None
+
+
+def _nfib_parse(text):
+    """Parse SBET page text and return a single scraped row dict (or None)."""
+    out = {}
+
+    # ---- Optimism + month from headline ----
+    optimism_val = None
+    headline_month = None
+    for pat in _NFIB_OPTIMISM_PATTERNS:
+        m = pat.search(text)
+        if m:
+            groups = m.groups()
+            if len(groups) == 3:
+                # Pattern 1: (delta, month, level). Pattern 2: (delta, level, month).
+                # Distinguish by which group looks like a month name.
+                if groups[1].capitalize() in MONTHS_FULL:
+                    optimism_val = float(groups[2])
+                    headline_month = groups[1]
+                else:
+                    optimism_val = float(groups[1])
+                    headline_month = groups[2] if groups[2].capitalize() in MONTHS_FULL else None
+            elif len(groups) == 1:
+                optimism_val = float(groups[0])
+            break
+
+    survey_month = _nfib_survey_month(text)
+    if not survey_month and headline_month:
+        # Best-effort year inference -- use current calendar year, then back off
+        # one year if the headline month is in the future relative to today.
+        today = dt.date.today()
+        mon_n = MONTHS_FULL.get(headline_month.capitalize())
+        if mon_n:
+            yr = today.year if mon_n <= today.month else today.year - 1
+            survey_month = f"{yr:04d}-{mon_n:02d}"
+
+    if not survey_month or optimism_val is None:
+        return None
+
+    out["month"] = survey_month
+    out["optimism"] = optimism_val
+
+    # ---- Uncertainty Index ----
+    for pat in _NFIB_UNCERTAINTY_PATTERNS:
+        m = pat.search(text)
+        if m:
+            groups = m.groups()
+            try:
+                out["uncertainty"] = float(groups[-1])
+            except ValueError:
+                pass
+            break
+
+    # ---- Single most important problem percentages ----
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    found = {}
+    for s in sentences:
+        sl = s.lower()
+        if ("single most important" not in sl
+            and "top business problem"   not in sl
+            and "top issue"              not in sl
+            and "top problem"            not in sl):
+            continue
+        pct = _nfib_extract_pct(s)
+        if pct is None:
+            continue
+        # First topic match in the sentence wins; first occurrence in the
+        # document wins overall (avoids overwriting with secondary mentions).
+        for col, rx in _NFIB_PROBLEM_TOPICS:
+            if rx.search(s):
+                if col not in found:
+                    found[col] = pct
+                break
+    out.update(found)
+    return out
+
+
+def scrape_nfib():
+    """Return [scraped_row_dict] or [] if nothing parsed.
+
+    Idempotent: returns the parsed row even if it matches the latest CSV row
+    -- the upsert step will detect the no-op and skip the commit.
+    """
+    try:
+        html = _http_get_text(NFIB_URL)
+    except Exception as e:
+        print(f"  NFIB fetch error: {e}", file=sys.stderr)
+        return []
+    text = _strip_html(html)
+    parsed = _nfib_parse(text)
+    if not parsed:
+        print("  NFIB scrape: no parse (regex miss?)", file=sys.stderr)
+        return []
+    print(f"  NFIB scraped: {parsed}", file=sys.stderr)
+    return [parsed]
+
+
+def _nfib_problems_snapshot(latest_row):
+    """Convert the latest CSV row dict into a list of (label, pct, slug)
+    tuples in display order, including a synthesized 'Other' bucket for the
+    residual to 100. Used by the JSON builder to populate the pie chart."""
+    if not latest_row:
+        return []
+    spec = [
+        ("Taxes",                       "taxes",          "taxes"),
+        ("Labor quality",               "labor_quality",  "labor-quality"),
+        ("Inflation",                   "inflation",      "inflation"),
+        ("Poor sales",                  "poor_sales",     "poor-sales"),
+        ("Labor costs",                 "labor_costs",    "labor-costs"),
+        ("Insurance",                   "insurance",      "insurance"),
+        ("Government regulations",      "regulations",    "regulations"),
+        ("Competition from large biz",  "competition",    "competition"),
+        ("Financing & interest rates",  "interest_rates", "interest-rates"),
+    ]
+    pcts = []
+    total = 0
+    for label, col, slug in spec:
+        try:
+            v = float(latest_row.get(col, "") or "")
+        except ValueError:
+            v = 0.0
+        pcts.append({"label": label, "value": v, "slug": slug})
+        total += v
+    # Residual bucket -- the 9 published categories rarely sum to 100.
+    other = round(100.0 - total, 1)
+    if other < 0:
+        other = 0.0
+    pcts.append({"label": "Other / none", "value": other, "slug": "other"})
+    return pcts
+
+
 def main():
     start = time.time()
     print("Fetching industry surveys data...", file=sys.stderr)
@@ -780,6 +1030,28 @@ def main():
     elif not CASS_CSV.exists():
         notices.append("Cass Freight data not yet available (no scrape, no baseline).")
 
+    # ---- NFIB SBET scrape + upsert ----
+    print("Scraping NFIB SBET...", file=sys.stderr)
+    try:
+        nfib_scraped = scrape_nfib()
+    except Exception as e:
+        print(f"  NFIB unexpected error: {e}", file=sys.stderr)
+        nfib_scraped = []
+    if nfib_scraped:
+        try:
+            changed = _upsert_csv(NFIB_CSV,
+                ["optimism", "uncertainty", "taxes", "labor_quality", "inflation",
+                 "labor_costs", "poor_sales", "insurance", "regulations",
+                 "competition", "interest_rates"],
+                nfib_scraped)
+            print(f"  NFIB CSV {'CHANGED' if changed else 'unchanged'}",
+                  file=sys.stderr)
+        except Exception as e:
+            print(f"  NFIB CSV upsert error: {e}", file=sys.stderr)
+            notices.append("NFIB CSV upsert failed.")
+    elif not NFIB_CSV.exists():
+        notices.append("NFIB SBET data not yet available (no scrape, no baseline).")
+
     # ---- Read final CSVs and build JSON ----
     print("Reading CSV baselines...", file=sys.stderr)
     mfg = _read_csv_series(ISM_MFG_CSV,
@@ -787,6 +1059,10 @@ def main():
     svc = _read_csv_series(ISM_SVC_CSV,
         ["composite", "employment", "new_orders", "prices"])
     cass = _read_csv_series(CASS_CSV, ["index_level"])
+    nfib = _read_csv_series(NFIB_CSV,
+        ["optimism", "uncertainty", "taxes", "labor_quality", "inflation",
+         "labor_costs", "poor_sales", "insurance", "regulations",
+         "competition", "interest_rates"])
 
     cass_level = cass["index_level"]
     cass_yoy   = _yoy_pct(cass_level)
@@ -795,10 +1071,12 @@ def main():
         "ism_manufacturing": bool(mfg["total"]),
         "ism_services":      bool(svc["composite"]),
         "cass_freight":      bool(cass_level),
+        "nfib_sbet":         bool(nfib["optimism"]),
     }
     print(f"  Loaded: ISM Mfg total={len(mfg['total'])} rows, "
           f"ISM Svc composite={len(svc['composite'])} rows, "
-          f"Cass={len(cass_level)} rows", file=sys.stderr)
+          f"Cass={len(cass_level)} rows, "
+          f"NFIB Optimism={len(nfib['optimism'])} rows", file=sys.stderr)
 
     kpis = {
         "ism_mfg_total":      _kpi_level(mfg["total"]),
@@ -807,9 +1085,11 @@ def main():
         "ism_svc_new_orders": _kpi_level(svc["new_orders"]),
         "cass_level":         _kpi_level(cass_level, decimals=3),
         "cass_yoy":           _kpi_pct(cass_yoy),
+        "nfib_optimism":      _kpi_level(nfib["optimism"], decimals=1),
+        "nfib_uncertainty":   _kpi_level(nfib["uncertainty"], decimals=0),
     }
 
-    latest_candidates = [s[-1][0] for s in (mfg["total"], svc["composite"], cass_level) if s]
+    latest_candidates = [s[-1][0] for s in (mfg["total"], svc["composite"], cass_level, nfib["optimism"]) if s]
     latest_label = _to_iso_date(max(latest_candidates)) if latest_candidates else None
 
     out = {
@@ -834,12 +1114,19 @@ def main():
             "index":   _to_iso_pairs(cass_level, decimals=3),
             "yoy_pct": _to_iso_pairs(cass_yoy,   decimals=2),
         },
+        "nfib_sbet": {
+            "optimism":     _to_iso_pairs(nfib["optimism"],     decimals=1),
+            "uncertainty":  _to_iso_pairs(nfib["uncertainty"],  decimals=0),
+            "problems_latest": _nfib_problems_snapshot(
+                _last_csv_row(NFIB_CSV)),
+        },
 
         "loaded": loaded,
         "scraped_this_run": {
             "ism_manufacturing": bool(mfg_scraped),
             "ism_services":      bool(svc_scraped),
             "cass_freight":      bool(cass_scraped),
+            "nfib_sbet":         bool(nfib_scraped),
         },
         "notice": " ".join(notices) if notices else None,
     }
