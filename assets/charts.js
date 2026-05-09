@@ -4715,7 +4715,6 @@ function renderKpisIndustrySurveys(data) {
     { key: 'ism_mfg_total',      label: 'ISM Manufacturing PMI',       accent: BRAND.navy,    format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
     { key: 'ism_mfg_new_orders', label: 'ISM Mfg: New Orders',         accent: BRAND.mustard, format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
     { key: 'ism_svc_composite',  label: 'ISM Services Composite',      accent: BRAND.teal,    format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
-    { key: 'ism_svc_new_orders', label: 'ISM Services: New Orders',    accent: BRAND.khaki,   format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
     { key: 'cass_yoy',           label: 'Cass Freight Y-Y %',          accent: BRAND.coral,   format: fmtPct,   unit: 'pp',   goodDir: 'up' },
     { key: 'nfib_optimism',      label: 'NFIB Optimism Index',         accent: BRAND.green,   format: fmtIdx,   unit: 'pts',  goodDir: 'up' },
     { key: 'nfib_uncertainty',   label: 'NFIB Uncertainty Index',      accent: BRAND.silver,  format: fmtIdx,   unit: 'pts',  goodDir: 'down' },
