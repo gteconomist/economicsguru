@@ -229,8 +229,19 @@ jobs:
           if [[ -n "$changed" ]]; then
             git add $changed
             git commit -m "data: refresh JSON snapshots + CSV baselines [skip ci]"
-            git push
-            echo "Committed:$changed"
+            # If a manual push raced this run, rebase our auto-commit on
+            # top of the new tip and retry. Up to 3 attempts.
+            pushed=0
+            for i in 1 2 3; do
+              if git push; then pushed=1; break; fi
+              echo "Push rejected (attempt $i/3); rebasing onto remote main..."
+              git pull --rebase origin main
+            done
+            if [[ "$pushed" -eq 1 ]]; then
+              echo "Committed:$changed"
+            else
+              echo "Auto-commit could not push after 3 attempts; tomorrow's run will retry."
+            fi
           else
             echo "No material data changes to commit."
           fi
