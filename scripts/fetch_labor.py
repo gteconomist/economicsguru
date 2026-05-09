@@ -48,6 +48,7 @@ CES_IDS = ["CES0000000001", "CES0500000002", "CES0500000003"]
 CPS_SA_IDS = [
     "LNS12000000", "LNS11000000", "LNS11300000",
     "LNS14000000", "LNS12500000", "LNS12600000",
+    "LNS13327709",  # U-6 unemployment (broader measure: + marginally attached + part-time-for-economic-reasons)
 ]
 CPS_NSA_IDS = ["LNU02073413", "LNU02073395"]
 JOLTS_IDS = ["JTS000000000000000JOL", "JTS000000000000000HIL", "JTS000000000000000QUL"]
@@ -182,6 +183,7 @@ def main():
     raw = fetch_long(ALL_IDS, today.year - 24, today.year)
 
     unemployment_rate = values(raw["LNS14000000"], 1)
+    u6_rate           = values(raw["LNS13327709"], 1)
     lfp_rate          = values(raw["LNS11300000"], 1)
 
     payroll_mom   = diff_level(raw["CES0000000001"], 0)
@@ -208,6 +210,7 @@ def main():
 
     out = {
         "unemployment_rate": unemployment_rate,
+        "u6_rate":           u6_rate,
         "lfp_rate":          lfp_rate,
         "payroll_mom":       payroll_mom,
         "payroll_level":     payroll_level,
@@ -222,6 +225,7 @@ def main():
         "jolts_quits":       jolts_quits,
         "kpis": {
             "unemployment": kpi(unemployment_rate, unit="pp"),
+            "u6":           kpi(u6_rate,           unit="pp"),
             "payrolls":     kpi(payroll_mom,       unit="k"),
             "lfp":          kpi(lfp_rate,          unit="pp"),
             "ahe_yoy":      kpi(ahe_yoy,           unit="pp"),
