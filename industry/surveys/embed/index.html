@@ -32,11 +32,13 @@
     <canvas id="chartIndSurveysIsmMfgComponents"  style="display:none"></canvas>
     <canvas id="chartIndSurveysIsmSvc"            style="display:none"></canvas>
     <canvas id="chartIndSurveysPmiComposite"      style="display:none"></canvas>
-    <canvas id="chartIndSurveysCassLevel"         style="display:none"></canvas>
     <canvas id="chartIndSurveysCassYoy"           style="display:none"></canvas>
+    <canvas id="chartIndSurveysNfibOptimism"      style="display:none"></canvas>
+    <canvas id="chartIndSurveysNfibUncertainty"   style="display:none"></canvas>
+    <canvas id="chartIndSurveysNfibProblems"      style="display:none"></canvas>
   </div>
   <div class="source">
-    <span id="src">Source: ISM &amp; Cass Information Systems</span>
+    <span id="src">Source: ISM, Cass Information Systems &amp; NFIB</span>
     <a href="https://economicsguru.com/industry/surveys/" target="_blank" rel="noopener">economicsguru.com</a>
   </div>
 </div>
@@ -48,8 +50,10 @@ const CHART_INFO = {
   'ism-mfg-components': { canvas: 'chartIndSurveysIsmMfgComponents', title: 'ISM Manufacturing &mdash; Components',          subtitle: '(Bars Represent Distance From 50; SA)' },
   'ism-svc':            { canvas: 'chartIndSurveysIsmSvc',           title: 'ISM Services Index',                            subtitle: '(Composite + Employment / New Orders / Prices)' },
   'pmi-composite':      { canvas: 'chartIndSurveysPmiComposite',     title: 'Composite PMI &mdash; Mfg vs. Services',        subtitle: '(ISM Manufacturing PMI + ISM Services Composite)' },
-  'cass-level':         { canvas: 'chartIndSurveysCassLevel',        title: 'Cass Freight Volume Index',                     subtitle: '(Index Jan 1990 = 1.000; NSA)' },
   'cass-yoy':           { canvas: 'chartIndSurveysCassYoy',          title: 'Cass Freight Shipments &mdash; Y-Y %',          subtitle: '(% Change vs. Same Month a Year Ago)' },
+  'nfib-optimism':      { canvas: 'chartIndSurveysNfibOptimism',     title: 'NFIB Small Business Optimism Index',            subtitle: '(SA, 1986 = 100; 52-yr Average ~98)' },
+  'nfib-uncertainty':   { canvas: 'chartIndSurveysNfibUncertainty',  title: 'NFIB Uncertainty Index',                        subtitle: '(SA; Higher = More Uncertain; Avg ~68)' },
+  'nfib-problems':      { canvas: 'chartIndSurveysNfibProblems',     title: 'NFIB &mdash; Single Most Important Problem',    subtitle: '(Latest Survey, NSA)' },
 };
 const params = new URLSearchParams(window.location.search);
 const chartKey = (params.get('chart') || 'ism-mfg').toLowerCase();
