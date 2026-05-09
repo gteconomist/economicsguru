@@ -5260,14 +5260,13 @@ function renderKpisGovernment(data) {
   const fmtP  = v => v == null ? 'n/a' : v.toFixed(1) + '%';
   const lbl = x => x && x.label ? x.label : '-';
   const def = [
+  const def = [
     { key: 'fed_debt_T',   label: 'Federal Debt',           fmt: fmtT,  accent: BRAND.navy   },
     { key: 'debt_to_gdp',  label: 'Debt as % of GDP',       fmt: fmtP,  accent: BRAND.navySoft },
     { key: 'deficit_12m_B',label: 'Federal Deficit (12-Mo)',fmt: fmtB,  accent: BRAND.coral  },
     { key: 'interest_B',   label: 'Interest Expense (Ann.)',fmt: fmtB,  accent: BRAND.coral  },
-    { key: 'gov_emp_total',label: 'Total Govt Workers',     fmt: fmtMm, accent: BRAND.teal   },
-    { key: 'm2_yoy_pct',   label: 'M2 Year-over-Year',      fmt: fmtP,  accent: BRAND.mustard },
     { key: 'fed_bs_B',     label: 'Fed Balance Sheet',      fmt: fmtB,  accent: BRAND.khaki  },
-    { key: 'tariff_12m_B', label: 'Tariffs (12-Mo Sum)',    fmt: fmtB,  accent: BRAND.green  },
+    { key: 'm2_yoy_pct',   label: 'M2 Year-over-Year',      fmt: fmtP,  accent: BRAND.mustard },
   ];
   kpiHost.innerHTML = def.map(d => {
     const v = (k[d.key] || {}).value;
