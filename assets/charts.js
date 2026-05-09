@@ -5274,7 +5274,6 @@ function renderKpisGovernment(data) {
   const fmtP  = v => v == null ? 'n/a' : v.toFixed(1) + '%';
   const lbl = x => x && x.label ? x.label : '-';
   const def = [
-  const def = [
     { key: 'fed_debt_T',   label: 'Federal Debt',           fmt: fmtT,  accent: BRAND.navy   },
     { key: 'debt_to_gdp',  label: 'Debt as % of GDP',       fmt: fmtP,  accent: BRAND.navySoft },
     { key: 'deficit_12m_B',label: 'Federal Deficit (12-Mo)',fmt: fmtB,  accent: BRAND.coral  },
