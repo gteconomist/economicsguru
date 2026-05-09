@@ -235,7 +235,7 @@ jobs:
             for i in 1 2 3; do
               if git push; then pushed=1; break; fi
               echo "Push rejected (attempt $i/3); rebasing onto remote main..."
-              git pull --rebase origin main
+              git pull --rebase --autostash origin main
             done
             if [[ "$pushed" -eq 1 ]]; then
               echo "Committed:$changed"
