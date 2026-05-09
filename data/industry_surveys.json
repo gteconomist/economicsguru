@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-05-05T18:59:02.433174Z",
+  "build_time": "2026-05-09T00:15:26.627287Z",
   "latest_label": "2026-04-01",
   "kpis": {
     "ism_mfg_total": {
@@ -30,6 +30,16 @@
     "cass_yoy": {
       "value": -4.46,
       "delta": 2.75,
+      "label": "2026-03-01"
+    },
+    "nfib_optimism": {
+      "value": 95.8,
+      "delta": null,
+      "label": "2026-03-01"
+    },
+    "nfib_uncertainty": {
+      "value": 92.0,
+      "delta": null,
       "label": "2026-03-01"
     }
   },
@@ -23029,15 +23039,83 @@
       ]
     ]
   },
+  "nfib_sbet": {
+    "optimism": [
+      [
+        "2026-03-01",
+        95.8
+      ]
+    ],
+    "uncertainty": [
+      [
+        "2026-03-01",
+        92.0
+      ]
+    ],
+    "problems_latest": [
+      {
+        "label": "Taxes",
+        "value": 19.0,
+        "slug": "taxes"
+      },
+      {
+        "label": "Labor quality",
+        "value": 15.0,
+        "slug": "labor-quality"
+      },
+      {
+        "label": "Inflation",
+        "value": 14.0,
+        "slug": "inflation"
+      },
+      {
+        "label": "Poor sales",
+        "value": 10.0,
+        "slug": "poor-sales"
+      },
+      {
+        "label": "Labor costs",
+        "value": 10.0,
+        "slug": "labor-costs"
+      },
+      {
+        "label": "Insurance",
+        "value": 9.0,
+        "slug": "insurance"
+      },
+      {
+        "label": "Government regulations",
+        "value": 7.0,
+        "slug": "regulations"
+      },
+      {
+        "label": "Competition from large biz",
+        "value": 7.0,
+        "slug": "competition"
+      },
+      {
+        "label": "Financing & interest rates",
+        "value": 3.0,
+        "slug": "interest-rates"
+      },
+      {
+        "label": "Other / none",
+        "value": 6.0,
+        "slug": "other"
+      }
+    ]
+  },
   "loaded": {
     "ism_manufacturing": true,
     "ism_services": true,
-    "cass_freight": true
+    "cass_freight": true,
+    "nfib_sbet": true
   },
   "scraped_this_run": {
     "ism_manufacturing": false,
     "ism_services": false,
-    "cass_freight": true
+    "cass_freight": true,
+    "nfib_sbet": true
   },
   "notice": null
 }
