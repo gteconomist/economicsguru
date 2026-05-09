@@ -285,6 +285,8 @@ FRED_SERIES = {
     "interest_exp":  "A091RC1Q027SBEA",
     # Debt as % of GDP (quarterly)
     "debt_to_gdp":   "GFDEGDQ188S",
+    # Customs duties / tariff revenue (quarterly, $B at annual rate, NIPA)
+    "tariff_q":      "B235RC1Q027SBEA",
 }
 
 
@@ -317,18 +319,12 @@ def main():
         print(f"  FAIL debt_to_penny: {e}", file=sys.stderr)
         debt_daily_M = []
 
-    # ---- Tariffs (monthly) from Treasury Fiscal Data ----
-    print("Fetching Treasury Fiscal Data: mts_table_4 customs duties...",
-          file=sys.stderr)
-    try:
-        customs_monthly = fetch_customs_duties("1995-01-01")
-        if customs_monthly:
-            print(f"  customs_duties: {len(customs_monthly)} monthly rows "
-                  f"({customs_monthly[0][0]} -> {customs_monthly[-1][0]})",
-                  file=sys.stderr)
-    except Exception as e:
-        print(f"  FAIL customs_duties: {e}", file=sys.stderr)
-        customs_monthly = []
+    # ---- Tariffs ----
+    # Originally tried Treasury Fiscal Data MTS Table 4, but the "Customs
+    # Duties" classification didn't return rows. Switched to FRED NIPA series
+    # B235RC1Q027SBEA — reliable, 1959-onwards, shows the post-2025 spike.
+    # The actual derivation happens in the block below from raw['tariff_q'].
+    customs_monthly = []
 
     # ---- Compute derived fields ----
     # Federal debt (daily) -- convert $M to $T for chart payload
@@ -377,8 +373,19 @@ def main():
     m2_B   = [[d[:7], round(v, 1)] for d, v in raw["m2"]]
     m2_yoy = yoy_pct_pairs(m2_B)
 
-    # Tariffs (monthly $M -> $B; 12-mo rolling sum)
-    tariffs_B     = [[d, round(v / 1000.0, 2)] for d, v in customs_monthly]
+    # Tariffs: synthesize monthly + 12-mo rolling from FRED quarterly NIPA.
+    # B235RC1Q027SBEA reports the ANNUALIZED quarterly rate in $B, dated at
+    # the first month of each quarter (e.g. 2026-01-01 = Q1 2026). Spread
+    # each quarterly observation evenly across its 3 months at one twelfth
+    # of the annual rate, so the trailing 12-month rolling sum equals the
+    # annual rate the chart's red line is meant to display.
+    tariffs_B = []
+    for d, annual_rate in raw.get("tariff_q", []):
+        y = int(d[:4]); m_first = int(d[5:7])
+        monthly_val = round(annual_rate / 12.0, 3)
+        for i in range(3):
+            mm = m_first + i
+            tariffs_B.append([f"{y:04d}-{mm:02d}", monthly_val])
     tariffs_12m_B = rolling_sum_12(tariffs_B)
 
     # Interest expense (quarterly, NIPA — already $B at annual rate)
