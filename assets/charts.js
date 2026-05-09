@@ -628,21 +628,33 @@ function registerAllCsvs(view) {
 // =========================================================
 function rangedViewLabor(data, range) {
   const n = RANGE_MONTHS[range];
+  // 3-month moving average over the full history, then tail to visible window
+  const movingAvg3 = rows => {
+    const out = [];
+    for (let i = 0; i < rows.length; i++) {
+      if (i < 2) { out.push([rows[i][0], null]); continue; }
+      const a = rows[i][1], b = rows[i-1][1], c = rows[i-2][1];
+      out.push([rows[i][0], (a == null || b == null || c == null) ? null : Math.round((a + b + c) / 3)]);
+    }
+    return out;
+  };
   return {
-    unemployment_rate: tail(data.unemployment_rate, n),
-    lfp_rate:          tail(data.lfp_rate, n),
-    payroll_mom:       tail(data.payroll_mom, n),
-    ahe_yoy:           tail(data.ahe_yoy, n),
-    avg_weekly_hours:  tail(data.avg_weekly_hours, n),
-    ft_level:          tail(data.ft_level, n),
-    pt_level:          tail(data.pt_level, n),
-    ft_idx:            rebaseToFirst(tail(data.ft_level, n)),
-    pt_idx:            rebaseToFirst(tail(data.pt_level, n)),
-    foreign_born_yoy:  tail(data.foreign_born_yoy, n),
-    native_born_yoy:   tail(data.native_born_yoy, n),
-    jolts_openings:    tail(data.jolts_openings, n),
-    jolts_hires:       tail(data.jolts_hires, n),
-    jolts_quits:       tail(data.jolts_quits, n),
+    unemployment_rate:        tail(data.unemployment_rate, n),
+    lfp_rate:                 tail(data.lfp_rate, n),
+    payroll_mom:              tail(data.payroll_mom, n),
+    payroll_mom_3mma:         tail(movingAvg3(data.payroll_mom || []), n),
+    household_employment_mom: tail(data.household_employment_mom || [], n),
+    ahe_yoy:                  tail(data.ahe_yoy, n),
+    avg_weekly_hours:         tail(data.avg_weekly_hours, n),
+    ft_level:                 tail(data.ft_level, n),
+    pt_level:                 tail(data.pt_level, n),
+    ft_idx:                   rebaseToFirst(tail(data.ft_level, n)),
+    pt_idx:                   rebaseToFirst(tail(data.pt_level, n)),
+    foreign_born_yoy:         tail(data.foreign_born_yoy, n),
+    native_born_yoy:          tail(data.native_born_yoy, n),
+    jolts_openings:           tail(data.jolts_openings, n),
+    jolts_hires:              tail(data.jolts_hires, n),
+    jolts_quits:              tail(data.jolts_quits, n),
     kpis: data.kpis, cps_latest: data.cps_latest, jolts_latest: data.jolts_latest, notice: data.notice,
   };
 }
@@ -689,6 +701,49 @@ function buildPayrolls(view) {
       labels,
       datasets: [
         { type: 'bar', label: 'Nonfarm payroll change (k)', data,
+          backgroundColor: data.map(v => v == null ? BRAND.silver : (v >= 0 ? BRAND.navy : BRAND.coral)),
+          borderColor: 'transparent', barPercentage: 0.85, categoryPercentage: 0.85 },
+      ],
+    },
+    options: baseOptions(
+      v => (v == null ? 'n/a' : (v >= 0 ? '+' : '') + Math.round(v).toLocaleString('en-US') + 'k'),
+      { scales: { beginAtZero: false } }
+    ),
+  };
+}
+
+function buildPayrollsHh(view) {
+  const labels = view.payroll_mom.map(r => shortLabel(r[0]));
+  const pr     = pointSizeForLength(labels.length);
+  const ces    = view.payroll_mom.map(r => r[1]);
+  const cps    = view.household_employment_mom.map(r => r[1]);
+  return {
+    data: {
+      labels,
+      datasets: [
+        { type: 'bar', label: 'Nonfarm payrolls (CES)', data: ces,
+          backgroundColor: ces.map(v => v == null ? BRAND.silver : (v >= 0 ? BRAND.navy : BRAND.coral)),
+          borderColor: 'transparent', barPercentage: 0.85, categoryPercentage: 0.85 },
+        { type: 'line', label: 'Household employment (CPS)', data: cps,
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.2, borderWidth: 2.2, pointRadius: pr, spanGaps: false },
+      ],
+    },
+    options: baseOptions(
+      v => (v == null ? 'n/a' : (v >= 0 ? '+' : '') + Math.round(v).toLocaleString('en-US') + 'k'),
+      { scales: { beginAtZero: false } }
+    ),
+  };
+}
+
+function buildPayrolls3mma(view) {
+  const labels = view.payroll_mom_3mma.map(r => shortLabel(r[0]));
+  const data   = view.payroll_mom_3mma.map(r => r[1]);
+  return {
+    data: {
+      labels,
+      datasets: [
+        { type: 'bar', label: 'Nonfarm payroll change, 3-month avg (k)', data,
           backgroundColor: data.map(v => v == null ? BRAND.silver : (v >= 0 ? BRAND.navy : BRAND.coral)),
           borderColor: 'transparent', barPercentage: 0.85, categoryPercentage: 0.85 },
       ],
@@ -804,7 +859,9 @@ function buildJolts(view) {
 }
 
 const LABOR_BUILDERS = {
-  chartUrLfp: buildUrLfp, chartPayrolls: buildPayrolls, chartWages: buildWages,
+  chartUrLfp: buildUrLfp, chartPayrolls: buildPayrolls,
+  chartPayrollsHh: buildPayrollsHh, chartPayrolls3mma: buildPayrolls3mma,
+  chartWages: buildWages,
   chartFtPt: buildFtPt, chartNativity: buildNativity, chartJolts: buildJolts,
 };
 
@@ -872,6 +929,11 @@ function registerAllCsvsLabor(view) {
     mergeSeries([view.unemployment_rate, view.lfp_rate]));
   registerCsv('chartPayrolls', 'nonfarm-payroll-change.csv',
     ['Month', 'Payroll Change (thousands)'], view.payroll_mom);
+  registerCsv('chartPayrollsHh', 'nonfarm-vs-household-employment-change.csv',
+    ['Month', 'Nonfarm Payroll Change (thousands)', 'Household Employment Change (thousands)'],
+    mergeSeries([view.payroll_mom, view.household_employment_mom]));
+  registerCsv('chartPayrolls3mma', 'nonfarm-payroll-change-3mma.csv',
+    ['Month', 'Payroll Change, 3-month avg (thousands)'], view.payroll_mom_3mma);
   registerCsv('chartWages', 'wages-and-hours.csv',
     ['Month', 'AHE YoY (%)', 'Avg Weekly Hours'],
     mergeSeries([view.ahe_yoy, view.avg_weekly_hours]));
