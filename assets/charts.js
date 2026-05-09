@@ -822,7 +822,8 @@ function renderKpisLabor(data) {
   const fmtPct1         = v => (v == null) ? 'n/a' : v.toFixed(1) + '%';
   const KPI_DEFS = [
     { key: 'unemployment', label: 'Unemployment Rate', accent: BRAND.coral,
-      valueFmt: k => fmtPct1(k.value),
+      valueFmt:    k => fmtPct1(k.value),
+      subValueFmt: (k, all) => (all.u6 && all.u6.value != null) ? `U-6: ${fmtPct1(all.u6.value)}` : '',
       deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior month`,
       goodDir: 'down' },
     { key: 'payrolls', label: 'Payrolls (m/m)', accent: BRAND.navy,
@@ -854,10 +855,12 @@ function renderKpisLabor(data) {
       dCls = isGood ? 'down' : 'up';
     }
     const arrow = k.delta == null ? '–' : (k.delta > 0 ? '▲' : (k.delta < 0 ? '▼' : '▬'));
+    const subValue = def.subValueFmt ? def.subValueFmt(k, data.kpis) : '';
     return `
       <div class="kpi" style="border-top-color:${def.accent}">
         <div class="label">${def.label}</div>
         <div class="value">${def.valueFmt(k)}</div>
+        ${subValue ? `<div class="sub-value">${subValue}</div>` : ''}
         <div class="delta ${dCls}">${arrow} ${def.deltaFmt(k)}</div>
       </div>`;
   }).join('');
