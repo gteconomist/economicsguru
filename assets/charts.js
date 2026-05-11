@@ -396,6 +396,31 @@ function downloadChartPng(chartId) {
     plugins: liveCfg.plugins,
   };
 
+  // PNG-only: bump axis-tick and legend fonts so they read well at 1100x500.
+  // Tweak TICK_PX / LEGEND_PX up or down to taste. (Live site is unaffected.)
+  (function bumpPngFonts() {
+    const TICK_PX = 16, LEGEND_PX = 15;
+    // Legend — clone the nested objects so we don't mutate the live chart's options
+    const plugins = Object.assign({}, cfg.options.plugins || {});
+    if (plugins.legend) {
+      plugins.legend = Object.assign({}, plugins.legend);
+      plugins.legend.labels = Object.assign({}, plugins.legend.labels || {});
+      plugins.legend.labels.font = Object.assign(
+        {}, plugins.legend.labels.font || {}, { size: LEGEND_PX });
+    }
+    cfg.options.plugins = plugins;
+    // Axis ticks — clone each axis so callback functions on ticks are preserved
+    const oldScales = cfg.options.scales || {};
+    const newScales = {};
+    Object.keys(oldScales).forEach(k => {
+      const ax = Object.assign({}, oldScales[k] || {});
+      ax.ticks = Object.assign({}, ax.ticks || {});
+      ax.ticks.font = Object.assign({}, ax.ticks.font || {}, { size: TICK_PX });
+      newScales[k] = ax;
+    });
+    cfg.options.scales = newScales;
+  })();
+
   // Drop datasets the user has hidden via the legend, so they don't appear
   // in the PNG and don't appear as struck-through entries in the legend.
   try {
