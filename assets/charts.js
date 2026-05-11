@@ -399,7 +399,7 @@ function downloadChartPng(chartId) {
   // PNG-only: bump axis-tick and legend fonts so they read well at 1100x500.
   // Tweak TICK_PX / LEGEND_PX up or down to taste. (Live site is unaffected.)
   (function bumpPngFonts() {
-    const TICK_PX = 16, LEGEND_PX = 15;
+    const TICK_PX = 17, LEGEND_PX = 16;
     // Legend — clone the nested objects so we don't mutate the live chart's options
     const plugins = Object.assign({}, cfg.options.plugins || {});
     if (plugins.legend) {
