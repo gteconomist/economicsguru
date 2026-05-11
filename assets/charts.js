@@ -397,6 +397,14 @@ function downloadChartPng(chartId) {
   };
 
   const offChart = new Chart(offCanvas, cfg);
+  // Mirror the live chart's per-dataset visibility so hidden series stay hidden in the PNG.
+  try {
+    (liveCfg.data.datasets || []).forEach((_, i) => {
+      const hidden = liveChart.getDatasetMeta(i).hidden === true;
+      offChart.setDatasetVisibility(i, !hidden);
+    });
+    offChart.update('none');
+  } catch (_) { /* fall through — worst case PNG shows everything, same as today */ }
 
   // Wait one frame so Chart.js paints before we composite.
   requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -1299,31 +1307,70 @@ function buildEhSales(view) {
 }
 
 function buildEhMedianPrice(view) {
-  // Use NSA series as canonical x-axis (FRED-extended; always >= SA in length).
-  // SA values aligned by month; missing months -> null so Chart.js shows a gap.
+  // Use NSA price series as canonical x-axis (FRED-extended; always >= SA in length).
+  // Align Existing Home Sales (left axis) and SA price (right axis) to NSA months;
+  // missing months -> null so Chart.js shows a gap.
   const nsa = view.median_price;
   const labels = nsa.map(r => shortLabel(r[0]));
   const pr = pointSizeForLength(labels.length);
-  const saMap = new Map((view.median_price_sa || []).map(r => [r[0], r[1]]));
-  const saAligned = nsa.map(r => saMap.has(r[0]) ? saMap.get(r[0]) : null);
+  const saMap    = new Map((view.median_price_sa || []).map(r => [r[0], r[1]]));
+  const salesMap = new Map((view.sales_level     || []).map(r => [r[0], r[1]]));
+  const saAligned    = nsa.map(r => saMap.has(r[0])    ? saMap.get(r[0])    : null);
+  const salesAligned = nsa.map(r => salesMap.has(r[0]) ? salesMap.get(r[0]) : null);
+
   const datasets = [
-    { label: 'Median Sales Price (NSA — NAR via FRED)',
-      data: nsa.map(r => r[1]),
-      borderColor: BRAND.coral, backgroundColor: BRAND.coral,
-      tension: 0.2, borderWidth: 2.5, pointRadius: pr },
-  ];
-  if (view.median_price_sa && view.median_price_sa.length) {
-    datasets.push({
-      label: 'Median Sales Price (SA — Computed)',
-      data: saAligned,
+    // Sales — blue, left axis, drawn on top
+    { label: 'Existing Home Sales (SAAR, left)',
+      data: salesAligned,
       borderColor: BRAND.navy, backgroundColor: BRAND.navy,
       tension: 0.2, borderWidth: 2.5, pointRadius: pr, spanGaps: false,
+      yAxisID: 'ySales', order: 0 },
+    // NSA price — mustard, dashed, right axis
+    { label: 'Median Sales Price (NSA — NAR via FRED, right)',
+      data: nsa.map(r => r[1]),
+      borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+      borderDash: [6, 4],
+      tension: 0.2, borderWidth: 2, pointRadius: pr,
+      yAxisID: 'yPrice', order: 2 },
+  ];
+  if (view.median_price_sa && view.median_price_sa.length) {
+    // SA price — mustard, solid, right axis
+    datasets.push({
+      label: 'Median Sales Price (SA — Computed, right)',
+      data: saAligned,
+      borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+      tension: 0.2, borderWidth: 2.5, pointRadius: pr, spanGaps: false,
+      yAxisID: 'yPrice', order: 1,
     });
   }
   return {
     type: 'line',
     data: { labels, datasets },
-    options: baseOptions(fmtUsdK),
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 8, right: 16, bottom: 4, left: 4 } },
+      interaction: { mode: 'index', intersect: false },
+      animation: { duration: 350 },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, boxHeight: 12, padding: 12, color: BRAND.navy, font: { size: 12, weight: '600' } } },
+        tooltip: {
+          backgroundColor: BRAND.navy, titleColor: '#fff', bodyColor: '#fff',
+          borderColor: BRAND.mustard, borderWidth: 1, padding: 10, cornerRadius: 4,
+          callbacks: {
+            label: ctx => {
+              if (ctx.parsed.y == null) return `${ctx.dataset.label}: n/a`;
+              if (ctx.dataset.yAxisID === 'ySales') return `${ctx.dataset.label}: ${fmtUnitsK(ctx.parsed.y)}`;
+              return `${ctx.dataset.label}: ${fmtUsdK(ctx.parsed.y)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: baseScales(v=>v).x,
+        ySales: axisSpec(fmtUnitsK, 'left'),
+        yPrice: axisSpec(fmtUsdK,   'right'),
+      },
+    },
   };
 }
 
@@ -1502,12 +1549,13 @@ function registerAllCsvsExistingHomes(view) {
   registerCsv('chartEhSales', 'existing-home-sales.csv',
     ['Month', 'Existing Home Sales (SAAR units)'], view.sales_level);
   if (view.median_price_sa && view.median_price_sa.length) {
-    registerCsv('chartEhMedianPrice', 'existing-home-median-price.csv',
-      ['Month', 'Median Sales Price NSA (USD)', 'Median Sales Price SA (USD, Computed)'],
-      mergeSeries([view.median_price, view.median_price_sa]));
+    registerCsv('chartEhMedianPrice', 'existing-home-sales-and-median-price.csv',
+      ['Month', 'Existing Home Sales (SAAR units)', 'Median Sales Price NSA (USD)', 'Median Sales Price SA (USD, Computed)'],
+      mergeSeries([view.sales_level, view.median_price, view.median_price_sa]));
   } else {
-    registerCsv('chartEhMedianPrice', 'existing-home-median-price.csv',
-      ['Month', 'Median Sales Price (USD)'], view.median_price);
+    registerCsv('chartEhMedianPrice', 'existing-home-sales-and-median-price.csv',
+      ['Month', 'Existing Home Sales (SAAR units)', 'Median Sales Price (USD)'],
+      mergeSeries([view.sales_level, view.median_price]));
   }
   registerCsv('chartEhCsLevel', 'case-shiller-us-national-hpi.csv',
     ['Month', 'Case-Shiller US National HPI (Jan 2000 = 100)'], view.case_shiller_hpi_level);
