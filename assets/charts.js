@@ -396,15 +396,17 @@ function downloadChartPng(chartId) {
     plugins: liveCfg.plugins,
   };
 
-  const offChart = new Chart(offCanvas, cfg);
-  // Mirror the live chart's per-dataset visibility so hidden series stay hidden in the PNG.
+  // Drop datasets the user has hidden via the legend, so they don't appear
+  // in the PNG and don't appear as struck-through entries in the legend.
   try {
-    (liveCfg.data.datasets || []).forEach((_, i) => {
-      const hidden = liveChart.getDatasetMeta(i).hidden === true;
-      offChart.setDatasetVisibility(i, !hidden);
-    });
-    offChart.update('none');
+    const liveDatasets = (liveCfg.data && liveCfg.data.datasets) || [];
+    const keep = liveDatasets
+      .map((_, i) => liveChart.getDatasetMeta(i).hidden === true ? null : i)
+      .filter(i => i !== null);
+    cfg.data.datasets = keep.map(i => cfg.data.datasets[i]);
   } catch (_) { /* fall through — worst case PNG shows everything, same as today */ }
+
+  const offChart = new Chart(offCanvas, cfg);
 
   // Wait one frame so Chart.js paints before we composite.
   requestAnimationFrame(() => requestAnimationFrame(() => {
