@@ -14,7 +14,7 @@ from urllib import request, error
 
 NSA_IDS = [
     "CUUR0000SA0", "CUUR0000SA0L1E", "CUUR0000SAH1", "CUUR0000SAF1",
-    "CUUR0000SA0E", "CUUR0000SETB01", "CUUR0000SAS",
+    "CUUR0000SA0E", "CUUR0000SETB01", "CUUR0000SAS", "CUUR0000SAS2RS",
 ]
 SA_IDS = [
     "CUSR0000SA0", "CUSR0000SA0L1E", "CUSR0000SAH1", "CUSR0000SAF1",
@@ -145,7 +145,8 @@ def main():
     food_yoy     = yoy(nsa["CUUR0000SAF1"])
     energy_yoy   = yoy(nsa["CUUR0000SA0E"])
     shelter_yoy  = yoy(nsa["CUUR0000SAH1"])
-    services_yoy = yoy(nsa["CUUR0000SAS"])
+    services_yoy  = yoy(nsa["CUUR0000SAS"])
+    supercore_yoy = yoy(nsa["CUUR0000SAS2RS"])  # Services less rent of shelter
 
     # Long history of headline CPI for the 1970s-vs-now vintage chart.
     # BLS chunks at 20 yrs/request; fetch_long handles it.
@@ -168,6 +169,7 @@ def main():
         "energy_yoy":       energy_yoy,
         "shelter_yoy":      shelter_yoy,
         "services_yoy":     services_yoy,
+        "supercore_yoy":    supercore_yoy,
         "headline_mom_sa":  mom_strict(sa["CUSR0000SA0"]),
         "core_mom_sa":      mom_strict(sa["CUSR0000SA0L1E"]),
         # Raw level series — frontend rebases to "start of selected range = 100"
