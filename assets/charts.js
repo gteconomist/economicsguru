@@ -609,7 +609,108 @@ function buildEnergy(view) {
   };
 }
 
+function buildCpiCombo(view) {
+  const labels    = view.headline_yoy.map(r => shortLabel(r[0]));
+  const origDates = view.headline_yoy.map(r => r[0]);
+  const pr = pointSizeForLength(labels.length);
+  // Align MoM SA values onto the YoY label vector (MoM starts 1 month later)
+  const momByDate = new Map(view.headline_mom_sa.map(r => [r[0], r[1]]));
+  const mom = origDates.map(d => momByDate.has(d) ? momByDate.get(d) : null);
+  const yoy = view.headline_yoy.map(r => r[1]);
+
+  const cfg = {
+    data: {
+      labels,
+      datasets: [
+        { type: 'bar',  label: 'CPI – Monthly Change (Right Axis)', data: mom,
+          backgroundColor: BRAND.khaki, borderColor: 'transparent',
+          barPercentage: 0.85, categoryPercentage: 0.85, yAxisID: 'yMom' },
+        { type: 'line', label: 'CPI – Annual Change (Left Axis)',   data: yoy,
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          borderWidth: 2.5, pointRadius: pr, tension: 0.2, yAxisID: 'yYoy' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 8, right: 16, bottom: 4, left: 4 } },
+      interaction: { mode: 'index', intersect: false },
+      animation: { duration: 350 },
+      plugins: {
+        legend:  { position: 'bottom', labels: { boxWidth: 12, boxHeight: 12, padding: 12, color: BRAND.navy, font: { size: 12, weight: '600' } } },
+        tooltip: {
+          backgroundColor: BRAND.navy, titleColor: '#fff', bodyColor: '#fff',
+          borderColor: BRAND.mustard, borderWidth: 1, padding: 10, cornerRadius: 4,
+          callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y == null ? 'n/a' : ctx.parsed.y.toFixed(2) + '%'}` }
+        }
+      },
+      scales: {
+        x:    baseScales(v => v).x,
+        yYoy: axisSpec(v => v.toFixed(1) + '%', 'left'),
+        yMom: axisSpec(v => v.toFixed(2) + '%', 'right')
+      }
+    }
+  };
+  // Light gray COVID recession band
+  cfg.options.plugins.politicalShading = {
+    regions: [{ start: '2020-02', end: '2020-04', color: BRAND.silver, alpha: 0.32 }],
+    origDates
+  };
+  return cfg;
+}
+
+// Vintage compare: 1971-1983 CPI YoY vs 2018-current CPI YoY, overlaid on the
+// same x-axis (calendar 1971 onwards). STATIC — does not respond to range.
+function buildCpiVintage(data) {
+  const oldRows = data.cpi_vintage_old || [];
+  const newRows = data.cpi_vintage_new || [];
+  const N = Math.max(oldRows.length, newRows.length) + 6; // small right padding
+
+  const origDates = [];
+  for (let i = 0; i < N; i++) {
+    const y = 1971 + Math.floor(i / 12);
+    const m = (i % 12) + 1;
+    origDates.push(`${y}-${String(m).padStart(2, '0')}`);
+  }
+  const labels = origDates.map(shortLabel);
+
+  const oldByDate = new Map(oldRows.map(r => [r[0], r[1]]));
+  const oldSeries = origDates.map(d => oldByDate.has(d) ? oldByDate.get(d) : null);
+
+  // New series shifted: 2018-08 lines up at x-axis position 0 (= Jan 1971)
+  const newSeries = origDates.map(() => null);
+  for (let i = 0; i < newRows.length && i < N; i++) {
+    newSeries[i] = newRows[i][1];
+  }
+
+  const cfg = {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'CPI (1971 – 1983)',     data: oldSeries,
+          borderColor: BRAND.navy,    backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: 0, spanGaps: false },
+        { label: 'CPI (2018 – Current)', data: newSeries,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.2, borderWidth: 2.5, pointRadius: 0, spanGaps: false }
+      ]
+    },
+    options: baseOptions(v => `${v.toFixed(1)}%`)
+  };
+  // 1970s/early-80s NBER recession bands
+  cfg.options.plugins.politicalShading = {
+    regions: [
+      { start: '1973-11', end: '1975-03', color: BRAND.silver, alpha: 0.30 },
+      { start: '1980-01', end: '1980-07', color: BRAND.silver, alpha: 0.30 },
+      { start: '1981-07', end: '1982-11', color: BRAND.silver, alpha: 0.30 }
+    ],
+    origDates
+  };
+  return cfg;
+}
+
 const INFLATION_BUILDERS = {
+  chartCpiCombo: buildCpiCombo,
   chartYoy: buildYoy, chartMom: buildMom, chartComp: buildComp, chartEnergy: buildEnergy,
 };
 
@@ -644,6 +745,9 @@ function renderKpis(data) {
   }).join('');
 }
 function registerAllCsvs(view) {
+  registerCsv('chartCpiCombo', 'cpi-headline-yoy-and-mom.csv',
+    ['Month', 'Headline CPI YoY (%)', 'Headline CPI MoM SA (%)'],
+    mergeSeries([view.headline_yoy, view.headline_mom_sa]));
   registerCsv('chartYoy', 'headline-vs-core-cpi.csv',
     ['Month', 'Headline CPI YoY (%)', 'Core CPI YoY (%)'],
     mergeSeries([view.headline_yoy, view.core_yoy]));
