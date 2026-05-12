@@ -146,7 +146,7 @@ def main():
     energy_yoy   = yoy(nsa["CUUR0000SA0E"])
     shelter_yoy  = yoy(nsa["CUUR0000SAH1"])
     services_yoy  = yoy(nsa["CUUR0000SAS"])
-    supercore_yoy = yoy(nsa["CUUR0000SAS2RS"])  # Services less rent of shelter
+    supercore_yoy = yoy(nsa["CUUR0000SASL2RS"])  # Services less rent of shelter
 
     # Long history of headline CPI for the 1970s-vs-now vintage chart.
     # BLS chunks at 20 yrs/request; fetch_long handles it.
