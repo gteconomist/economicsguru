@@ -90,6 +90,16 @@
     Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post.
   </div>
 
+  <div class="chart-card" style="margin-bottom:18px">
+    <div class="title">Consumer Price Index</div>
+    <div class="subtitle">(Percent Change: Y-Y &amp; M-M; Seasonally Adjusted)</div>
+    <div class="chart-wrap"><canvas id="chartCpiCombo"></canvas></div>
+    <div class="source">
+      <span>Source: BLS &mdash; CUUR0000SA0 (YoY), CUSR0000SA0 (MoM).</span>
+      <a href="#" class="csv-link" data-chart="chartCpiCombo">Download CSV</a>
+    </div>
+  </div>
+
   <div class="chart-grid">
     <div class="chart-card">
       <div class="title">Headline vs Core CPI</div>
@@ -129,6 +139,16 @@
         <span>Source: BLS &mdash; Gasoline (SETB01), Energy (SA0E).</span>
         <a href="#" class="csv-link" data-chart="chartEnergy">Download CSV</a>
       </div>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-top:18px">
+    <div class="title">Consumer Price Index (1970s vs. Now)</div>
+    <div class="subtitle">(Percent Change from a Year Ago &mdash; fixed comparison; not affected by time-range selector)</div>
+    <div class="chart-wrap" style="height:380px"><canvas id="chartCpiVintage"></canvas></div>
+    <div class="source">
+      <span>Source: BLS &mdash; CUUR0000SA0. Blue: Jan 1971 – Jul 1983. Gold: Aug 2018 – present, aligned to start at Jan 1971 on the x-axis. Gray bands: NBER recessions.</span>
+      <a href="#" class="csv-link" data-chart="chartCpiVintage">Download CSV</a>
     </div>
   </div>
 </main>
