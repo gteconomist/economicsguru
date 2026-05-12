@@ -5571,6 +5571,26 @@ window.EG = {
     renderKpis(data);
     const view = rangedView(data, CURRENT_RANGE);
     renderAll(view); registerAllCsvs(view);
+
+    // Static vintage-compare chart: rendered once, not re-rendered on range change.
+    if (document.getElementById('chartCpiVintage')) {
+      makeChart('chartCpiVintage', buildCpiVintage(data));
+      const oldR = data.cpi_vintage_old || [];
+      const newR = data.cpi_vintage_new || [];
+      const N = Math.max(oldR.length, newR.length);
+      const csvRows = [];
+      for (let i = 0; i < N; i++) {
+        csvRows.push([
+          i + 1,
+          oldR[i] ? oldR[i][0] : '', oldR[i] ? oldR[i][1] : null,
+          newR[i] ? newR[i][0] : '', newR[i] ? newR[i][1] : null,
+        ]);
+      }
+      registerCsv('chartCpiVintage', 'cpi-1970s-vs-now.csv',
+        ['Month #', '1971-1983 date', '1971-1983 CPI YoY (%)', '2018-Current date', '2018-Current CPI YoY (%)'],
+        csvRows);
+    }
+
     attachDownloadHandlers(); wireRangeToggle();
   },
 
