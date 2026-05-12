@@ -147,6 +147,20 @@ def main():
     shelter_yoy  = yoy(nsa["CUUR0000SAH1"])
     services_yoy = yoy(nsa["CUUR0000SAS"])
 
+    # Long history of headline CPI for the 1970s-vs-now vintage chart.
+    # BLS chunks at 20 yrs/request; fetch_long handles it.
+    hist = fetch_long(["CUUR0000SA0"], years_back=57)
+    hist_yoy = yoy(hist["CUUR0000SA0"])
+
+    def _slice_yoy(rows, start_label, end_label=None):
+        return [
+            [lbl, v] for [lbl, v] in rows
+            if lbl >= start_label and (end_label is None or lbl <= end_label)
+        ]
+
+    cpi_vintage_old = _slice_yoy(hist_yoy, "1971-01", "1983-07")
+    cpi_vintage_new = _slice_yoy(hist_yoy, "2018-08")
+
     out = {
         "headline_yoy":     headline_yoy,
         "core_yoy":         core_yoy,
@@ -159,6 +173,9 @@ def main():
         # Raw level series — frontend rebases to "start of selected range = 100"
         "gasoline_level":   levels(nsa["CUUR0000SETB01"]),
         "energy_level":     levels(nsa["CUUR0000SA0E"]),
+        # 1970s-vs-now vintage comparison (static; doesn't move with range)
+        "cpi_vintage_old":  cpi_vintage_old,
+        "cpi_vintage_new":  cpi_vintage_new,
         "kpis": {
             "headline": kpi(headline_yoy),
             "core":     kpi(core_yoy),
