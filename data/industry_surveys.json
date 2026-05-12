@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-05-09T00:29:13.374130Z",
+  "build_time": "2026-05-12T14:04:48.598811Z",
   "latest_label": "2026-04-01",
   "kpis": {
     "ism_mfg_total": {
@@ -33,14 +33,14 @@
       "label": "2026-03-01"
     },
     "nfib_optimism": {
-      "value": 95.8,
-      "delta": -3.0,
-      "label": "2026-03-01"
+      "value": 95.9,
+      "delta": 0.1,
+      "label": "2026-04-01"
     },
     "nfib_uncertainty": {
-      "value": 92.0,
-      "delta": 4.0,
-      "label": "2026-03-01"
+      "value": 88.0,
+      "delta": -4.0,
+      "label": "2026-04-01"
     }
   },
   "ism_manufacturing": {
@@ -25152,6 +25152,10 @@
       [
         "2026-03-01",
         95.8
+      ],
+      [
+        "2026-04-01",
+        95.9
       ]
     ],
     "uncertainty": [
@@ -27086,22 +27090,26 @@
       [
         "2026-03-01",
         92.0
+      ],
+      [
+        "2026-04-01",
+        88.0
       ]
     ],
     "problems_latest": [
       {
         "label": "Taxes",
-        "value": 19.0,
+        "value": 17.0,
         "slug": "taxes"
       },
       {
         "label": "Labor quality",
-        "value": 15.0,
+        "value": 18.0,
         "slug": "labor-quality"
       },
       {
         "label": "Inflation",
-        "value": 14.0,
+        "value": 16.0,
         "slug": "inflation"
       },
       {
@@ -27111,17 +27119,17 @@
       },
       {
         "label": "Labor costs",
-        "value": 10.0,
+        "value": 9.0,
         "slug": "labor-costs"
       },
       {
         "label": "Insurance",
-        "value": 9.0,
+        "value": 8.0,
         "slug": "insurance"
       },
       {
         "label": "Government regulations",
-        "value": 7.0,
+        "value": 8.0,
         "slug": "regulations"
       },
       {
@@ -27136,7 +27144,7 @@
       },
       {
         "label": "Other / none",
-        "value": 6.0,
+        "value": 4.0,
         "slug": "other"
       }
     ]
