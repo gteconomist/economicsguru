@@ -68,6 +68,7 @@ function rangedView(data, range) {
     energy_yoy:      tail(data.energy_yoy, n),
     shelter_yoy:     tail(data.shelter_yoy, n),
     services_yoy:    tail(data.services_yoy, n),
+    supercore_yoy:   tail(data.supercore_yoy || [], n),
     headline_mom_sa: tail(data.headline_mom_sa, n),
     core_mom_sa:     tail(data.core_mom_sa, n),
     gasoline_idx:    rebaseToFirst(tail(data.gasoline_level, n)),
@@ -547,6 +548,8 @@ function buildYoy(view) {
           borderColor: BRAND.navy, backgroundColor: BRAND.navy, tension: 0.2, borderWidth: 2.5, pointRadius: pr },
         { label: 'Core CPI (ex food & energy)', data: view.core_yoy.map(r => r[1]),
           borderColor: BRAND.khaki, backgroundColor: BRAND.khaki, tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: 'Super Core (core services ex shelter)', data: view.supercore_yoy.map(r => r[1]),
+          borderColor: '#eaaa00', backgroundColor: '#eaaa00', tension: 0.2, borderWidth: 2.5, pointRadius: pr },
         { label: 'Fed 2% target', data: labels.map(()=>2.0),
           borderColor: BRAND.teal, borderWidth: 1.5, pointRadius: 0 }
       ]
@@ -748,9 +751,9 @@ function registerAllCsvs(view) {
   registerCsv('chartCpiCombo', 'cpi-headline-yoy-and-mom.csv',
     ['Month', 'Headline CPI YoY (%)', 'Headline CPI MoM SA (%)'],
     mergeSeries([view.headline_yoy, view.headline_mom_sa]));
-  registerCsv('chartYoy', 'headline-vs-core-cpi.csv',
-    ['Month', 'Headline CPI YoY (%)', 'Core CPI YoY (%)'],
-    mergeSeries([view.headline_yoy, view.core_yoy]));
+  registerCsv('chartYoy', 'headline-core-supercore-cpi.csv',
+    ['Month', 'Headline CPI YoY (%)', 'Core CPI YoY (%)', 'Super Core CPI YoY (%)'],
+    mergeSeries([view.headline_yoy, view.core_yoy, view.supercore_yoy]));
   registerCsv('chartMom', 'cpi-monthly-change-sa.csv',
     ['Month', 'Headline CPI MoM SA (%)', 'Core CPI MoM SA (%)'],
     mergeSeries([view.headline_mom_sa, view.core_mom_sa]));
