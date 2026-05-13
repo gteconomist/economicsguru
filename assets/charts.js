@@ -1096,16 +1096,18 @@ function registerAllCsvsLabor(view) {
 function rangedViewPpi(data, range) {
   const n = RANGE_MONTHS[range];
   return {
-    headline_yoy:    tail(data.headline_yoy, n),
-    core_yoy:        tail(data.core_yoy, n),
-    goods_yoy:       tail(data.goods_yoy, n),
-    services_yoy:    tail(data.services_yoy, n),
-    foods_yoy:       tail(data.foods_yoy, n),
-    energy_yoy:      tail(data.energy_yoy, n),
-    headline_mom_sa: tail(data.headline_mom_sa, n),
-    core_mom_sa:     tail(data.core_mom_sa, n),
-    goods_idx:       rebaseToFirst(tail(data.goods_level, n)),
-    services_idx:    rebaseToFirst(tail(data.services_level, n)),
+    headline_yoy:       tail(data.headline_yoy, n),
+    core_yoy:           tail(data.core_yoy, n),
+    goods_yoy:          tail(data.goods_yoy, n),
+    services_yoy:       tail(data.services_yoy, n),
+    foods_yoy:          tail(data.foods_yoy, n),
+    energy_yoy:         tail(data.energy_yoy, n),
+    headline_mom_sa:    tail(data.headline_mom_sa, n),
+    core_mom_sa:        tail(data.core_mom_sa, n),
+    core_goods_mom_sa:  tail(data.core_goods_mom_sa || [], n),
+    services_mom_sa:    tail(data.services_mom_sa   || [], n),
+    goods_idx:          rebaseToFirst(tail(data.goods_level, n)),
+    services_idx:       rebaseToFirst(tail(data.services_level, n)),
     kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
   };
 }
@@ -1132,19 +1134,23 @@ function buildPpiYoy(view) {
 
 function buildPpiMom(view) {
   const labels = view.headline_mom_sa.map(r => shortLabel(r[0]));
-  const pr = pointSizeForLength(labels.length);
-  const momH = view.headline_mom_sa.map(r => r[1]);
-  const momC = view.core_mom_sa.map(r => r[1]);
   return {
+    type: 'bar',
     data: {
       labels,
       datasets: [
-        { type: 'bar', label: 'Headline PPI MoM (SA)', data: momH,
-          backgroundColor: momH.map(v => v == null ? BRAND.silver : (v >= 0 ? BRAND.navy : BRAND.coral)),
-          borderColor: 'transparent', barPercentage: 0.85, categoryPercentage: 0.85 },
-        { type: 'line', label: 'Core PPI MoM (SA)', data: momC,
-          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
-          borderWidth: 2.2, pointRadius: pr, tension: 0.2, spanGaps: false }
+        { label: 'Final Demand', data: view.headline_mom_sa.map(r => r[1]),
+          backgroundColor: BRAND.navy, borderColor: 'transparent',
+          barPercentage: 0.95, categoryPercentage: 0.78 },
+        { label: 'Core Final Demand (less food & energy)', data: view.core_mom_sa.map(r => r[1]),
+          backgroundColor: BRAND.mustard, borderColor: 'transparent',
+          barPercentage: 0.95, categoryPercentage: 0.78 },
+        { label: 'Core Goods (less foods and energy)', data: view.core_goods_mom_sa.map(r => r[1]),
+          backgroundColor: BRAND.silver, borderColor: 'transparent',
+          barPercentage: 0.95, categoryPercentage: 0.78 },
+        { label: 'Services', data: view.services_mom_sa.map(r => r[1]),
+          backgroundColor: BRAND.khaki, borderColor: 'transparent',
+          barPercentage: 0.95, categoryPercentage: 0.78 }
       ]
     },
     options: baseOptions(v => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`, { scales: { beginAtZero: false } })
@@ -1228,9 +1234,9 @@ function registerAllCsvsPpi(view) {
   registerCsv('chartPpiYoy', 'headline-vs-core-ppi.csv',
     ['Month', 'Headline PPI YoY (%)', 'Core PPI YoY (%)'],
     mergeSeries([view.headline_yoy, view.core_yoy]));
-  registerCsv('chartPpiMom', 'ppi-monthly-change-sa.csv',
-    ['Month', 'Headline PPI MoM SA (%)', 'Core PPI MoM SA (%)'],
-    mergeSeries([view.headline_mom_sa, view.core_mom_sa]));
+  rregisterCsv('chartPpiMom', 'ppi-monthly-change-sa.csv',
+    ['Month', 'Final Demand MoM SA (%)', 'Core Final Demand MoM SA (%)', 'Core Goods MoM SA (%)', 'Services MoM SA (%)'],
+    mergeSeries([view.headline_mom_sa, view.core_mom_sa, view.core_goods_mom_sa, view.services_mom_sa]));
   registerCsv('chartPpiComp', 'ppi-components-yoy.csv',
     ['Month', 'Goods YoY (%)', 'Services YoY (%)', 'Foods YoY (%)', 'Energy YoY (%)'],
     mergeSeries([view.goods_yoy, view.services_yoy, view.foods_yoy, view.energy_yoy]));
