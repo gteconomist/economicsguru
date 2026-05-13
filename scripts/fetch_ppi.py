@@ -32,7 +32,7 @@ from pathlib import Path
 from urllib import request, error
 
 NSA_IDS = ["WPUFD4", "WPUFD49104", "WPUFD41", "WPUFD42", "WPUFD411", "WPUFD412"]
-SA_IDS  = ["WPSFD4", "WPSFD49104", "WPSFD41", "WPSFD42", "WPSFD41312"]
+SA_IDS  = ["WPSFD4", "WPSFD49104", "WPSFD41", "WPSFD42", "WPSFD413"]
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OUT_PATH = REPO_ROOT / "data" / "ppi.json"
@@ -154,7 +154,7 @@ def main():
         "energy_yoy":       yoy(nsa["WPUFD412"]),
         "headline_mom_sa":    mom_strict(sa["WPSFD4"]),
         "core_mom_sa":        mom_strict(sa["WPSFD49104"]),
-        "core_goods_mom_sa":  mom_strict(sa["WPSFD41312"]),
+        "core_goods_mom_sa":  mom_strict(sa["WPSFD413"]),
         "services_mom_sa":    mom_strict(sa["WPSFD42"]),
         "goods_level":        values(sa["WPSFD41"], 3),
         "services_level":     values(sa["WPSFD42"], 3),
