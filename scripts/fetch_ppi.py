@@ -17,7 +17,8 @@ SA (used for monthly change)
   WPSFD4
   WPSFD49104
   WPSFD41        (used as level for the indexed Goods vs Services spotlight)
-  WPSFD42
+  WPSFD42        (also used as MoM in the 4-series Monthly Change chart)
+  WPSFD41312     Final demand goods less foods and energy ("core goods")
 
 Environment variables:
   BLS_API_KEY    (free key gives higher rate limits)
@@ -31,7 +32,7 @@ from pathlib import Path
 from urllib import request, error
 
 NSA_IDS = ["WPUFD4", "WPUFD49104", "WPUFD41", "WPUFD42", "WPUFD411", "WPUFD412"]
-SA_IDS  = ["WPSFD4", "WPSFD49104", "WPSFD41", "WPSFD42"]
+SA_IDS  = ["WPSFD4", "WPSFD49104", "WPSFD41", "WPSFD42", "WPSFD41312"]
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OUT_PATH = REPO_ROOT / "data" / "ppi.json"
@@ -151,10 +152,12 @@ def main():
         "services_yoy":     yoy(nsa["WPUFD42"]),
         "foods_yoy":        yoy(nsa["WPUFD411"]),
         "energy_yoy":       yoy(nsa["WPUFD412"]),
-        "headline_mom_sa":  mom_strict(sa["WPSFD4"]),
-        "core_mom_sa":      mom_strict(sa["WPSFD49104"]),
-        "goods_level":      values(sa["WPSFD41"], 3),
-        "services_level":   values(sa["WPSFD42"], 3),
+        "headline_mom_sa":    mom_strict(sa["WPSFD4"]),
+        "core_mom_sa":        mom_strict(sa["WPSFD49104"]),
+        "core_goods_mom_sa":  mom_strict(sa["WPSFD41312"]),
+        "services_mom_sa":    mom_strict(sa["WPSFD42"]),
+        "goods_level":        values(sa["WPSFD41"], 3),
+        "services_level":     values(sa["WPSFD42"], 3),
     }
     out["kpis"] = {
         "headline": kpi(out["headline_yoy"]),
