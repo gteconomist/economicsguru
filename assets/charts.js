@@ -1234,7 +1234,7 @@ function registerAllCsvsPpi(view) {
   registerCsv('chartPpiYoy', 'headline-vs-core-ppi.csv',
     ['Month', 'Headline PPI YoY (%)', 'Core PPI YoY (%)'],
     mergeSeries([view.headline_yoy, view.core_yoy]));
-  rregisterCsv('chartPpiMom', 'ppi-monthly-change-sa.csv',
+  registerCsv('chartPpiMom', 'ppi-monthly-change-sa.csv',
     ['Month', 'Final Demand MoM SA (%)', 'Core Final Demand MoM SA (%)', 'Core Goods MoM SA (%)', 'Services MoM SA (%)'],
     mergeSeries([view.headline_mom_sa, view.core_mom_sa, view.core_goods_mom_sa, view.services_mom_sa]));
   registerCsv('chartPpiComp', 'ppi-components-yoy.csv',
