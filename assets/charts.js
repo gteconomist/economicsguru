@@ -2294,13 +2294,98 @@ function buildPsRatio(view) {
   };
 }
 
+// Compute MoM % change from a SAAR level series. Drops the first observation
+// (no prior month to compare to). Returns rows as [["YYYY-MM", pct], ...].
+function momPctSeries(series) {
+  const out = [];
+  if (!series || series.length < 2) return out;
+  for (let i = 1; i < series.length; i++) {
+    const prev = series[i - 1][1];
+    const cur  = series[i][1];
+    if (prev == null || cur == null || prev === 0) {
+      out.push([series[i][0], null]);
+    } else {
+      out.push([series[i][0], ((cur - prev) / Math.abs(prev)) * 100]);
+    }
+  }
+  return out;
+}
+
+function buildPsPermitsMom(view) {
+  // Grouped bars: Total / SF / MF Total / MF 2-4 / MF 5+, MoM % change.
+  const total = momPctSeries(view.permits_total);
+  const sf    = momPctSeries(view.permits_sf);
+  const mf    = momPctSeries(view.permits_mf);
+  const mf24  = momPctSeries(view.permits_24);
+  const mf5p  = momPctSeries(view.permits_5plus);
+  const labels = total.map(r => shortLabel(r[0]));
+  const alignTo = (s) => {
+    const m = new Map(s.map(r => [r[0], r[1]]));
+    return total.map(r => m.has(r[0]) ? m.get(r[0]) : null);
+  };
+  return {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Total Permits',         data: total.map(r => r[1]),
+          backgroundColor: BRAND.navy,    borderColor: BRAND.navy,    borderWidth: 1 },
+        { label: 'Single-Family',         data: alignTo(sf),
+          backgroundColor: BRAND.mustard, borderColor: BRAND.mustard, borderWidth: 1 },
+        { label: 'Multi-Family Total',    data: alignTo(mf),
+          backgroundColor: BRAND.silver,  borderColor: BRAND.silver,  borderWidth: 1 },
+        { label: 'Multi-Family 2-4 Units', data: alignTo(mf24),
+          backgroundColor: BRAND.khaki,   borderColor: BRAND.khaki,   borderWidth: 1 },
+        { label: 'Multi-Family 5+ Units', data: alignTo(mf5p),
+          backgroundColor: BRAND.teal,    borderColor: BRAND.teal,    borderWidth: 1 },
+        { label: '0% line', type: 'line', data: labels.map(() => 0),
+          borderColor: BRAND.silver, borderWidth: 1.2, borderDash: [4, 4],
+          pointRadius: 0, fill: false },
+      ],
+    },
+    options: baseOptions(fmtPctSigned),
+  };
+}
+
+function buildPsStartsMom(view) {
+  // Grouped bars: Total / SF / MF, MoM % change.
+  const total = momPctSeries(view.starts_total);
+  const sf    = momPctSeries(view.starts_sf);
+  const mf    = momPctSeries(view.starts_mf);
+  const labels = total.map(r => shortLabel(r[0]));
+  const alignTo = (s) => {
+    const m = new Map(s.map(r => [r[0], r[1]]));
+    return total.map(r => m.has(r[0]) ? m.get(r[0]) : null);
+  };
+  return {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Total',         data: total.map(r => r[1]),
+          backgroundColor: BRAND.navy,    borderColor: BRAND.navy,    borderWidth: 1 },
+        { label: 'Single Family', data: alignTo(sf),
+          backgroundColor: BRAND.mustard, borderColor: BRAND.mustard, borderWidth: 1 },
+        { label: 'Multi-Family',  data: alignTo(mf),
+          backgroundColor: BRAND.silver,  borderColor: BRAND.silver,  borderWidth: 1 },
+        { label: '0% line', type: 'line', data: labels.map(() => 0),
+          borderColor: BRAND.silver, borderWidth: 1.2, borderDash: [4, 4],
+          pointRadius: 0, fill: false },
+      ],
+    },
+    options: baseOptions(fmtPctSigned),
+  };
+}
+
 const PERMITS_STARTS_BUILDERS = {
-  chartPsPermits:   buildPsPermits,
-  chartPsPermitsMf: buildPsPermitsMf,
-  chartPsStarts:    buildPsStarts,
-  chartPsPvsS:      buildPsPvsS,
-  chartPsYoy:       buildPsYoy,
-  chartPsRatio:     buildPsRatio,
+  chartPsPermits:    buildPsPermits,
+  chartPsPermitsMom: buildPsPermitsMom,
+  chartPsPermitsMf:  buildPsPermitsMf,
+  chartPsStarts:     buildPsStarts,
+  chartPsStartsMom:  buildPsStartsMom,
+  chartPsPvsS:       buildPsPvsS,
+  chartPsYoy:        buildPsYoy,
+  chartPsRatio:      buildPsRatio,
 };
 
 function renderAllPermitsStarts(view) {
@@ -2314,12 +2399,28 @@ function registerAllCsvsPermitsStarts(view) {
   registerCsv('chartPsPermits', 'building-permits.csv',
     ['Month', 'Total Permits (SAAR k)', 'Single-Family Permits (SAAR k)', 'Multi-Family Permits (SAAR k, 2+ units)'],
     mergeSeries([view.permits_total, view.permits_sf, view.permits_mf]));
+  registerCsv('chartPsPermitsMom', 'building-permits-mom-by-type.csv',
+    ['Month', 'Total MoM %', 'Single-Family MoM %', 'Multi-Family Total MoM %', 'Multi-Family 2-4 MoM %', 'Multi-Family 5+ MoM %'],
+    mergeSeries([
+      momPctSeries(view.permits_total),
+      momPctSeries(view.permits_sf),
+      momPctSeries(view.permits_mf),
+      momPctSeries(view.permits_24),
+      momPctSeries(view.permits_5plus),
+    ]));
   registerCsv('chartPsPermitsMf', 'building-permits-multifamily-detail.csv',
     ['Month', '2-4 Unit Permits (SAAR k)', '5+ Unit Permits (SAAR k)'],
     mergeSeries([view.permits_24, view.permits_5plus]));
   registerCsv('chartPsStarts', 'housing-starts.csv',
     ['Month', 'Total Starts (SAAR k)', 'Single-Family Starts (SAAR k)', 'Multi-Family Starts (SAAR k, 2+ units)'],
     mergeSeries([view.starts_total, view.starts_sf, view.starts_mf]));
+  registerCsv('chartPsStartsMom', 'housing-starts-mom-by-type.csv',
+    ['Month', 'Total MoM %', 'Single-Family MoM %', 'Multi-Family MoM %'],
+    mergeSeries([
+      momPctSeries(view.starts_total),
+      momPctSeries(view.starts_sf),
+      momPctSeries(view.starts_mf),
+    ]));
   registerCsv('chartPsPvsS', 'permits-vs-starts.csv',
     ['Month', 'Total Permits (SAAR k)', 'Total Starts (SAAR k)'],
     mergeSeries([view.permits_total, view.starts_total]));

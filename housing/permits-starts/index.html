@@ -88,6 +88,7 @@
   <div class="controls">
     <span class="label-text">Time range:</span>
     <div class="range-toggle">
+      <button data-range="6m">6 mo</button>
       <button data-range="12m" class="active">12 mo</button>
       <button data-range="5y">5 yr</button>
       <button data-range="10y">10 yr</button>
@@ -112,6 +113,16 @@
     </div>
 
     <div class="chart-card">
+      <div class="title">Building Permits &mdash; MoM % Change by Type</div>
+      <div class="subtitle">(Percent Change from Prior Month, by Permit Category &mdash; SAAR inputs)</div>
+      <div class="chart-wrap"><canvas id="chartPsPermitsMom"></canvas></div>
+      <div class="source">
+        <span>Source: US Census Bureau via FRED &mdash; computed from PERMIT, PERMIT1, PERMIT24, PERMIT5 (and derived multi-family total).</span>
+        <a href="#" class="csv-link" data-chart="chartPsPermitsMom">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
       <div class="title">Multi-Family Permits Detail</div>
       <div class="subtitle">(2-4 Unit Buildings vs. 5+ Unit Buildings &mdash; SAAR, Thousands)</div>
       <div class="chart-wrap"><canvas id="chartPsPermitsMf"></canvas></div>
@@ -128,6 +139,16 @@
       <div class="source">
         <span>Source: US Census Bureau, Survey of Construction (via FRED: HOUST, HOUST1F, derived multi-family).</span>
         <a href="#" class="csv-link" data-chart="chartPsStarts">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Housing Starts &mdash; MoM % Change by Type</div>
+      <div class="subtitle">(Total Privately-Owned, Single-Family, Multi-Family &mdash; Percent Change from Prior Month, SAAR inputs)</div>
+      <div class="chart-wrap"><canvas id="chartPsStartsMom"></canvas></div>
+      <div class="source">
+        <span>Source: US Census Bureau via FRED &mdash; computed from HOUST, HOUST1F (and derived multi-family).</span>
+        <a href="#" class="csv-link" data-chart="chartPsStartsMom">Download CSV</a>
       </div>
     </div>
 
