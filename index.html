@@ -35,13 +35,38 @@
     text-transform: uppercase; color: var(--mustard);
   }
   .topic-card.coming .badge { color: var(--silver); }
+
+  /* Economic Impact Group branding */
+  .site-header .wrap { align-items: center; }
+  .brand-block { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+  .brand-attribution {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 6px;
+    font-size: 11px; color: var(--ink-on-navy-soft);
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .brand-attribution img { height: 20px; width: auto; display: block; }
+  .brand-attribution a { color: var(--mustard); }
+  .footer-brand {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 10px; margin: 0 auto 18px; text-align: center;
+  }
+  .footer-brand img { height: 48px; width: auto; display: block; }
+  .footer-brand .line { font-size: 13px; color: var(--ink-on-navy); letter-spacing: 0.02em; }
+  .footer-brand a { color: var(--mustard); }
 </style>
 </head>
 <body>
 
 <header class="site-header">
   <div class="wrap">
-    <div class="brand">Economics<span class="tag">Guru</span></div>
+    <div class="brand brand-block">
+      <span>Economics<span class="tag">Guru</span></span>
+      <div class="brand-attribution">
+        <img src="/assets/eig-logo.png" alt="Economic Impact Group, LLC">
+        <span>A product of <a href="https://www.economicimpact.com" target="_blank" rel="noopener">Economic Impact Group, LLC</a></span>
+      </div>
+    </div>
     <nav>
       <a href="/" class="active">Home</a>
       <a href="/inflation/">Inflation</a>
@@ -108,6 +133,12 @@
 </main>
 
 <footer class="site-footer">
+  <div class="footer-brand">
+    <a href="https://www.economicimpact.com" target="_blank" rel="noopener">
+      <img src="/assets/eig-logo.png" alt="Economic Impact Group, LLC">
+    </a>
+    <div class="line">economicsguru.com is a product of <a href="https://www.economicimpact.com" target="_blank" rel="noopener">Economic Impact Group, LLC</a></div>
+  </div>
   <div class="wrap">
     <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, BEA, Census, EIA, UMich, Conference Board, and ICE BofA. <a href="/about/">Methodology</a></div>
     <div>Data refreshes nightly.</div>
