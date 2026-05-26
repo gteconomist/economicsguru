@@ -36,17 +36,31 @@
   }
   .topic-card.coming .badge { color: var(--silver); }
 
-  /* Economic Impact Group branding */
-  .site-header .wrap { align-items: center; }
-  .brand-block { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
-  .brand-attribution {
-    display: flex; align-items: center; gap: 8px;
-    margin-top: 6px;
-    font-size: 11px; color: var(--ink-on-navy-soft);
-    text-transform: uppercase; letter-spacing: 0.08em;
+  /* Economic Impact Group ribbon (navy band beneath the header) */
+  .eig-ribbon { background: var(--page-bg); }
+  .eig-ribbon .wrap {
+    max-width: 1200px; margin: 0 auto;
+    padding: 18px 24px;
+    display: flex; align-items: center; gap: 22px;
+    flex-wrap: wrap;
   }
-  .brand-attribution img { height: 20px; width: auto; display: block; }
-  .brand-attribution a { color: var(--mustard); }
+  .eig-ribbon .eig-mark { display: block; line-height: 0; }
+  .eig-ribbon .eig-mark img { height: 56px; width: auto; display: block; }
+  .eig-ribbon .eig-text { display: flex; flex-direction: column; gap: 2px; }
+  .eig-ribbon .eig-eyebrow {
+    font-size: 11px; font-weight: 700;
+    color: var(--ink-on-navy-soft);
+    text-transform: uppercase; letter-spacing: 0.14em;
+  }
+  .eig-ribbon .eig-title {
+    font-size: 19px; font-weight: 700;
+    color: var(--ink-on-navy);
+    letter-spacing: -0.005em; line-height: 1.2;
+  }
+  .eig-ribbon .eig-title a { color: var(--ink-on-navy); }
+  .eig-ribbon .eig-title a:hover { color: var(--mustard); text-decoration: none; }
+
+  /* Economic Impact Group footer block */
   .footer-brand {
     display: flex; flex-direction: column; align-items: center;
     gap: 10px; margin: 0 auto 18px; text-align: center;
@@ -60,13 +74,7 @@
 
 <header class="site-header">
   <div class="wrap">
-    <div class="brand brand-block">
-      <span>Economics<span class="tag">Guru</span></span>
-      <div class="brand-attribution">
-        <img src="/assets/eig-logo.png" alt="Economic Impact Group, LLC">
-        <span>A product of <a href="https://www.economicimpact.com" target="_blank" rel="noopener">Economic Impact Group, LLC</a></span>
-      </div>
-    </div>
+    <div class="brand">Economics<span class="tag">Guru</span></div>
     <nav>
       <a href="/" class="active">Home</a>
       <a href="/inflation/">Inflation</a>
@@ -81,6 +89,18 @@
     </nav>
   </div>
 </header>
+
+<section class="eig-ribbon">
+  <div class="wrap">
+    <a class="eig-mark" href="https://www.economicimpact.com" target="_blank" rel="noopener" aria-label="Economic Impact Group, LLC">
+      <img src="/assets/eig-logo.png" alt="Economic Impact Group, LLC">
+    </a>
+    <div class="eig-text">
+      <div class="eig-eyebrow">A Product of</div>
+      <div class="eig-title"><a href="https://www.economicimpact.com" target="_blank" rel="noopener">Economic Impact Group, LLC</a></div>
+    </div>
+  </div>
+</section>
 
 <main>
   <section class="hero">
