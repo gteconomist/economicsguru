@@ -79,28 +79,21 @@ WEEKLY_FRED_SERIES = {
 # Case-Shiller individual-metro Home Price Indices, Seasonally Adjusted.
 # Each FRED series is monthly, indexed (Jan 2000 = 100) — same convention as the
 # composites. Order here = order rendered in the chart legend (alphabetical for
-# scan-ability since 20 series is a lot to eyeball).
+# scan-ability). 11 metros matches the curated set on the S&P Case-Shiller
+# "Selected U.S. Metro Markets" reference chart; the 20-City Composite already
+# appears as a line on the chart above so we don't duplicate it here.
 CASE_SHILLER_METROS = [
     ("Atlanta",        "ATXRSA"),
     ("Boston",         "BOXRSA"),
     ("Charlotte",      "CRXRSA"),
     ("Chicago",        "CHXRSA"),
-    ("Cleveland",      "CEXRSA"),
     ("Dallas",         "DAXRSA"),
     ("Denver",         "DNXRSA"),
-    ("Detroit",        "DEXRSA"),
     ("Las Vegas",      "LVXRSA"),
-    ("Los Angeles",    "LXXRSA"),
     ("Miami",          "MIXRSA"),
-    ("Minneapolis",    "MNXRSA"),
     ("New York",       "NYXRSA"),
-    ("Phoenix",        "PHXRSA"),
-    ("Portland",       "POXRSA"),
-    ("San Diego",      "SDXRSA"),
     ("San Francisco",  "SFXRSA"),
-    ("Seattle",        "SEXRSA"),
     ("Tampa",          "TPXRSA"),
-    ("Washington DC",  "WDXRSA"),
 ]
 
 # CSV columns the script understands (subset of these is fine; missing = no baseline)

@@ -1427,31 +1427,24 @@ function rangedViewExistingHomes(data, range) {
   };
 }
 
-// 20 visually distinct colors for the per-metro YoY bar chart. Mirrors the
-// brand palette where possible and falls back to a hand-picked complementary
-// set so adjacent metros don't visually blur together. Order is aligned with
-// CASE_SHILLER_METROS (alphabetical by metro name) so the legend reads cleanly.
+// 11 visually distinct colors for the per-metro YoY bar chart. Mirrors the
+// brand palette where possible and uses hand-picked complementary tones so
+// adjacent metros don't visually blur together. Order is aligned with
+// CASE_SHILLER_METROS (alphabetical by metro name) and the color choices
+// roughly track the S&P Case-Shiller "Selected U.S. Metro Markets" reference
+// chart so anyone familiar with that chart maps colors to cities intuitively.
 const CS_METRO_PALETTE = [
   BRAND.mustard,     // Atlanta
   BRAND.coral,       // Boston
   '#e9c46a',         // Charlotte
   BRAND.green,       // Chicago
-  '#8a6f3c',         // Cleveland
   BRAND.tealLight,   // Dallas
   '#4a6fa5',         // Denver
-  '#c0392b',         // Detroit
   BRAND.black,       // Las Vegas
-  '#7d3c98',         // Los Angeles
   '#6d3b9a',         // Miami
-  '#118ab2',         // Minneapolis
   BRAND.khaki,       // New York
-  '#e76f51',         // Phoenix
-  '#2a9d8f',         // Portland
-  '#a26769',         // San Diego
   BRAND.teal,        // San Francisco
-  '#5c8a55',         // Seattle
   BRAND.silver,      // Tampa
-  BRAND.navy,        // Washington DC
 ];
 
 function fmtUsdK(v) {
