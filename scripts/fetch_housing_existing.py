@@ -9,8 +9,15 @@ FRED (https://fred.stlouisfed.org)
   HOSMEDUSM052N   Median Sales Price of Existing Homes, $ (NAR; ~12-month window on FRED)
   HOSSUPUSM673N   Months' Supply of Existing Homes (NAR; ~12-month window on FRED)
   HOSINVUSM495N   Active Inventory of Existing Homes, units (NAR; ~12-month window on FRED)
-  CSUSHPINSA      S&P Case-Shiller US National Home Price Index (NSA; 1987-)
-  MORTGAGE30US    Freddie Mac 30-Year Fixed Mortgage Rate, % (weekly; collapsed to monthly average)
+  CSUSHPINSA      S&P Case-Shiller US National Home Price Index, NSA (1987-)
+                  -> chartEhCsLevel (index level, NSA as labeled in page subtitle)
+  CSUSHPISA       S&P Case-Shiller US National HPI, Seasonally Adjusted
+                  -> National YoY line on chartEhCsYoy
+  SPCS20RSA       S&P Case-Shiller 20-City Composite HPI, Seasonally Adjusted
+                  -> 20-City Composite YoY line on chartEhCsYoy
+  20 individual Case-Shiller metros (SA, *XRSA codes; see CASE_SHILLER_METROS)
+                  -> grouped-bar chart of YoY % by metro (chartEhCsMetrosYoy)
+  MORTGAGE30US    Freddie Mac 30-Year Fixed Mortgage Rate, % (weekly; collapsed to monthly avg)
 
 Local CSV baseline (optional — extends NAR series back beyond FRED's 12-month window)
   data/historical/nar_existing_homes.csv
@@ -61,11 +68,40 @@ NAR_FRED_SERIES = {
     "active_inventory":    "HOSINVUSM495N",
 }
 LONG_FRED_SERIES = {
-    "case_shiller_hpi": "CSUSHPINSA",
+    "case_shiller_hpi":         "CSUSHPINSA",  # NSA index level (chartEhCsLevel)
+    "case_shiller_hpi_sa":      "CSUSHPISA",   # SA — drives National YoY line
+    "case_shiller_20city_sa":   "SPCS20RSA",   # SA — drives 20-City Composite YoY line
 }
 WEEKLY_FRED_SERIES = {
     "mortgage_30y": "MORTGAGE30US",   # weekly, collapse to monthly mean
 }
+
+# Case-Shiller individual-metro Home Price Indices, Seasonally Adjusted.
+# Each FRED series is monthly, indexed (Jan 2000 = 100) — same convention as the
+# composites. Order here = order rendered in the chart legend (alphabetical for
+# scan-ability since 20 series is a lot to eyeball).
+CASE_SHILLER_METROS = [
+    ("Atlanta",        "ATXRSA"),
+    ("Boston",         "BOXRSA"),
+    ("Charlotte",      "CRXRSA"),
+    ("Chicago",        "CHXRSA"),
+    ("Cleveland",      "CEXRSA"),
+    ("Dallas",         "DAXRSA"),
+    ("Denver",         "DNXRSA"),
+    ("Detroit",        "DEXRSA"),
+    ("Las Vegas",      "LVXRSA"),
+    ("Los Angeles",    "LXXRSA"),
+    ("Miami",          "MIXRSA"),
+    ("Minneapolis",    "MNXRSA"),
+    ("New York",       "NYXRSA"),
+    ("Phoenix",        "PHXRSA"),
+    ("Portland",       "POXRSA"),
+    ("San Diego",      "SDXRSA"),
+    ("San Francisco",  "SFXRSA"),
+    ("Seattle",        "SEXRSA"),
+    ("Tampa",          "TPXRSA"),
+    ("Washington DC",  "WDXRSA"),
+]
 
 # CSV columns the script understands (subset of these is fine; missing = no baseline)
 CSV_COLUMNS = ["existing_home_sales", "median_sales_price", "median_sales_price_sa",
@@ -344,8 +380,30 @@ def main():
     }
 
     # Long-history series — straight from FRED (no baseline needed)
-    case_shiller = fetch_fred(LONG_FRED_SERIES["case_shiller_hpi"])
-    case_shiller = [(to_month_first(d), v) for d, v in case_shiller]
+    case_shiller_nsa = fetch_fred(LONG_FRED_SERIES["case_shiller_hpi"])
+    case_shiller_nsa = [(to_month_first(d), v) for d, v in case_shiller_nsa]
+    case_shiller_sa = fetch_fred(LONG_FRED_SERIES["case_shiller_hpi_sa"])
+    case_shiller_sa = [(to_month_first(d), v) for d, v in case_shiller_sa]
+    case_shiller_20city = fetch_fred(LONG_FRED_SERIES["case_shiller_20city_sa"])
+    case_shiller_20city = [(to_month_first(d), v) for d, v in case_shiller_20city]
+
+    # Individual metros — SA index level for each Case-Shiller 20 metro.
+    # Each metro fetch is independent; if one fails the whole script raises so
+    # we never publish a half-populated metros chart. Fail-fast keeps the JSON
+    # output internally consistent.
+    metros_yoy = {}
+    metros_meta = []   # [{name, fred_id, latest, points}, ...] for diagnostics
+    for name, sid in CASE_SHILLER_METROS:
+        pairs = fetch_fred(sid)
+        pairs = [(to_month_first(d), v) for d, v in pairs]
+        yoy_pairs = yoy(pairs, 2)
+        metros_yoy[name] = yoy_pairs
+        metros_meta.append({
+            "name": name,
+            "fred_id": sid,
+            "latest": yoy_pairs[-1][0] if yoy_pairs else None,
+            "points": len(yoy_pairs),
+        })
 
     # Weekly mortgage rate -> monthly average
     mortgage_weekly = fetch_fred(WEEKLY_FRED_SERIES["mortgage_30y"])
@@ -362,14 +420,15 @@ def main():
         sa_method = "computed_ratio_to_ma"
 
     # Build output series (frontend wants [YYYY-MM, value] pairs)
-    sales_level     = to_label_pairs(merged_nar["existing_home_sales"], 0)
-    median_price    = to_label_pairs(merged_nar["median_sales_price"], 0)
-    median_price_sa = to_label_pairs(median_price_sa_pairs, 0) if median_price_sa_pairs else []
-    months_supply   = to_label_pairs(merged_nar["months_supply"], 1)
-    active_inv      = to_label_pairs(merged_nar["active_inventory"], 0)
-    cs_hpi_level    = to_label_pairs(case_shiller, 2)
-    cs_hpi_yoy      = yoy(case_shiller, 2)
-    mortgage_rate   = to_label_pairs(mortgage_monthly, 2)
+    sales_level         = to_label_pairs(merged_nar["existing_home_sales"], 0)
+    median_price        = to_label_pairs(merged_nar["median_sales_price"], 0)
+    median_price_sa     = to_label_pairs(median_price_sa_pairs, 0) if median_price_sa_pairs else []
+    months_supply       = to_label_pairs(merged_nar["months_supply"], 1)
+    active_inv          = to_label_pairs(merged_nar["active_inventory"], 0)
+    cs_hpi_level        = to_label_pairs(case_shiller_nsa, 2)             # NSA — for chartEhCsLevel
+    cs_hpi_yoy          = yoy(case_shiller_sa, 2)                         # SA-basis YoY (national)
+    cs_20city_yoy       = yoy(case_shiller_20city, 2)                     # SA-basis YoY (20-city)
+    mortgage_rate       = to_label_pairs(mortgage_monthly, 2)
 
     # latest_label = the most recent month any NAR series has data for
     latest_label = max(
@@ -383,8 +442,12 @@ def main():
         "median_price_sa":  median_price_sa,
         "months_supply":    months_supply,
         "active_inventory": active_inv,
-        "case_shiller_hpi_level": cs_hpi_level,
-        "case_shiller_hpi_yoy":   cs_hpi_yoy,
+        "case_shiller_hpi_level":  cs_hpi_level,      # NSA, index level
+        "case_shiller_hpi_yoy":    cs_hpi_yoy,        # SA-basis YoY (was NSA pre 2026-05)
+        "case_shiller_20city_yoy": cs_20city_yoy,     # SA-basis YoY, 20-City Composite
+        "case_shiller_metros_yoy": metros_yoy,        # {metro_name: [["YYYY-MM", pct], ...]}
+        "case_shiller_metros_order": [n for n, _ in CASE_SHILLER_METROS],
+        "case_shiller_metros_meta":  metros_meta,
         "mortgage_30y":     mortgage_rate,
         "kpis": {
             "sales":        kpi_from_pairs(sales_level, 0),
@@ -414,9 +477,12 @@ def main():
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_PATH.write_text(json.dumps(out, indent=2))
+    metros_latest = metros_meta[0]["latest"] if metros_meta else "n/a"
     print(
         f"Wrote {OUT_PATH} ({OUT_PATH.stat().st_size} bytes); "
         f"latest={latest_label}; CS history={len(cs_hpi_level)} months; "
+        f"20-city YoY history={len(cs_20city_yoy)} months; "
+        f"metros pulled={len(metros_meta)} (latest={metros_latest}); "
         f"sales history={len(sales_level)} months; "
         f"baseline CSV present={CSV_PATH.exists()}"
     )

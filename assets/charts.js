@@ -1403,18 +1403,56 @@ function registerAllCsvsPce(view) {
 // =========================================================
 function rangedViewExistingHomes(data, range) {
   const n = RANGE_MONTHS[range];
+  // Tail the per-metro YoY series to the active range. Keep the dict shape so
+  // the chart builder can drive both legend order and color assignment off the
+  // `case_shiller_metros_order` array.
+  const metrosYoyRaw = data.case_shiller_metros_yoy || {};
+  const metrosYoy = {};
+  for (const k of Object.keys(metrosYoyRaw)) {
+    metrosYoy[k] = tail(metrosYoyRaw[k] || [], n);
+  }
   return {
-    sales_level:            tail(data.sales_level || [], n),
-    median_price:           tail(data.median_price || [], n),
-    median_price_sa:        tail(data.median_price_sa || [], n),
-    months_supply:          tail(data.months_supply || [], n),
-    active_inventory:       tail(data.active_inventory || [], n),
-    case_shiller_hpi_level: tail(data.case_shiller_hpi_level || [], n),
-    case_shiller_hpi_yoy:   tail(data.case_shiller_hpi_yoy || [], n),
-    mortgage_30y:           tail(data.mortgage_30y || [], n),
+    sales_level:                tail(data.sales_level || [], n),
+    median_price:               tail(data.median_price || [], n),
+    median_price_sa:            tail(data.median_price_sa || [], n),
+    months_supply:              tail(data.months_supply || [], n),
+    active_inventory:           tail(data.active_inventory || [], n),
+    case_shiller_hpi_level:     tail(data.case_shiller_hpi_level || [], n),
+    case_shiller_hpi_yoy:       tail(data.case_shiller_hpi_yoy || [], n),
+    case_shiller_20city_yoy:    tail(data.case_shiller_20city_yoy || [], n),
+    case_shiller_metros_yoy:    metrosYoy,
+    case_shiller_metros_order:  data.case_shiller_metros_order || Object.keys(metrosYoy),
+    mortgage_30y:               tail(data.mortgage_30y || [], n),
     kpis: data.kpis, latest_label: data.latest_label, notice: data.notice,
   };
 }
+
+// 20 visually distinct colors for the per-metro YoY bar chart. Mirrors the
+// brand palette where possible and falls back to a hand-picked complementary
+// set so adjacent metros don't visually blur together. Order is aligned with
+// CASE_SHILLER_METROS (alphabetical by metro name) so the legend reads cleanly.
+const CS_METRO_PALETTE = [
+  BRAND.mustard,     // Atlanta
+  BRAND.coral,       // Boston
+  '#e9c46a',         // Charlotte
+  BRAND.green,       // Chicago
+  '#8a6f3c',         // Cleveland
+  BRAND.tealLight,   // Dallas
+  '#4a6fa5',         // Denver
+  '#c0392b',         // Detroit
+  BRAND.black,       // Las Vegas
+  '#7d3c98',         // Los Angeles
+  '#6d3b9a',         // Miami
+  '#118ab2',         // Minneapolis
+  BRAND.khaki,       // New York
+  '#e76f51',         // Phoenix
+  '#2a9d8f',         // Portland
+  '#a26769',         // San Diego
+  BRAND.teal,        // San Francisco
+  '#5c8a55',         // Seattle
+  BRAND.silver,      // Tampa
+  BRAND.navy,        // Washington DC
+];
 
 function fmtUsdK(v) {
   if (v == null) return 'n/a';
@@ -1576,8 +1614,14 @@ function buildEhInventory(view) {
 }
 
 function buildEhCsYoy(view) {
-  const labels = view.case_shiller_hpi_yoy.map(r => shortLabel(r[0]));
+  // Two YoY % lines (both SA basis): U.S. National HPI and 20-City Composite.
+  // National has longer history; use its dates as the x-axis basis and align
+  // the 20-City series in (nulls where it doesn't extend back).
+  const nat = view.case_shiller_hpi_yoy;
+  const labels = nat.map(r => shortLabel(r[0]));
   const pr = pointSizeForLength(labels.length);
+  const composeMap = new Map((view.case_shiller_20city_yoy || []).map(r => [r[0], r[1]]));
+  const composeAligned = nat.map(r => composeMap.has(r[0]) ? composeMap.get(r[0]) : null);
   const opts = baseOptions(v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`);
   // Hide the zero reference line from the legend (it's just a visual aid)
   opts.plugins.legend.labels.filter = (item) => item.text !== 'Zero';
@@ -1586,13 +1630,73 @@ function buildEhCsYoy(view) {
     data: {
       labels,
       datasets: [
-        { label: 'Case-Shiller HPI YoY', data: view.case_shiller_hpi_yoy.map(r => r[1]),
+        { label: 'U.S. National HPI YoY (SA)', data: nat.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, spanGaps: false },
+        { label: '20-City Composite YoY (SA)', data: composeAligned,
           borderColor: BRAND.teal, backgroundColor: BRAND.teal,
-          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, spanGaps: false },
         { label: 'Zero', data: labels.map(()=>0),
           borderColor: BRAND.silver, borderWidth: 1, pointRadius: 0, borderDash: [4,4] },
       ],
     },
+    options: opts,
+  };
+}
+
+// Grouped-bar chart: YoY % change for each of the 20 Case-Shiller individual
+// metros, one cluster per month. Mirrors the visual style of the official S&P
+// Case-Shiller "Selected U.S. Metro Markets" chart. With 20 series this gets
+// crowded fast — use the 6-mo range to keep it readable; even 12-mo is dense.
+function buildEhCsMetrosYoy(view) {
+  const order = view.case_shiller_metros_order || [];
+  const metros = view.case_shiller_metros_yoy || {};
+  // Pick the longest series we have as the canonical x-axis (they all release
+  // together but a transient FRED hiccup could shorten one). Most months all
+  // 20 will line up perfectly.
+  let basis = [];
+  for (const name of order) {
+    const s = metros[name] || [];
+    if (s.length > basis.length) basis = s;
+  }
+  const labels = basis.map(r => shortLabel(r[0]));
+  // Align each metro's series to the basis dates; missing month -> null.
+  const datasets = order.map((name, i) => {
+    const color = CS_METRO_PALETTE[i % CS_METRO_PALETTE.length];
+    const m = new Map((metros[name] || []).map(r => [r[0], r[1]]));
+    return {
+      label: name,
+      data: basis.map(r => m.has(r[0]) ? m.get(r[0]) : null),
+      backgroundColor: color,
+      borderColor: color,
+      borderWidth: 1,
+      // Tighter bar groups so 20 series fit per month
+      categoryPercentage: 0.92,
+      barPercentage: 0.96,
+    };
+  });
+  // 0% reference line drawn through the bar groups
+  datasets.push({
+    label: '0% line',
+    type: 'line',
+    data: labels.map(() => 0),
+    borderColor: BRAND.silver,
+    borderWidth: 1.2,
+    borderDash: [4, 4],
+    pointRadius: 0,
+    fill: false,
+  });
+  const opts = baseOptions(v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`);
+  // 21 legend entries (20 metros + 0% line); drop the 0% line entry from the legend
+  opts.plugins.legend.labels.filter = (item) => item.text !== '0% line';
+  // Slightly smaller legend swatches and font so 20 labels wrap cleanly on most viewports
+  opts.plugins.legend.labels.boxWidth = 11;
+  opts.plugins.legend.labels.boxHeight = 11;
+  opts.plugins.legend.labels.padding = 8;
+  opts.plugins.legend.labels.font = { size: 11, weight: '600' };
+  return {
+    type: 'bar',
+    data: { labels, datasets },
     options: opts,
   };
 }
@@ -1615,12 +1719,13 @@ function buildEhMortgage(view) {
 }
 
 const EXISTING_HOMES_BUILDERS = {
-  chartEhSales:      buildEhSales,
-  chartEhMedianPrice:buildEhMedianPrice,
-  chartEhCsLevel:    buildEhCsLevel,
-  chartEhInventory:  buildEhInventory,
-  chartEhCsYoy:      buildEhCsYoy,
-  chartEhMortgage:   buildEhMortgage,
+  chartEhSales:        buildEhSales,
+  chartEhMedianPrice:  buildEhMedianPrice,
+  chartEhCsLevel:      buildEhCsLevel,
+  chartEhInventory:    buildEhInventory,
+  chartEhCsYoy:        buildEhCsYoy,
+  chartEhCsMetrosYoy:  buildEhCsMetrosYoy,
+  chartEhMortgage:     buildEhMortgage,
 };
 
 function renderAllExistingHomes(view) {
@@ -1703,7 +1808,17 @@ function registerAllCsvsExistingHomes(view) {
     ['Month', 'Active Inventory (units)', 'Months Supply'],
     mergeSeries([view.active_inventory, view.months_supply]));
   registerCsv('chartEhCsYoy', 'case-shiller-yoy.csv',
-    ['Month', 'Case-Shiller HPI YoY (%)'], view.case_shiller_hpi_yoy);
+    ['Month', 'U.S. National HPI YoY (SA, %)', '20-City Composite HPI YoY (SA, %)'],
+    mergeSeries([view.case_shiller_hpi_yoy, view.case_shiller_20city_yoy]));
+  // Per-metro YoY CSV: each metro becomes its own column. mergeSeries handles
+  // the date-alignment so the resulting CSV has one row per month with a value
+  // (or blank) per metro.
+  const metrosOrder = view.case_shiller_metros_order || [];
+  const metrosYoy   = view.case_shiller_metros_yoy   || {};
+  const metroSeries = metrosOrder.map(name => metrosYoy[name] || []);
+  registerCsv('chartEhCsMetrosYoy', 'case-shiller-metros-yoy.csv',
+    ['Month', ...metrosOrder.map(n => `${n} YoY (SA, %)`)],
+    mergeSeries(metroSeries));
   registerCsv('chartEhMortgage', '30-year-fixed-mortgage-rate.csv',
     ['Month', '30-Year Fixed Mortgage Rate (%, monthly avg)'], view.mortgage_30y);
 }
@@ -5799,12 +5914,13 @@ window.EG = {
     if (range && RANGE_MONTHS[range]) CURRENT_RANGE = range;
     const view = rangedViewExistingHomes(data, CURRENT_RANGE);
     const map = {
-      sales:    'chartEhSales',
-      price:    'chartEhMedianPrice',
-      cslevel:  'chartEhCsLevel',
-      inventory:'chartEhInventory',
-      csyoy:    'chartEhCsYoy',
-      mortgage: 'chartEhMortgage',
+      sales:     'chartEhSales',
+      price:     'chartEhMedianPrice',
+      cslevel:   'chartEhCsLevel',
+      inventory: 'chartEhInventory',
+      csyoy:     'chartEhCsYoy',
+      csmetros:  'chartEhCsMetrosYoy',
+      mortgage:  'chartEhMortgage',
     };
     const id = map[chartKey] || 'chartEhSales';
     if (EXISTING_HOMES_BUILDERS[id]) makeChart(id, EXISTING_HOMES_BUILDERS[id](view));
