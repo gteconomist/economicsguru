@@ -3496,6 +3496,9 @@ function applyRange(range) {
   } else if (CURRENT_PAGE === 'permits-starts') {
     const view = rangedViewPermitsStarts(RAW_DATA, range);
     renderAllPermitsStarts(view); registerAllCsvsPermitsStarts(view);
+  } else if (CURRENT_PAGE === 'mortgage-activity') {
+    const view = rangedViewMortgageActivity(RAW_DATA, range);
+    renderAllMortgageActivity(view); registerAllCsvsMortgageActivity(view);
   } else if (CURRENT_PAGE === 'gdp') {
     const view = rangedViewGdp(RAW_DATA, range);
     renderAllGdp(view); registerAllCsvsGdp(view);
@@ -5753,6 +5756,358 @@ function renderKpisGovernment(data) {
       </div>`;
   }).join('');
 }
+// =========================================================
+// Mortgage Activity — chart builders
+// =========================================================
+// Mixed cadence on this page: MBA Apps + Freddie Mac rates are weekly;
+// delinquency / mortgage debt / eff-rate are quarterly; affordability is
+// monthly. Rather than maintain weekly/monthly/quarterly tail counts, we
+// filter by an anchor-date cutoff so all series respect the same time window.
+function maCutoff(range, anchorDate) {
+  if (range === 'max') return '0000-00-00';
+  const monthsBack = RANGE_MONTHS[range] || 13;
+  const d = anchorDate ? new Date(anchorDate + 'T00:00:00Z') : new Date();
+  d.setUTCMonth(d.getUTCMonth() - monthsBack);
+  return d.toISOString().slice(0, 10);
+}
+function maTailByDate(pairs, cutoff) {
+  if (!pairs || !pairs.length) return [];
+  let lo = 0, hi = pairs.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (pairs[mid][0] < cutoff) lo = mid + 1;
+    else hi = mid;
+  }
+  return pairs.slice(lo);
+}
+
+function rangedViewMortgageActivity(data, range) {
+  // Anchor cutoff to the most recent MBA week so all series filter against
+  // the same date regardless of which source is one release behind.
+  const anchor =
+    (data.mba_purchase && data.mba_purchase.length && data.mba_purchase[data.mba_purchase.length - 1][0]) ||
+    (data.mortgage_30y && data.mortgage_30y.length && data.mortgage_30y[data.mortgage_30y.length - 1][0]) ||
+    null;
+  const cutoff = maCutoff(range, anchor);
+  return {
+    mba_purchase:           maTailByDate(data.mba_purchase || [], cutoff),
+    mba_refinance:          maTailByDate(data.mba_refinance || [], cutoff),
+    mortgage_30y:           maTailByDate(data.mortgage_30y || [], cutoff),
+    mortgage_15y:           maTailByDate(data.mortgage_15y || [], cutoff),
+    treasury_10y:           maTailByDate(data.treasury_10y || [], cutoff),
+    spread_30y_10y:         maTailByDate(data.spread_30y_10y || [], cutoff),
+    mortgage_30y_q:         maTailByDate(data.mortgage_30y_q || [], cutoff),
+    eff_rate_outstanding:   maTailByDate(data.eff_rate_outstanding || [], cutoff),
+    delinquency_rate:       maTailByDate(data.delinquency_rate || [], cutoff),
+    mortgage_debt_out:      maTailByDate(data.mortgage_debt_out || [], cutoff),
+    affordability_index:    maTailByDate(data.affordability_index || [], cutoff),
+    kpis: data.kpis,
+    latest_label: data.latest_label,
+    notice: data.notice,
+  };
+}
+
+function maFmtPct(v) { return v == null ? 'n/a' : v.toFixed(2) + '%'; }
+function maFmtIdx(v) { return v == null ? 'n/a' : v.toFixed(1); }
+function maFmtUsdB(v) {
+  if (v == null) return 'n/a';
+  if (Math.abs(v) >= 1e3) return '$' + (v / 1e3).toFixed(2) + 'T';
+  return '$' + Math.round(v).toLocaleString('en-US') + 'B';
+}
+
+function buildMaApps(view) {
+  // Dual-axis: Refinance left (volatile, high range), Purchase right (steadier).
+  // Matches the layout of MBA's own published chart.
+  const refi = view.mba_refinance || [];
+  const pur  = view.mba_purchase  || [];
+  const labels = refi.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const purMap = new Map(pur.map(r => [r[0], r[1]]));
+  const purAligned = refi.map(r => purMap.has(r[0]) ? purMap.get(r[0]) : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Refinance Index (left)',
+          data: refi.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr,
+          yAxisID: 'yRefi' },
+        { label: 'Purchase Index (right)',
+          data: purAligned,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, spanGaps: false,
+          yAxisID: 'yPur' },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 8, right: 16, bottom: 4, left: 4 } },
+      interaction: { mode: 'index', intersect: false },
+      animation: { duration: 350 },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 12, boxHeight: 12, padding: 12, color: BRAND.navy, font: { size: 12, weight: '600' } } },
+        tooltip: {
+          backgroundColor: BRAND.navy, titleColor: '#fff', bodyColor: '#fff',
+          borderColor: BRAND.mustard, borderWidth: 1, padding: 10, cornerRadius: 4,
+          callbacks: { label: ctx => ctx.parsed.y == null
+            ? `${ctx.dataset.label}: n/a`
+            : `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(1)}` },
+        },
+      },
+      scales: {
+        x: baseScales(v => v).x,
+        yRefi: axisSpec(maFmtIdx, 'left'),
+        yPur:  axisSpec(maFmtIdx, 'right'),
+      },
+    },
+  };
+}
+
+function buildMaRates(view) {
+  const m30 = view.mortgage_30y || [];
+  const m15 = view.mortgage_15y || [];
+  const labels = m30.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const m15Map = new Map(m15.map(r => [r[0], r[1]]));
+  const m15Aligned = m30.map(r => m15Map.has(r[0]) ? m15Map.get(r[0]) : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '30-Year Fixed', data: m30.map(r => r[1]),
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: '15-Year Fixed', data: m15Aligned,
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, spanGaps: false },
+      ],
+    },
+    options: baseOptions(maFmtPct),
+  };
+}
+
+function buildMaSpread(view) {
+  const sp = view.spread_30y_10y || [];
+  const labels = sp.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const opts = baseOptions(maFmtPct);
+  opts.plugins.legend.labels.filter = (item) => item.text !== 'Long-run avg (~1.7%)';
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '30Y Mortgage − 10Y Treasury (percentage points)',
+          data: sp.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, fill: false },
+        { label: 'Long-run avg (~1.7%)',
+          data: labels.map(() => 1.7),
+          borderColor: BRAND.silver, borderWidth: 1, pointRadius: 0,
+          borderDash: [4, 4] },
+      ],
+    },
+    options: opts,
+  };
+}
+
+function buildMaGoldenHandcuff(view) {
+  // Dual line on a single axis: prevailing 30Y vs effective rate on outstanding
+  // mortgage debt. The widening gap post-2022 is the "golden handcuff" — homeowners
+  // locked into a much lower effective rate than the current market, depressing
+  // existing-home turnover.
+  const eff = view.eff_rate_outstanding || [];
+  const m30q = view.mortgage_30y_q || [];
+  const labels = eff.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const m30Map = new Map(m30q.map(r => [r[0], r[1]]));
+  const m30Aligned = eff.map(r => m30Map.has(r[0]) ? m30Map.get(r[0]) : null);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '30-Year Fixed Mortgage Rate (quarterly avg)',
+          data: m30Aligned,
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr, spanGaps: false },
+        { label: 'Effective Rate on Outstanding Mortgage Debt',
+          data: eff.map(r => r[1]),
+          borderColor: BRAND.navy, backgroundColor: BRAND.navy,
+          tension: 0.2, borderWidth: 3, pointRadius: pr },
+      ],
+    },
+    options: baseOptions(maFmtPct),
+  };
+}
+
+function buildMaDelinquency(view) {
+  const d = view.delinquency_rate || [];
+  const labels = d.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Single-Family Mortgage Delinquency Rate',
+          data: d.map(r => r[1]),
+          borderColor: BRAND.coral, backgroundColor: BRAND.coral,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+      ],
+    },
+    options: baseOptions(maFmtPct),
+  };
+}
+
+function buildMaDebt(view) {
+  const d = view.mortgage_debt_out || [];
+  const labels = d.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'One-to-Four-Family Residential Mortgage Debt ($B)',
+          data: d.map(r => r[1]),
+          borderColor: BRAND.green, backgroundColor: BRAND.green,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+      ],
+    },
+    options: baseOptions(maFmtUsdB),
+  };
+}
+
+function buildMaAffordability(view) {
+  const a = view.affordability_index || [];
+  const labels = a.map(r => shortLabel(r[0]));
+  const pr = pointSizeForLength(labels.length);
+  const opts = baseOptions(maFmtIdx);
+  opts.plugins.legend.labels.filter = (item) => item.text !== '100 (parity)';
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'NAR Fixed-Rate Affordability Index',
+          data: a.map(r => r[1]),
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+        { label: '100 (parity)',
+          data: labels.map(() => 100),
+          borderColor: BRAND.silver, borderWidth: 1, pointRadius: 0, borderDash: [4, 4] },
+      ],
+    },
+    options: opts,
+  };
+}
+
+const MORTGAGE_ACTIVITY_BUILDERS = {
+  chartMaApps:            buildMaApps,
+  chartMaRates:           buildMaRates,
+  chartMaSpread:          buildMaSpread,
+  chartMaGoldenHandcuff:  buildMaGoldenHandcuff,
+  chartMaDelinquency:     buildMaDelinquency,
+  chartMaDebt:            buildMaDebt,
+  chartMaAffordability:   buildMaAffordability,
+};
+
+function renderAllMortgageActivity(view) {
+  for (const [id, builder] of Object.entries(MORTGAGE_ACTIVITY_BUILDERS)) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    const card = el.closest('.chart-card');
+    if (card) card.style.display = '';
+    makeChart(id, builder(view));
+  }
+}
+
+function renderKpisMortgageActivity(data) {
+  const kpiHost = document.getElementById('kpis');
+  if (!kpiHost) return;
+  const fmtPct2 = v => (v == null ? 'n/a' : v.toFixed(2) + '%');
+  const fmtIdx1 = v => (v == null ? 'n/a' : v.toFixed(1));
+  const fmtIdx0 = v => (v == null ? 'n/a' : Math.round(v).toLocaleString('en-US'));
+
+  const KPI_DEFS = [
+    { key: 'mortgage_30y', label: '30-Yr Mortgage Rate', accent: BRAND.coral,
+      valueFmt: k => fmtPct2(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior week`,
+      goodDir: 'down' },
+    { key: 'mortgage_15y', label: '15-Yr Mortgage Rate', accent: BRAND.teal,
+      valueFmt: k => fmtPct2(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior week`,
+      goodDir: 'down' },
+    { key: 'spread_30y_10y', label: '30Y − 10Y Spread', accent: BRAND.navy,
+      valueFmt: k => fmtPct2(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior week`,
+      goodDir: 'down' },
+    { key: 'purchase_index', label: 'MBA Purchase Index', accent: BRAND.mustard,
+      valueFmt: k => fmtIdx1(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(1)} vs prior week`,
+      goodDir: 'up' },
+    { key: 'refinance_index', label: 'MBA Refinance Index', accent: BRAND.green,
+      valueFmt: k => fmtIdx0(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${Math.round(k.delta).toLocaleString('en-US')} vs prior week`,
+      goodDir: 'up' },
+    { key: 'delinquency_rate', label: 'Mortgage Delinquency', accent: BRAND.khaki,
+      valueFmt: k => fmtPct2(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior quarter`,
+      goodDir: 'down' },
+    { key: 'eff_rate', label: 'Eff. Rate on Outstanding Debt', accent: BRAND.tealLight,
+      valueFmt: k => fmtPct2(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} pp vs prior quarter`,
+      goodDir: 'neutral' },
+    { key: 'affordability', label: 'Affordability Index', accent: BRAND.silver,
+      valueFmt: k => fmtIdx1(k.value),
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(1)} vs prior month`,
+      goodDir: 'up' },
+  ];
+  kpiHost.innerHTML = KPI_DEFS.map(def => {
+    const k = data.kpis[def.key] || { value: null, delta: null };
+    let dCls = 'flat';
+    if (k.delta != null && k.delta !== 0 && def.goodDir !== 'neutral') {
+      const isGood = (k.delta > 0 && def.goodDir === 'up') || (k.delta < 0 && def.goodDir === 'down');
+      dCls = isGood ? 'down' : 'up';
+    }
+    const arrow = k.delta == null ? '–' : (k.delta > 0 ? '▲' : (k.delta < 0 ? '▼' : '▬'));
+    return `
+      <div class="kpi" style="border-top-color:${def.accent}">
+        <div class="label">${def.label}</div>
+        <div class="value">${def.valueFmt(k)}</div>
+        <div class="delta ${dCls}">${arrow} ${def.deltaFmt(k)}</div>
+      </div>`;
+  }).join('');
+}
+
+function registerAllCsvsMortgageActivity(view) {
+  registerCsv('chartMaApps', 'mba-mortgage-applications.csv',
+    ['Week Ending', 'Refinance Index', 'Purchase Index'],
+    mergeSeries([view.mba_refinance, view.mba_purchase]));
+  registerCsv('chartMaRates', 'mortgage-rates-30y-15y.csv',
+    ['Week Ending', '30-Year Fixed (%)', '15-Year Fixed (%)'],
+    mergeSeries([view.mortgage_30y, view.mortgage_15y]));
+  registerCsv('chartMaSpread', 'mortgage-treasury-spread.csv',
+    ['Week Ending', '30Y Mortgage − 10Y Treasury (pp)'],
+    view.spread_30y_10y);
+  registerCsv('chartMaGoldenHandcuff', 'golden-handcuff-30y-vs-effective-rate.csv',
+    ['Quarter', '30-Year Mortgage Rate (%, quarterly avg)', 'Effective Rate on Outstanding Mortgage Debt (%)'],
+    mergeSeries([view.mortgage_30y_q, view.eff_rate_outstanding]));
+  registerCsv('chartMaDelinquency', 'mortgage-delinquency-rate.csv',
+    ['Quarter', 'Single-Family Mortgage Delinquency Rate (%)'],
+    view.delinquency_rate);
+  registerCsv('chartMaDebt', 'mortgage-debt-outstanding.csv',
+    ['Quarter', 'One-to-Four-Family Residential Mortgage Debt ($B)'],
+    view.mortgage_debt_out);
+  registerCsv('chartMaAffordability', 'housing-affordability-index.csv',
+    ['Month', 'NAR Fixed-Rate Housing Affordability Index'],
+    view.affordability_index);
+}
+
 window.EG = {
   BRAND, shortLabel, baseOptions, applyRange,
   renderGovernment(data) {
@@ -5983,6 +6338,38 @@ window.EG = {
     };
     const id = map[chartKey] || 'chartPsPermits';
     if (PERMITS_STARTS_BUILDERS[id]) makeChart(id, PERMITS_STARTS_BUILDERS[id](view));
+  },
+
+  renderMortgageActivity(data) {
+    CURRENT_PAGE = 'mortgage-activity';
+    RAW_DATA = data;
+    const m = document.getElementById('latest-month');
+    if (m) m.textContent = formatLabelLong(data.latest_label);
+    renderKpisMortgageActivity(data);
+    const view = rangedViewMortgageActivity(data, CURRENT_RANGE);
+    renderAllMortgageActivity(view); registerAllCsvsMortgageActivity(view);
+    attachDownloadHandlers(); wireRangeToggle();
+  },
+
+  // Embed mode for Mortgage Activity:
+  // chartKey ∈ 'apps' | 'rates' | 'spread' | 'goldenhandcuff' |
+  //            'delinquency' | 'debt' | 'affordability'
+  renderMortgageActivityEmbed(chartKey, data, range) {
+    CURRENT_PAGE = 'mortgage-activity';
+    RAW_DATA = data;
+    if (range && RANGE_MONTHS[range]) CURRENT_RANGE = range;
+    const view = rangedViewMortgageActivity(data, CURRENT_RANGE);
+    const map = {
+      apps:            'chartMaApps',
+      rates:           'chartMaRates',
+      spread:          'chartMaSpread',
+      goldenhandcuff:  'chartMaGoldenHandcuff',
+      delinquency:     'chartMaDelinquency',
+      debt:            'chartMaDebt',
+      affordability:   'chartMaAffordability',
+    };
+    const id = map[chartKey] || 'chartMaApps';
+    if (MORTGAGE_ACTIVITY_BUILDERS[id]) makeChart(id, MORTGAGE_ACTIVITY_BUILDERS[id](view));
   },
 
   renderGdp(data) {
