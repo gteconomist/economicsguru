@@ -5782,13 +5782,20 @@ function maTailByDate(pairs, cutoff) {
 }
 
 function rangedViewMortgageActivity(data, range) {
-  // Anchor cutoff to the most recent MBA week so all series filter against
-  // the same date regardless of which source is one release behind.
+  // Most series share a single cutoff anchored to the latest MBA week, so
+  // toggling 12m/5y/10y/etc. behaves uniformly across the page. But the
+  // price/income ratio lags by 6-15 months (Census P-60 annual income
+  // releases only in September), so it gets its own cutoff anchored to its
+  // own latest point — otherwise the default 12m view would filter out every
+  // data point and the chart would render blank.
   const anchor =
     (data.mba_purchase && data.mba_purchase.length && data.mba_purchase[data.mba_purchase.length - 1][0]) ||
     (data.mortgage_30y && data.mortgage_30y.length && data.mortgage_30y[data.mortgage_30y.length - 1][0]) ||
     null;
   const cutoff = maCutoff(range, anchor);
+  const piData = data.price_income_ratio || [];
+  const piAnchor = piData.length ? piData[piData.length - 1][0] : anchor;
+  const piCutoff = maCutoff(range, piAnchor);
   return {
     mba_purchase:           maTailByDate(data.mba_purchase || [], cutoff),
     mba_refinance:          maTailByDate(data.mba_refinance || [], cutoff),
@@ -5801,7 +5808,7 @@ function rangedViewMortgageActivity(data, range) {
     delinquency_rate:       maTailByDate(data.delinquency_rate || [], cutoff),
     mortgage_debt_out:      maTailByDate(data.mortgage_debt_out || [], cutoff),
     affordability_index:    maTailByDate(data.affordability_index || [], cutoff),
-    price_income_ratio:     maTailByDate(data.price_income_ratio || [], cutoff),
+    price_income_ratio:     maTailByDate(piData, piCutoff),
     kpis: data.kpis,
     latest_label: data.latest_label,
     notice: data.notice,
