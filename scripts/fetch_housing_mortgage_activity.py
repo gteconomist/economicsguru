@@ -24,7 +24,17 @@ Three data families on this page:
    - HHMSDODNS    Households & NPISH; 1-4 family residential mortgages; liability level (Z.1)
                   Note: published in MILLIONS of dollars -- we divide by 1000
                   inside the fetcher so downstream code can treat as $ billions.
-   - FIXHAI       NAR Fixed-Rate Housing Affordability Index (monthly)
+   - FIXHAI       NAR Fixed-Rate Housing Affordability Index (monthly, NSA)
+                  FRED's NAR licence restricts it to a trailing ~13-month
+                  window, AND FRED's series often lags Haver by several months
+                  (FRED was at Nov-2025 while Haver was at Apr-2026 as of
+                  2026-05). The historical baseline CSV at
+                  data/historical/nar_affordability.csv is the Moody's
+                  Analytics SA version via Haver (mnemonic HXAFFFM.IUSA) and
+                  is the chart's primary source. FRED is used only to extend
+                  trailing months once Haver hasn't been refreshed in a while.
+                  NSA-vs-SA methodology mismatch means a small seam may appear
+                  at the boundary -- re-uploading fresh Haver fixes it.
    - Golden Handcuff: 30Y mortgage rate vs effective rate on outstanding
        mortgage debt. Effective rate is constructed annually as:
          eff_rate = (annual mortgage interest paid: owner-occupied housing $B)
@@ -67,6 +77,7 @@ REPO_ROOT      = Path(__file__).resolve().parents[1]
 OUT_PATH       = REPO_ROOT / "data" / "housing_mortgage_activity.json"
 HISTORICAL_DIR = REPO_ROOT / "data" / "historical"
 MBA_CSV        = HISTORICAL_DIR / "mba_mortgage_applications.csv"
+HAI_CSV        = HISTORICAL_DIR / "nar_affordability.csv"
 
 FRED_BASE = "https://api.stlouisfed.org/fred/series/observations"
 BEA_BASE  = "https://apps.bea.gov/api/data"
@@ -393,6 +404,68 @@ def load_mba_csv():
     return out
 
 
+def load_hai_csv():
+    """Read the seeded HAI history CSV. Returns sorted [(YYYY-MM-DD, value), ...]."""
+    if not HAI_CSV.exists():
+        print(f"WARN: {HAI_CSV} missing; HAI series falls back to FRED-only.",
+              file=sys.stderr)
+        return []
+    out = []
+    with HAI_CSV.open() as f:
+        rdr = csv.DictReader(f)
+        for row in rdr:
+            d = (row.get("date") or "").strip()
+            v = (row.get("affordability_index") or "").strip()
+            if not d or not v:
+                continue
+            # Coerce to YYYY-MM-01
+            try:
+                y, m = d.split("-")[:2]
+                d = f"{int(y):04d}-{int(m):02d}-01"
+                out.append((d, float(v)))
+            except (ValueError, IndexError):
+                continue
+    out.sort()
+    return out
+
+
+def append_hai_csv(new_pairs):
+    """Idempotently append HAI rows not already present in the CSV.
+    Returns count appended."""
+    if not new_pairs or not HAI_CSV.exists():
+        return 0
+    with HAI_CSV.open() as f:
+        existing_dates = {(line.split(",")[0] or "").strip()
+                          for line in f.readlines()[1:]}
+    appendable = [(d, v) for d, v in new_pairs if d not in existing_dates]
+    if not appendable:
+        return 0
+    with HAI_CSV.open("a", newline="") as f:
+        w = csv.writer(f)
+        for d, v in appendable:
+            w.writerow([d, f"{v:.2f}"])
+    print(f"  HAI CSV: appended {len(appendable)} row(s): "
+          f"{[d for d, _ in appendable]}", file=sys.stderr)
+    return len(appendable)
+
+
+def merge_hai(csv_pairs, fred_pairs):
+    """CSV (Moody's SA) is canonical. FRED (NSA, restricted window) fills any
+    months newer than CSV's latest. CSV wins on overlap — we do NOT overwrite
+    Moody's SA values with FRED NSA values; methodology stays consistent inside
+    the seeded window."""
+    out = {d: v for d, v in csv_pairs}
+    csv_latest = max(out.keys()) if out else "0000-00-00"
+    appendable_for_csv = []
+    for d, v in fred_pairs:
+        # Normalize FRED date to YYYY-MM-01
+        d = f"{d[:7]}-01"
+        if d > csv_latest and d not in out:
+            out[d] = v
+            appendable_for_csv.append((d, v))
+    return sorted(out.items()), appendable_for_csv
+
+
 def append_mba_csv(new_row):
     """Idempotently append one weekly row to the CSV. Returns True if appended."""
     if not new_row or not new_row.get("week_end"):
@@ -644,11 +717,18 @@ def main():
         print(f"  HHMSDODNS fetch failed: {e}", file=sys.stderr)
         debt_out_raw = []
         debt_out = []
+    # Affordability: CSV baseline (Moody's SA via Haver) is canonical; FRED
+    # FIXHAI (NSA, ~13-month rolling window) only fills months newer than CSV.
+    hai_baseline = load_hai_csv()
     try:
-        affordability = _fred("FIXHAI")
+        hai_fred_raw = _fred("FIXHAI")
+        # FRED returns YYYY-MM-DD; coerce to first-of-month
+        hai_fred = [(f"{d[:7]}-01", v) for d, v in hai_fred_raw]
     except RuntimeError as e:
         print(f"  FIXHAI fetch failed: {e}", file=sys.stderr)
-        affordability = []
+        hai_fred = []
+    affordability, hai_to_append = merge_hai(hai_baseline, hai_fred)
+    hai_appended = append_hai_csv(hai_to_append)
 
     # ----- Golden Handcuff: effective rate on outstanding mortgage debt -----
     # Numerator: BEA-sourced annual mortgage interest paid on owner-occupied
@@ -718,6 +798,10 @@ def main():
         "mortgage_interest_series":   FRED_MORTGAGE_INTEREST,
         "csv_baseline_loaded":        MBA_CSV.exists(),
         "mba_history_rows":           len(mba_hist),
+        "hai_csv_loaded":             HAI_CSV.exists(),
+        "hai_csv_rows":               len(hai_baseline),
+        "hai_csv_rows_appended_this_run": hai_appended,
+        "hai_basis":                  "Moody's Analytics SA (Haver HXAFFFM.IUSA) for history; FRED FIXHAI NSA for any trailing months past CSV cutoff",
     }
 
     if not MBA_CSV.exists():

@@ -155,10 +155,10 @@
 
     <div class="chart-card">
       <div class="title">Housing Affordability Index</div>
-      <div class="subtitle">(NAR Fixed-Rate Housing Affordability Index; 100 = median family income exactly qualifies for the median-priced home)</div>
+      <div class="subtitle">(NAR Fixed-Rate Housing Affordability Index, seasonally adjusted; 100 = median family income exactly qualifies for the median-priced home)</div>
       <div class="chart-wrap"><canvas id="chartMaAffordability"></canvas></div>
       <div class="source">
-        <span>Source: National Association of Realtors via FRED &mdash; FIXHAI.</span>
+        <span>Source: National Association of Realtors via Haver Analytics (mnemonic HXAFFFM.IUSA, Moody's Analytics SA) for full history back to Jan 1981. FRED FIXHAI (NSA) extends trailing months past the Haver cutoff when needed; a small seam may appear at the boundary until fresh Haver data is loaded.</span>
         <a href="#" class="csv-link" data-chart="chartMaAffordability">Download CSV</a>
       </div>
     </div>
