@@ -77,7 +77,11 @@ MBA_CSV        = HISTORICAL_DIR / "mba_mortgage_applications.csv"
 HAI_CSV        = HISTORICAL_DIR / "nar_affordability.csv"
 NYFED_DEBT_CSV = HISTORICAL_DIR / "ny_fed_hhdc_mortgage.csv"
 EFF_RATE_CSV   = HISTORICAL_DIR / "mortgage_eff_rate.csv"
-HH_INCOME_CSV  = HISTORICAL_DIR / "median_hh_income.csv"
+HHI_QUARTERLY_CSV   = HISTORICAL_DIR / "moodys_quarterly_hh_income.csv"
+# NAR median existing-home price is owned by the existing-homes fetcher;
+# we read it here without modifying. The existing-homes step runs first in
+# the workflow so the file is fresh when we land.
+NAR_EXISTING_CSV   = HISTORICAL_DIR / "nar_existing_homes.csv"
 
 FRED_BASE = "https://api.stlouisfed.org/fred/series/observations"
 BEA_BASE  = "https://apps.bea.gov/api/data"
@@ -723,42 +727,128 @@ def monthly_avg_from_weekly(weekly_pairs):
     return sorted((k, sum(vs) / len(vs)) for k, vs in by_month.items())
 
 
-def compute_price_income_ratio(price_quarterly, income_annual):
-    """Quarterly ratio = nominal median home price / linearly-interpolated
-    nominal median HH income.
+def collapse_monthly_to_quarterly_mean(monthly_pairs):
+    """[(YYYY-MM-01, v)] -> [(YYYY-QQ-{30|31}, mean)] aligned to quarter end."""
+    by_q = {}
+    for d, v in monthly_pairs:
+        y = int(d[:4]); m = int(d[5:7])
+        q = (m - 1) // 3 + 1
+        eom_month = q * 3
+        eom_day   = {3:31, 6:30, 9:30, 12:31}[eom_month]
+        key = f"{y:04d}-{eom_month:02d}-{eom_day:02d}"
+        by_q.setdefault(key, []).append(v)
+    return sorted((k, sum(vs) / len(vs)) for k, vs in by_q.items())
 
-    price_quarterly: [(YYYY-MM-DD, $), ...] -- FRED MSPUS quarterly NSA
-    income_annual:   [(YYYY-01-01, $), ...] -- annual nominal median HH income
 
-    Income is interpolated across quarters of the same year using the
-    next year's value where available; for the final partial year (current
-    year and the year just after the last annual print), income is held
-    constant at the most recent published value. Returns [(YYYY-MM-DD, ratio)].
+def load_nar_median_price_monthly():
+    """Read the existing-homes baseline CSV and return [(YYYY-MM-01, $)]
+    for the NSA median sales price column. Returns [] if the file is missing.
+
+    The existing-homes fetcher owns this CSV; we read but never write it.
+    The workflow runs that fetcher first so this file is fresh when we land.
     """
-    if not price_quarterly or not income_annual:
+    if not NAR_EXISTING_CSV.exists():
+        print(f"WARN: {NAR_EXISTING_CSV} missing; price/income ratio will be empty.",
+              file=sys.stderr)
         return []
-    income_by_year = {int(d[:4]): v for d, v in income_annual}
-    last_inc_year  = max(income_by_year.keys())
-    first_inc_year = min(income_by_year.keys())
+    out = []
+    with NAR_EXISTING_CSV.open() as f:
+        rdr = csv.DictReader(f)
+        for row in rdr:
+            d = (row.get("date") or "").strip()
+            v = (row.get("median_sales_price") or "").strip()
+            if not d or not v: continue
+            try:
+                y, m = d.split("-")[:2]
+                d = f"{int(y):04d}-{int(m):02d}-01"
+                out.append((d, float(v)))
+            except (ValueError, IndexError):
+                continue
+    out.sort()
+    return out
+
+
+# Window of recent Moody's years used to compute the intra-year shape factors
+# that will be applied to Census P-60 annual values once Moody's coverage
+# ends. 2010+ matches the HAI factor-window choice and captures the modern
+# wage-growth seasonality cleanly.
+INCOME_SHAPE_WINDOW_START_YEAR = 2010
+
+def compute_income_shape_factors(moodys_quarterly):
+    """Return {1..4: factor} where factor[q] = mean( Moodys_Qq[y] / annual_avg[y] )
+    over years >= INCOME_SHAPE_WINDOW_START_YEAR with all four quarters present.
+    Always sums to ~4.0 by construction.
+    """
+    q_by_year = {}
+    for d, v in moodys_quarterly:
+        y = int(d[:4]); m = int(d[5:7])
+        q = (m - 1) // 3 + 1
+        q_by_year.setdefault(y, {})[q] = v
+    shares = {1: [], 2: [], 3: [], 4: []}
+    for y, qs in q_by_year.items():
+        if y < INCOME_SHAPE_WINDOW_START_YEAR: continue
+        if len(qs) != 4: continue
+        avg = sum(qs.values()) / 4.0
+        if avg <= 0: continue
+        for q in (1, 2, 3, 4):
+            shares[q].append(qs[q] / avg)
+    return {q: (sum(s) / len(s)) if s else None for q, s in shares.items()}
+
+
+def build_quarterly_income(moodys_quarterly, census_annual, shape_factors):
+    """Merge Moody's quarterly history with Census annual + shape factors.
+
+    For each (year, quarter):
+      - if Moody's has it -> use Moody's directly (covers 1970 -> Moody's cutoff)
+      - else if Census has the year -> use Census_annual * shape_factor[q]
+      - else skip
+
+    This makes the chart self-sustaining: when Alfie's Haver subscription ends,
+    the going-forward update path is Census P-60 (free, annual, via FRED) plus
+    the shape factors derived from Moody's history (frozen in the seed CSV).
+    """
+    moodys_by_qe = {d: v for d, v in moodys_quarterly}
+    census_by_year = {int(d[:4]): v for d, v in census_annual}
+
+    # Build a candidate list of quarter-end dates spanning from the earliest
+    # Moody's quarter to the latest Census year (or Moody's, whichever later).
+    moodys_years = {int(d[:4]) for d, _ in moodys_quarterly}
+    last_year = max(list(moodys_years) + list(census_by_year.keys()), default=None)
+    first_year = min(moodys_years, default=None) if moodys_years \
+                 else min(census_by_year.keys(), default=None)
+    if first_year is None or last_year is None:
+        return []
+
+    out = []
+    bridged_qs = 0
+    moodys_qs = 0
+    for y in range(first_year, last_year + 1):
+        for q in (1, 2, 3, 4):
+            eom_month = q * 3
+            eom_day   = {3:31, 6:30, 9:30, 12:31}[eom_month]
+            qe = f"{y:04d}-{eom_month:02d}-{eom_day:02d}"
+            if qe in moodys_by_qe:
+                out.append((qe, moodys_by_qe[qe]))
+                moodys_qs += 1
+            elif y in census_by_year and shape_factors.get(q):
+                est = census_by_year[y] * shape_factors[q]
+                out.append((qe, est))
+                bridged_qs += 1
+            # else: gap, skip
+    print(f"  Income series: {moodys_qs} Moody's quarters + "
+          f"{bridged_qs} Census-bridged quarters", file=sys.stderr)
+    return out
+
+
+def compute_price_income_ratio(price_quarterly, income_quarterly):
+    """Both sides are quarterly (quarter-end dated). Direct division on aligned
+    dates."""
+    income_by_q = {d: v for d, v in income_quarterly}
     out = []
     for d, price in price_quarterly:
-        y = int(d[:4]); m = int(d[5:7])
-        q = (m - 1) // 3 + 1   # 1..4
-        if y < first_inc_year:
-            continue   # pre-seed era, no income value
-        if y > last_inc_year:
-            # Beyond last published annual — hold flat at last known
-            inc = income_by_year[last_inc_year]
-        else:
-            cur = income_by_year[y]
-            nxt = income_by_year.get(y + 1)
-            if nxt is not None:
-                # Linear interp: quarter midpoint progress across the year
-                inc = cur + (nxt - cur) * ((q - 1) / 4.0 + 1 / 8.0)
-            else:
-                inc = cur   # final year of the income series — no interp possible
-        if inc and inc > 0:
-            out.append((d, price / inc))
+        inc = income_by_q.get(d)
+        if inc is None or inc <= 0: continue
+        out.append((d, price / inc))
     return out
 
 
@@ -955,29 +1045,32 @@ def main():
     eff_rate = load_simple_csv(EFF_RATE_CSV, "effective_rate", 4)
     m30_monthly = monthly_avg_from_weekly(m30_weekly)
 
-    # ----- Price/Income ratio (US Census MSPUS / median HH income) -----
-    # Numerator: FRED MSPUS quarterly nominal $. Denominator: nominal annual
-    # median HH income (1967-1983 from seed CSV; 1984+ from FRED MEHOINUSA646N).
-    # Income is linearly interpolated across the year so quarterly ratios
-    # vary smoothly. For the trailing 4-8 quarters where current-year income
-    # hasn't been published yet, we hold the most recent annual value constant.
+    # ----- Price/Income ratio -----
+    # Numerator: NAR median existing-home price (the same series the
+    # existing-homes page tracks). We read its monthly NSA values from the
+    # baseline CSV that fetcher owns, then collapse to a quarterly mean to
+    # match the income cadence.
+    nar_price_monthly = load_nar_median_price_monthly()
+    nar_price_quarterly = collapse_monthly_to_quarterly_mean(nar_price_monthly)
+
+    # Denominator: Moody's-estimated quarterly nominal median HH income
+    # (Haver RYHHMEDQ.IUSA), seeded as the canonical historical record. To
+    # stay self-sustaining once Moody's coverage ends, the fetcher also
+    # derives intra-year shape factors from the Moody's history and applies
+    # them to FRED MEHOINUSA646N (Census P-60 annual nominal). See
+    # build_quarterly_income() for the merge logic.
+    moodys_quarterly_income = load_simple_csv(HHI_QUARTERLY_CSV, "hh_income", 2)
+    income_shape_factors = compute_income_shape_factors(moodys_quarterly_income)
     try:
-        mspus = _fred("MSPUS")
-    except RuntimeError as e:
-        print(f"  MSPUS fetch failed: {e}", file=sys.stderr)
-        mspus = []
-    income_seed = load_simple_csv(HH_INCOME_CSV, "median_hh_income", 0)
-    try:
-        income_fred = _fred("MEHOINUSA646N")
-        income_fred = [(f"{d[:4]}-01-01", v) for d, v in income_fred]
+        census_annual_raw = _fred("MEHOINUSA646N")
+        census_annual = [(f"{d[:4]}-01-01", v) for d, v in census_annual_raw]
     except RuntimeError as e:
         print(f"  MEHOINUSA646N fetch failed: {e}", file=sys.stderr)
-        income_fred = []
-    income_by_year = {d: v for d, v in income_seed}
-    for d, v in income_fred:
-        income_by_year[d] = v   # FRED wins on overlap (catches Census revisions)
-    income_annual = sorted(income_by_year.items())
-    price_income_ratio = compute_price_income_ratio(mspus, income_annual)
+        census_annual = []
+    income_quarterly = build_quarterly_income(
+        moodys_quarterly_income, census_annual, income_shape_factors)
+    price_income_ratio = compute_price_income_ratio(
+        nar_price_quarterly, income_quarterly)
 
     # ----- Shape JSON output -----
     out = {
@@ -1000,9 +1093,9 @@ def main():
         "delinquency_rate":     to_pairs(delinquency, 2),
         "mortgage_debt_out":    to_pairs(debt_out, 1),
         "affordability_index":  to_pairs(affordability, 1),
-        "price_income_ratio":   to_pairs(price_income_ratio, 2),
-        "median_home_price":    to_pairs(mspus, 0),
-        "median_hh_income":     [[d, round(v, 0)] for d, v in income_annual],
+        "price_income_ratio":     to_pairs(price_income_ratio, 2),
+        "median_home_price_q":    to_pairs(nar_price_quarterly, 0),
+        "median_hh_income_q":     to_pairs(income_quarterly, 0),
         # KPIs
         "kpis": {
             "mortgage_30y":      kpi_from_pairs(m30_weekly, 2),
@@ -1043,8 +1136,10 @@ def main():
         "hai_factor_window_months":   HAI_FACTOR_WINDOW_MONTHS,
         "hai_basis":                  "Moody's Analytics SA (Haver HXAFFFM.IUSA) for history; NAR press release NSA scraped via Tavily for trailing months, with in-house SA factors from the 36-month CSV overlap.",
         "price_income_ratio_rows":    len(price_income_ratio),
-        "median_home_price_latest":   mspus[-1][0] if mspus else None,
-        "median_hh_income_latest":    income_annual[-1][0] if income_annual else None,
+        "nar_price_quarterly_rows":   len(nar_price_quarterly),
+        "moodys_income_rows":         len(moodys_quarterly_income),
+        "income_shape_factors":       {str(q): round(v, 4) for q, v in income_shape_factors.items() if v},
+        "income_basis":               "Moody's-estimated quarterly nominal HH income (Haver RYHHMEDQ.IUSA) for years of coverage; Census P-60 annual nominal HH income (FRED MEHOINUSA646N) x intra-year shape factors for years past Moody's coverage.",
     }
 
     if not MBA_CSV.exists():

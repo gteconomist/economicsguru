@@ -165,10 +165,10 @@
 
     <div class="chart-card">
       <div class="title">Median Home Price &divide; Median Household Income</div>
-      <div class="subtitle">(Ratio; quarterly home price &divide; linearly-interpolated annual household income; both nominal, current dollars)</div>
+      <div class="subtitle">(Quarterly ratio; NAR median existing-home price &divide; quarterly median HH income; both nominal, current dollars)</div>
       <div class="chart-wrap"><canvas id="chartMaPriceIncome"></canvas></div>
       <div class="source">
-        <span>Sources: U.S. Census Bureau / HUD &mdash; MSPUS (median sales price of houses sold, quarterly, $); U.S. Census Bureau &mdash; nominal median household income (annual). FRED MEHOINUSA646N covers 1984-current; Census P-60 historical (1967-1983) is seeded at data/historical/median_hh_income.csv. Income interpolated linearly across quarters; for the current year, held at the last published annual value until Census P-60 publishes the new one (September each year).</span>
+        <span>Sources: National Association of Realtors &mdash; median existing-home sales price (monthly NSA, collapsed to quarterly mean), shared with the existing-homes page. Moody's Analytics quarterly median HH income (Haver mnemonic RYHHMEDQ.IUSA, derived from Census BOC ACS / CPS Table FINC-01) seeded as the canonical historical record 1970Q1 onward; for years past Moody's coverage the going-forward path uses Census P-60 annual nominal HH income (FRED MEHOINUSA646N) multiplied by intra-year shape factors derived from Moody's 2010+ quarterly pattern (Q1=0.986, Q2=0.996, Q3=1.005, Q4=1.012).</span>
         <a href="#" class="csv-link" data-chart="chartMaPriceIncome">Download CSV</a>
       </div>
     </div>
