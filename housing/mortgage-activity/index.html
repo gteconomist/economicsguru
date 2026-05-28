@@ -125,10 +125,10 @@
 
     <div class="chart-card">
       <div class="title">&ldquo;Golden Handcuff&rdquo;: 30-Year Mortgage Rate vs Effective Rate on Outstanding Mortgage Debt</div>
-      <div class="subtitle">(Annual; 30Y rate = Freddie Mac PMMS annual avg; Effective rate = mortgage interest paid on owner-occupied housing &divide; average outstanding mortgage debt)</div>
+      <div class="subtitle">(Monthly; 30Y = Freddie Mac PMMS monthly avg; Effective rate on outstanding mortgage debt, owner- and tenant-occupied residential housing)</div>
       <div class="chart-wrap"><canvas id="chartMaGoldenHandcuff"></canvas></div>
       <div class="source">
-        <span>Sources: Freddie Mac via FRED &mdash; MORTGAGE30US (annualized). BEA via FRED &mdash; W498RC1A027NBEA &ldquo;Monetary interest paid: Households: Owner-occupied housing&rdquo; (numerator); Z.1 HHMSDODNS one-to-four-family mortgage debt averaged annually (denominator). Effective rate updates annually with a ~1-year lag.</span>
+        <span>Sources: Freddie Mac via FRED &mdash; MORTGAGE30US (weekly, collapsed to monthly mean). U.S. Bureau of Economic Analysis (NIPA: Mortgage interest paid, owner- and tenant-occupied residential housing) via Haver Analytics &mdash; Moody&rsquo;s-calculated effective rate, mnemonic IR%BEMERAQ.IUSA. Monthly cadence, ~1 month publication lag.</span>
         <a href="#" class="csv-link" data-chart="chartMaGoldenHandcuff">Download CSV</a>
       </div>
     </div>
@@ -145,10 +145,10 @@
 
     <div class="chart-card">
       <div class="title">Mortgage Debt Outstanding</div>
-      <div class="subtitle">(Households &amp; NPISH; One-to-Four-Family Residential Mortgages; Quarterly Liability Level, $ Billions)</div>
+      <div class="subtitle">(Total Mortgage Balance Component of Household Debt; Quarterly, $ Trillions, NSA)</div>
       <div class="chart-wrap"><canvas id="chartMaDebt"></canvas></div>
       <div class="source">
-        <span>Source: Federal Reserve Z.1 Financial Accounts via FRED &mdash; HHMSDODNS.</span>
+        <span>Source: Federal Reserve Bank of New York &mdash; Quarterly Report on Household Debt and Credit (HHDC), mortgage component, via Haver mnemonic MBLNYHDDBCMUQ.IUSA. NY Fed HHDC publishes mid-quarter with full Q1 2026 coverage where FRED&rsquo;s Z.1 HHMSDODNS only has a 13-month trailing window.</span>
         <a href="#" class="csv-link" data-chart="chartMaDebt">Download CSV</a>
       </div>
     </div>

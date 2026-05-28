@@ -19,34 +19,31 @@ Three data families on this page:
    - DGS10          10-Year Treasury Constant Maturity (daily, collapsed to weekly mean)
    - Derived spread: 30Y - 10Y (weekly, on the 30Y release dates)
 
-3) Stress / context (mostly quarterly)
-   - DRSFRMACBS   Single-family residential mortgage delinquency rate (Fed)
-   - HHMSDODNS    Households & NPISH; 1-4 family residential mortgages; liability level (Z.1)
-                  Note: published in MILLIONS of dollars -- we divide by 1000
-                  inside the fetcher so downstream code can treat as $ billions.
-   - FIXHAI       NAR Fixed-Rate Housing Affordability Index (monthly, NSA)
-                  FRED's NAR licence restricts it to a trailing ~13-month
-                  window, AND FRED's series often lags Haver by several months
-                  (FRED was at Nov-2025 while Haver was at Apr-2026 as of
-                  2026-05). The historical baseline CSV at
-                  data/historical/nar_affordability.csv is the Moody's
-                  Analytics SA version via Haver (mnemonic HXAFFFM.IUSA) and
-                  is the chart's primary source. FRED is used only to extend
-                  trailing months once Haver hasn't been refreshed in a while.
-                  NSA-vs-SA methodology mismatch means a small seam may appear
-                  at the boundary -- re-uploading fresh Haver fixes it.
+3) Stress / context
+   - DRSFRMACBS   Single-family residential mortgage delinquency rate (Fed,
+                  quarterly)
+   - Mortgage debt outstanding (quarterly): NY Fed Household Debt and Credit
+                  Report -- mortgage component, $ trillions. Seeded from
+                  data/historical/ny_fed_hhdc_mortgage.csv (Haver mnemonic
+                  MBLNYHDDBCMUQ.IUSA). Re-uploaded quarterly by Alfie. NY Fed
+                  HHDC has full Q1 2026 coverage where FRED's HHMSDODNS only
+                  has a 13-month trailing window.
+   - FIXHAI       NAR Fixed-Rate Housing Affordability Index (monthly)
+                  FRED's NAR licence restricts it to a trailing ~13 months AND
+                  FRED was 5 months behind Haver as of 2026-05. Chart sourced
+                  from data/historical/nar_affordability.csv (Moody's
+                  Analytics SA via Haver, HXAFFFM.IUSA). FRED FIXHAI (NSA)
+                  fills trailing months past the Haver cutoff when needed.
    - Golden Handcuff: 30Y mortgage rate vs effective rate on outstanding
-       mortgage debt. Effective rate is constructed annually as:
-         eff_rate = (annual mortgage interest paid: owner-occupied housing $B)
-                    / (annual average mortgage debt outstanding $B)
-       Numerator: FRED W498RC1A027NBEA "Monetary interest paid: Households:
-         Owner-occupied housing" (BEA Account Code W498RC; sourced from
-         BEA NIPA's supplementary table "Mortgage Interest Paid, Owner- and
-         Tenant-Occupied Residential Housing"). Annual frequency, $ billions.
-       Denominator: HHMSDODNS quarterly debt outstanding ($M), averaged
-         within each calendar year and converted to $ billions.
-       Chart x-axis: annual (Jan 1 of each year); 30Y rate is collapsed to
-         the same annual cadence by averaging weekly observations.
+       mortgage debt -- MONTHLY cadence.
+       Effective rate: data/historical/mortgage_eff_rate.csv, sourced from
+         Haver mnemonic IR%BEMERAQ.IUSA "Effective rate on mortgage debt
+         outstanding, owner- and tenant-occupied residential housing" (BEA
+         NIPA, % SAAR). Full history back to Jan 1977, ~1 month publication
+         lag. Re-uploaded periodically.
+       30Y rate (for the chart pair): MORTGAGE30US weekly average -> monthly
+         mean, computed in-fetcher. Matches user's Moody's-calculated 30Y
+         within ~3 bps; either could serve.
 
 The build is FAIL-SOFT: if Tavily / BEA / FRED partially fails, we fall back
 to whatever the CSV baseline gives us so the page still renders yesterday's
@@ -78,6 +75,8 @@ OUT_PATH       = REPO_ROOT / "data" / "housing_mortgage_activity.json"
 HISTORICAL_DIR = REPO_ROOT / "data" / "historical"
 MBA_CSV        = HISTORICAL_DIR / "mba_mortgage_applications.csv"
 HAI_CSV        = HISTORICAL_DIR / "nar_affordability.csv"
+NYFED_DEBT_CSV = HISTORICAL_DIR / "ny_fed_hhdc_mortgage.csv"
+EFF_RATE_CSV   = HISTORICAL_DIR / "mortgage_eff_rate.csv"
 
 FRED_BASE = "https://api.stlouisfed.org/fred/series/observations"
 BEA_BASE  = "https://apps.bea.gov/api/data"
@@ -449,6 +448,31 @@ def append_hai_csv(new_pairs):
     return len(appendable)
 
 
+def load_simple_csv(path, value_col, decimals=2):
+    """Generic loader for two-column historical CSVs (date,value).
+    Returns sorted [(YYYY-MM-DD, float)]."""
+    if not path.exists():
+        print(f"WARN: {path} missing.", file=sys.stderr)
+        return []
+    out = []
+    with path.open() as f:
+        rdr = csv.DictReader(f)
+        for row in rdr:
+            d = ""
+            for k in ("date", "quarter_end", "month_end"):
+                if k in row and (row.get(k) or "").strip():
+                    d = row[k].strip(); break
+            v = (row.get(value_col) or "").strip()
+            if not d or not v:
+                continue
+            try:
+                out.append((d, float(v)))
+            except ValueError:
+                continue
+    out.sort()
+    return out
+
+
 def merge_hai(csv_pairs, fred_pairs):
     """CSV (Moody's SA) is canonical. FRED (NSA, restricted window) fills any
     months newer than CSV's latest. CSV wins on overlap — we do NOT overwrite
@@ -533,12 +557,22 @@ def annualize_quarterly_debt_b(debt_quarterly_millions):
 
 
 def annualize_weekly_rate(weekly_pairs):
-    """Collapse weekly Freddie Mac mortgage rate to annual mean."""
+    """Collapse weekly Freddie Mac mortgage rate to annual mean (unused since
+    we moved to monthly Golden Handcuff cadence; retained for embed/CSV use)."""
     by_year = {}
     for d, v in weekly_pairs:
         year = d[:4]
         by_year.setdefault(year, []).append(v)
     return sorted((f"{y}-01-01", sum(vs) / len(vs)) for y, vs in by_year.items())
+
+
+def monthly_avg_from_weekly(weekly_pairs):
+    """Collapse weekly observations to a monthly mean keyed YYYY-MM-01."""
+    by_month = {}
+    for d, v in weekly_pairs:
+        key = f"{d[:7]}-01"
+        by_month.setdefault(key, []).append(v)
+    return sorted((k, sum(vs) / len(vs)) for k, vs in by_month.items())
 
 
 def compute_effective_rate(interest_paid_annual_b, debt_annual_b):
@@ -708,15 +742,11 @@ def main():
     except RuntimeError as e:
         print(f"  DRSFRMACBS fetch failed: {e}", file=sys.stderr)
         delinquency = []
-    try:
-        # HHMSDODNS is published in $ MILLIONS. Convert to $ billions so the
-        # frontend formatter (which assumes billions) shows $14T not $14,000T.
-        debt_out_raw = _fred("HHMSDODNS")
-        debt_out = [(d, v / 1000.0) for d, v in debt_out_raw]
-    except RuntimeError as e:
-        print(f"  HHMSDODNS fetch failed: {e}", file=sys.stderr)
-        debt_out_raw = []
-        debt_out = []
+    # Mortgage debt outstanding: NY Fed HHDC quarterly $T, seeded from Haver
+    # (data/historical/ny_fed_hhdc_mortgage.csv). Stored as $B in JSON so the
+    # frontend formatter shows e.g. "$13.19T" not "$13B".
+    debt_csv_t = load_simple_csv(NYFED_DEBT_CSV, "mortgage_debt_t", 3)
+    debt_out = [(d, v * 1000.0) for d, v in debt_csv_t]   # $T -> $B
     # Affordability: CSV baseline (Moody's SA via Haver) is canonical; FRED
     # FIXHAI (NSA, ~13-month rolling window) only fills months newer than CSV.
     hai_baseline = load_hai_csv()
@@ -730,23 +760,12 @@ def main():
     affordability, hai_to_append = merge_hai(hai_baseline, hai_fred)
     hai_appended = append_hai_csv(hai_to_append)
 
-    # ----- Golden Handcuff: effective rate on outstanding mortgage debt -----
-    # Numerator: BEA-sourced annual mortgage interest paid on owner-occupied
-    # housing (FRED W498RC1A027NBEA, $ billions). Denominator: HHMSDODNS
-    # (raw $M, quarterly) collapsed to annual averages in $B.
-    try:
-        interest_paid_annual = fetch_home_mortgage_interest_paid()
-    except Exception as e:
-        print(f"  Mortgage interest fetch failed: {e}", file=sys.stderr)
-        interest_paid_annual = []
-    debt_annual_b = annualize_quarterly_debt_b(debt_out_raw)
-    eff_rate = compute_effective_rate(interest_paid_annual, debt_annual_b) \
-               if interest_paid_annual else []
-
-    # Annual average of MORTGAGE30US for the Golden Handcuff chart -- matches
-    # the annual cadence of BEA's mortgage-interest series so both lines have
-    # the same x-axis density.
-    m30_annual = annualize_weekly_rate(m30_weekly)
+    # ----- Golden Handcuff: 30Y rate vs effective rate on outstanding debt -----
+    # Both lines MONTHLY now (was annual). Effective rate seeded from Haver
+    # (Moody's-calculated, BEA-sourced), 30Y line is FRED MORTGAGE30US weekly
+    # collapsed to monthly mean.
+    eff_rate = load_simple_csv(EFF_RATE_CSV, "effective_rate", 4)
+    m30_monthly = monthly_avg_from_weekly(m30_weekly)
 
     # ----- Shape JSON output -----
     out = {
@@ -762,8 +781,8 @@ def main():
         "mortgage_15y":   to_pairs(m15_weekly, 2),
         "treasury_10y":   to_pairs([(d, v) for d, v in sorted(t10_by_week.items())], 2),
         "spread_30y_10y": to_pairs(spread, 2),
-        # Golden Handcuff (annual)
-        "mortgage_30y_a":       to_pairs(m30_annual, 2),
+        # Golden Handcuff (monthly)
+        "mortgage_30y_m":       to_pairs(m30_monthly, 2),
         "eff_rate_outstanding": to_pairs(eff_rate, 2),
         # Stress / context
         "delinquency_rate":     to_pairs(delinquency, 2),
@@ -795,7 +814,9 @@ def main():
         "csv_rows_appended_this_run": int(appended),
         "tavily_scrape_succeeded":    bool(mba_scraped),
         "eff_rate_succeeded":         bool(eff_rate),
-        "mortgage_interest_series":   FRED_MORTGAGE_INTEREST,
+        "eff_rate_rows":              len(eff_rate),
+        "debt_csv_rows":              len(debt_csv_t),
+        "debt_latest_quarter":        debt_csv_t[-1][0] if debt_csv_t else None,
         "csv_baseline_loaded":        MBA_CSV.exists(),
         "mba_history_rows":           len(mba_hist),
         "hai_csv_loaded":             HAI_CSV.exists(),
@@ -816,7 +837,8 @@ def main():
     print(
         f"Wrote {OUT_PATH} ({OUT_PATH.stat().st_size} bytes); "
         f"MBA rows={len(mba_hist)} latest_week={out['mba_latest_week']}; "
-        f"30Y points={len(m30_weekly)}; eff_rate years={len(eff_rate)}; "
+        f"30Y points={len(m30_weekly)}; eff_rate months={len(eff_rate)}; "
+        f"NY Fed debt quarters={len(debt_csv_t)} latest={debt_csv_t[-1][0] if debt_csv_t else 'n/a'}; "
         f"Tavily ok={out['tavily_scrape_succeeded']}; eff_rate ok={out['eff_rate_succeeded']}"
     )
 

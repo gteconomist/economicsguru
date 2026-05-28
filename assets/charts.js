@@ -5796,7 +5796,7 @@ function rangedViewMortgageActivity(data, range) {
     mortgage_15y:           maTailByDate(data.mortgage_15y || [], cutoff),
     treasury_10y:           maTailByDate(data.treasury_10y || [], cutoff),
     spread_30y_10y:         maTailByDate(data.spread_30y_10y || [], cutoff),
-    mortgage_30y_a:         maTailByDate(data.mortgage_30y_a || [], cutoff),
+    mortgage_30y_m:         maTailByDate(data.mortgage_30y_m || [], cutoff),
     eff_rate_outstanding:   maTailByDate(data.eff_rate_outstanding || [], cutoff),
     delinquency_rate:       maTailByDate(data.delinquency_rate || [], cutoff),
     mortgage_debt_out:      maTailByDate(data.mortgage_debt_out || [], cutoff),
@@ -5920,7 +5920,7 @@ function buildMaGoldenHandcuff(view) {
   // locked into a much lower effective rate than the current market, depressing
   // existing-home turnover.
   const eff = view.eff_rate_outstanding || [];
-  const m30q = view.mortgage_30y_a || [];
+  const m30q = view.mortgage_30y_m || [];
   const labels = eff.map(r => shortLabel(r[0]));
   const pr = pointSizeForLength(labels.length);
   const m30Map = new Map(m30q.map(r => [r[0], r[1]]));
@@ -5930,7 +5930,7 @@ function buildMaGoldenHandcuff(view) {
     data: {
       labels,
       datasets: [
-        { label: '30-Year Fixed Mortgage Rate (annual avg)',
+        { label: '30-Year Fixed Mortgage Rate (monthly avg)',
           data: m30Aligned,
           borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
           tension: 0.2, borderWidth: 2.5, pointRadius: pr, spanGaps: false },
@@ -6095,8 +6095,8 @@ function registerAllCsvsMortgageActivity(view) {
     ['Week Ending', '30Y Mortgage − 10Y Treasury (pp)'],
     view.spread_30y_10y);
   registerCsv('chartMaGoldenHandcuff', 'golden-handcuff-30y-vs-effective-rate.csv',
-    ['Year', '30-Year Mortgage Rate (%, annual avg)', 'Effective Rate on Outstanding Mortgage Debt (%)'],
-    mergeSeries([view.mortgage_30y_a, view.eff_rate_outstanding]));
+    ['Month', '30-Year Mortgage Rate (%, monthly avg)', 'Effective Rate on Outstanding Mortgage Debt (%)'],
+    mergeSeries([view.mortgage_30y_m, view.eff_rate_outstanding]));
   registerCsv('chartMaDelinquency', 'mortgage-delinquency-rate.csv',
     ['Quarter', 'Single-Family Mortgage Delinquency Rate (%)'],
     view.delinquency_rate);
