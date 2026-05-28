@@ -77,6 +77,7 @@ MBA_CSV        = HISTORICAL_DIR / "mba_mortgage_applications.csv"
 HAI_CSV        = HISTORICAL_DIR / "nar_affordability.csv"
 NYFED_DEBT_CSV = HISTORICAL_DIR / "ny_fed_hhdc_mortgage.csv"
 EFF_RATE_CSV   = HISTORICAL_DIR / "mortgage_eff_rate.csv"
+HH_INCOME_CSV  = HISTORICAL_DIR / "median_hh_income.csv"
 
 FRED_BASE = "https://api.stlouisfed.org/fred/series/observations"
 BEA_BASE  = "https://apps.bea.gov/api/data"
@@ -404,48 +405,212 @@ def load_mba_csv():
 
 
 def load_hai_csv():
-    """Read the seeded HAI history CSV. Returns sorted [(YYYY-MM-DD, value), ...]."""
+    """Read the seeded HAI history (dual-column SA + NSA). Returns sorted
+    [(YYYY-MM-01, sa_or_None, nsa_or_None), ...]."""
     if not HAI_CSV.exists():
-        print(f"WARN: {HAI_CSV} missing; HAI series falls back to FRED-only.",
-              file=sys.stderr)
+        print(f"WARN: {HAI_CSV} missing; HAI series will be empty.", file=sys.stderr)
         return []
     out = []
     with HAI_CSV.open() as f:
         rdr = csv.DictReader(f)
         for row in rdr:
             d = (row.get("date") or "").strip()
-            v = (row.get("affordability_index") or "").strip()
-            if not d or not v:
+            if not d:
                 continue
-            # Coerce to YYYY-MM-01
             try:
                 y, m = d.split("-")[:2]
                 d = f"{int(y):04d}-{int(m):02d}-01"
-                out.append((d, float(v)))
             except (ValueError, IndexError):
                 continue
+            # New dual-column schema; falls back to the old single-column form.
+            sa_raw  = (row.get("affordability_sa") or row.get("affordability_index") or "").strip()
+            nsa_raw = (row.get("affordability_nsa") or "").strip()
+            try: sa  = float(sa_raw)  if sa_raw  else None
+            except ValueError: sa  = None
+            try: nsa = float(nsa_raw) if nsa_raw else None
+            except ValueError: nsa = None
+            out.append((d, sa, nsa))
     out.sort()
     return out
 
 
-def append_hai_csv(new_pairs):
-    """Idempotently append HAI rows not already present in the CSV.
+# Recent-window factor computation. Moody's seasonal factors are effectively
+# constant in the modern era (the same SA/NSA ratio repeats year-over-year for
+# each calendar month to 4 decimal places). Using all 45 years of history would
+# mix structural shifts; using the last 36 months matches Moody's exactly.
+HAI_FACTOR_WINDOW_MONTHS = 36
+
+def compute_hai_seasonal_factors(rows):
+    """Return {month: factor} from the most recent HAI_FACTOR_WINDOW_MONTHS
+    rows that have BOTH SA and NSA. factor = mean(SA / NSA) per calendar month."""
+    eligible = [(d, sa, nsa) for d, sa, nsa in rows
+                if sa is not None and nsa is not None and nsa != 0]
+    eligible = eligible[-HAI_FACTOR_WINDOW_MONTHS:]
+    if not eligible:
+        return {}
+    buckets = {m: [] for m in range(1, 13)}
+    for d, sa, nsa in eligible:
+        try:
+            buckets[int(d[5:7])].append(sa / nsa)
+        except (ValueError, IndexError):
+            continue
+    return {m: sum(v)/len(v) for m, v in buckets.items() if v}
+
+
+def append_hai_csv(new_rows):
+    """Idempotently append [(YYYY-MM-01, sa, nsa)] not already in CSV.
     Returns count appended."""
-    if not new_pairs or not HAI_CSV.exists():
+    if not new_rows or not HAI_CSV.exists():
         return 0
     with HAI_CSV.open() as f:
-        existing_dates = {(line.split(",")[0] or "").strip()
-                          for line in f.readlines()[1:]}
-    appendable = [(d, v) for d, v in new_pairs if d not in existing_dates]
+        lines = f.readlines()
+        if not lines: return 0
+        existing_dates = {(line.split(",")[0] or "").strip() for line in lines[1:]}
+    appendable = [r for r in new_rows if r[0] not in existing_dates]
     if not appendable:
         return 0
     with HAI_CSV.open("a", newline="") as f:
         w = csv.writer(f)
-        for d, v in appendable:
-            w.writerow([d, f"{v:.2f}"])
+        for d, sa, nsa in appendable:
+            w.writerow([d,
+                        f"{sa:.2f}"  if sa  is not None else "",
+                        f"{nsa:.2f}" if nsa is not None else ""])
     print(f"  HAI CSV: appended {len(appendable)} row(s): "
-          f"{[d for d, _ in appendable]}", file=sys.stderr)
+          f"{[r[0] for r in appendable]}", file=sys.stderr)
     return len(appendable)
+
+
+# Tavily scrape of NAR's monthly Housing Affordability Index press release.
+# NAR publishes (a) the Existing Home Sales release on nar.realtor + wire to
+# GlobeNewswire, and (b) a standalone blog post at /blogs/economists-outlook/
+# latest-housing-affordability-index-data-graphs. Both contain the NSA value.
+_NAR_HAI_PATTERNS = [
+    re.compile(
+        r"Housing\s+Affordability\s+Index[^.]{0,200}?"
+        r"(?:registered|stood\s+at|stands\s+at|fell\s+to|rose\s+to|increased\s+to|"
+        r"decreased\s+to|of|at|was)\s+(\d{2,3}(?:\.\d+)?)\s*(?:in|for)\s+"
+        r"(January|February|March|April|May|June|July|August|September|"
+        r"October|November|December)",
+        re.IGNORECASE),
+    re.compile(
+        r"Housing\s+Affordability\s+Index[^.]{0,400}?(\d{2,3}(?:\.\d+)?)\s+in\s+"
+        r"(January|February|March|April|May|June|July|August|September|"
+        r"October|November|December)", re.IGNORECASE),
+    re.compile(
+        r"(January|February|March|April|May|June|July|August|September|"
+        r"October|November|December)\s+[^.]{0,100}?"
+        r"Housing\s+Affordability\s+Index[^.]{0,80}?(\d{2,3}(?:\.\d+)?)",
+        re.IGNORECASE),
+]
+
+
+def scrape_nar_hai_latest(latest_in_csv):
+    """Best-effort Tavily scrape of NAR's latest Housing Affordability Index
+    NSA value. Returns {date, nsa, source_url} or None.
+
+    Iterates the prior 3 months newest-first; bails when target month is
+    already in CSV (no fresh release).
+    """
+    if not os.environ.get("TAVILY_API_KEY"):
+        print("  NAR HAI scrape: TAVILY_API_KEY absent; skipping", file=sys.stderr)
+        return None
+
+    today = dt.date.today()
+    ref = today.replace(day=1)
+    targets = []
+    for _ in range(3):
+        ref = ref.replace(day=1) - dt.timedelta(days=1)
+        targets.append((MONTH_NAMES_BY_NUM[ref.month], ref.year))
+
+    for month_name, year in targets:
+        target_iso = f"{year:04d}-{MONTHS[month_name]:02d}-01"
+        if latest_in_csv and target_iso <= latest_in_csv:
+            print(f"  NAR HAI: {month_name} {year} not newer than CSV "
+                  f"({latest_in_csv}); done", file=sys.stderr)
+            return None
+
+        queries = [
+            f"NAR Housing Affordability Index {month_name} {year}",
+            f"NAR Existing-Home Sales {month_name} {year} affordability",
+        ]
+        candidate_urls = []
+        for q in queries:
+            try:
+                results = tavily_search(
+                    q, include_domains=["nar.realtor", "globenewswire.com"],
+                    max_results=4)
+            except Exception as e:
+                print(f"  NAR HAI Tavily search failed for {q!r}: {e}",
+                      file=sys.stderr)
+                continue
+            for r in results:
+                u = (r.get("url") or "").lower()
+                t = (r.get("title") or "").lower()
+                if month_name.lower() in u or month_name.lower() in t:
+                    candidate_urls.append(r["url"])
+        candidate_urls = list(dict.fromkeys(candidate_urls))
+
+        for url in candidate_urls[:3]:
+            try:
+                raw = tavily_extract(url)
+            except Exception as e:
+                print(f"  NAR HAI extract failed for {url}: {e}", file=sys.stderr)
+                continue
+            text = _strip_html(raw)
+            for pat in _NAR_HAI_PATTERNS:
+                m = pat.search(text)
+                if not m:
+                    continue
+                g1, g2 = m.group(1), m.group(2)
+                # Either order: month then value, or value then month
+                value, month = None, None
+                if g1 in MONTHS:
+                    month = g1
+                    try: value = float(g2)
+                    except ValueError: pass
+                else:
+                    try: value = float(g1)
+                    except ValueError: pass
+                    if g2 in MONTHS: month = g2
+                if value is None or month is None: continue
+                if month.lower() != month_name.lower(): continue
+                if not (50 <= value <= 250): continue
+                print(f"  NAR HAI scraped from {url}: {month} {year} = {value} (NSA)",
+                      file=sys.stderr)
+                return {"date": target_iso, "nsa": value, "source_url": url}
+    return None
+
+
+def merge_hai_with_scrape(csv_rows, scraped, factors):
+    """Combine CSV history with optional fresh scraped NSA reading. If scraped
+    month > CSV's latest, apply seasonal factor -> SA estimate and append.
+    Returns ([(date, sa_or_nsa_fallback)], [rows_to_add_to_csv])."""
+    by_date = {d: (sa, nsa) for d, sa, nsa in csv_rows}
+    csv_latest = max(by_date.keys()) if by_date else "0000-00-00"
+    new_csv_rows = []
+    if scraped and scraped["date"] > csv_latest:
+        d   = scraped["date"]
+        nsa = scraped["nsa"]
+        month = int(d[5:7])
+        factor = factors.get(month)
+        if factor:
+            sa = nsa * factor
+            by_date[d] = (sa, nsa)
+            new_csv_rows.append((d, sa, nsa))
+            print(f"  NAR HAI: factor[{month}]={factor:.4f} -> "
+                  f"NSA {nsa} * factor = SA {sa:.2f} ({d})", file=sys.stderr)
+        else:
+            print(f"  NAR HAI: no factor for month {month}; using NSA as fallback",
+                  file=sys.stderr)
+            by_date[d] = (None, nsa)
+            new_csv_rows.append((d, None, nsa))
+    pairs = []
+    for d in sorted(by_date.keys()):
+        sa, nsa = by_date[d]
+        v = sa if sa is not None else nsa
+        if v is not None:
+            pairs.append((d, v))
+    return pairs, new_csv_rows
 
 
 def load_simple_csv(path, value_col, decimals=2):
@@ -471,23 +636,6 @@ def load_simple_csv(path, value_col, decimals=2):
                 continue
     out.sort()
     return out
-
-
-def merge_hai(csv_pairs, fred_pairs):
-    """CSV (Moody's SA) is canonical. FRED (NSA, restricted window) fills any
-    months newer than CSV's latest. CSV wins on overlap — we do NOT overwrite
-    Moody's SA values with FRED NSA values; methodology stays consistent inside
-    the seeded window."""
-    out = {d: v for d, v in csv_pairs}
-    csv_latest = max(out.keys()) if out else "0000-00-00"
-    appendable_for_csv = []
-    for d, v in fred_pairs:
-        # Normalize FRED date to YYYY-MM-01
-        d = f"{d[:7]}-01"
-        if d > csv_latest and d not in out:
-            out[d] = v
-            appendable_for_csv.append((d, v))
-    return sorted(out.items()), appendable_for_csv
 
 
 def append_mba_csv(new_row):
@@ -573,6 +721,45 @@ def monthly_avg_from_weekly(weekly_pairs):
         key = f"{d[:7]}-01"
         by_month.setdefault(key, []).append(v)
     return sorted((k, sum(vs) / len(vs)) for k, vs in by_month.items())
+
+
+def compute_price_income_ratio(price_quarterly, income_annual):
+    """Quarterly ratio = nominal median home price / linearly-interpolated
+    nominal median HH income.
+
+    price_quarterly: [(YYYY-MM-DD, $), ...] -- FRED MSPUS quarterly NSA
+    income_annual:   [(YYYY-01-01, $), ...] -- annual nominal median HH income
+
+    Income is interpolated across quarters of the same year using the
+    next year's value where available; for the final partial year (current
+    year and the year just after the last annual print), income is held
+    constant at the most recent published value. Returns [(YYYY-MM-DD, ratio)].
+    """
+    if not price_quarterly or not income_annual:
+        return []
+    income_by_year = {int(d[:4]): v for d, v in income_annual}
+    last_inc_year  = max(income_by_year.keys())
+    first_inc_year = min(income_by_year.keys())
+    out = []
+    for d, price in price_quarterly:
+        y = int(d[:4]); m = int(d[5:7])
+        q = (m - 1) // 3 + 1   # 1..4
+        if y < first_inc_year:
+            continue   # pre-seed era, no income value
+        if y > last_inc_year:
+            # Beyond last published annual — hold flat at last known
+            inc = income_by_year[last_inc_year]
+        else:
+            cur = income_by_year[y]
+            nxt = income_by_year.get(y + 1)
+            if nxt is not None:
+                # Linear interp: quarter midpoint progress across the year
+                inc = cur + (nxt - cur) * ((q - 1) / 4.0 + 1 / 8.0)
+            else:
+                inc = cur   # final year of the income series — no interp possible
+        if inc and inc > 0:
+            out.append((d, price / inc))
+    return out
 
 
 def compute_effective_rate(interest_paid_annual_b, debt_annual_b):
@@ -747,17 +934,18 @@ def main():
     # frontend formatter shows e.g. "$13.19T" not "$13B".
     debt_csv_t = load_simple_csv(NYFED_DEBT_CSV, "mortgage_debt_t", 3)
     debt_out = [(d, v * 1000.0) for d, v in debt_csv_t]   # $T -> $B
-    # Affordability: CSV baseline (Moody's SA via Haver) is canonical; FRED
-    # FIXHAI (NSA, ~13-month rolling window) only fills months newer than CSV.
-    hai_baseline = load_hai_csv()
+    # Affordability: dual-column CSV (Moody's SA + NSA via Haver) is canonical.
+    # New months come from Tavily-scraping the NAR press release (NSA); we apply
+    # in-house seasonal factors derived from the recent CSV overlap.
+    hai_csv = load_hai_csv()
+    hai_factors = compute_hai_seasonal_factors(hai_csv)
+    hai_csv_latest = max((d for d, sa, nsa in hai_csv), default=None)
+    hai_scraped = None
     try:
-        hai_fred_raw = _fred("FIXHAI")
-        # FRED returns YYYY-MM-DD; coerce to first-of-month
-        hai_fred = [(f"{d[:7]}-01", v) for d, v in hai_fred_raw]
-    except RuntimeError as e:
-        print(f"  FIXHAI fetch failed: {e}", file=sys.stderr)
-        hai_fred = []
-    affordability, hai_to_append = merge_hai(hai_baseline, hai_fred)
+        hai_scraped = scrape_nar_hai_latest(hai_csv_latest)
+    except Exception as e:
+        print(f"  NAR HAI scrape unexpectedly failed: {e}", file=sys.stderr)
+    affordability, hai_to_append = merge_hai_with_scrape(hai_csv, hai_scraped, hai_factors)
     hai_appended = append_hai_csv(hai_to_append)
 
     # ----- Golden Handcuff: 30Y rate vs effective rate on outstanding debt -----
@@ -766,6 +954,30 @@ def main():
     # collapsed to monthly mean.
     eff_rate = load_simple_csv(EFF_RATE_CSV, "effective_rate", 4)
     m30_monthly = monthly_avg_from_weekly(m30_weekly)
+
+    # ----- Price/Income ratio (US Census MSPUS / median HH income) -----
+    # Numerator: FRED MSPUS quarterly nominal $. Denominator: nominal annual
+    # median HH income (1967-1983 from seed CSV; 1984+ from FRED MEHOINUSA646N).
+    # Income is linearly interpolated across the year so quarterly ratios
+    # vary smoothly. For the trailing 4-8 quarters where current-year income
+    # hasn't been published yet, we hold the most recent annual value constant.
+    try:
+        mspus = _fred("MSPUS")
+    except RuntimeError as e:
+        print(f"  MSPUS fetch failed: {e}", file=sys.stderr)
+        mspus = []
+    income_seed = load_simple_csv(HH_INCOME_CSV, "median_hh_income", 0)
+    try:
+        income_fred = _fred("MEHOINUSA646N")
+        income_fred = [(f"{d[:4]}-01-01", v) for d, v in income_fred]
+    except RuntimeError as e:
+        print(f"  MEHOINUSA646N fetch failed: {e}", file=sys.stderr)
+        income_fred = []
+    income_by_year = {d: v for d, v in income_seed}
+    for d, v in income_fred:
+        income_by_year[d] = v   # FRED wins on overlap (catches Census revisions)
+    income_annual = sorted(income_by_year.items())
+    price_income_ratio = compute_price_income_ratio(mspus, income_annual)
 
     # ----- Shape JSON output -----
     out = {
@@ -788,6 +1000,9 @@ def main():
         "delinquency_rate":     to_pairs(delinquency, 2),
         "mortgage_debt_out":    to_pairs(debt_out, 1),
         "affordability_index":  to_pairs(affordability, 1),
+        "price_income_ratio":   to_pairs(price_income_ratio, 2),
+        "median_home_price":    to_pairs(mspus, 0),
+        "median_hh_income":     [[d, round(v, 0)] for d, v in income_annual],
         # KPIs
         "kpis": {
             "mortgage_30y":      kpi_from_pairs(m30_weekly, 2),
@@ -808,6 +1023,7 @@ def main():
             "delinquency_rate":  kpi_from_pairs(delinquency, 2),
             "eff_rate":          kpi_from_pairs(eff_rate, 2),
             "affordability":     kpi_from_pairs(affordability, 1),
+            "price_income_ratio": kpi_from_pairs(price_income_ratio, 2),
         },
         "latest_label":          mba_pur[-1][0] if mba_pur else None,
         "build_time":            dt.datetime.utcnow().isoformat(timespec="seconds") + "Z",
@@ -820,9 +1036,15 @@ def main():
         "csv_baseline_loaded":        MBA_CSV.exists(),
         "mba_history_rows":           len(mba_hist),
         "hai_csv_loaded":             HAI_CSV.exists(),
-        "hai_csv_rows":               len(hai_baseline),
+        "hai_csv_rows":               len(hai_csv),
         "hai_csv_rows_appended_this_run": hai_appended,
-        "hai_basis":                  "Moody's Analytics SA (Haver HXAFFFM.IUSA) for history; FRED FIXHAI NSA for any trailing months past CSV cutoff",
+        "hai_scrape_succeeded":       bool(hai_scraped),
+        "hai_scrape_source":          hai_scraped.get("source_url") if hai_scraped else None,
+        "hai_factor_window_months":   HAI_FACTOR_WINDOW_MONTHS,
+        "hai_basis":                  "Moody's Analytics SA (Haver HXAFFFM.IUSA) for history; NAR press release NSA scraped via Tavily for trailing months, with in-house SA factors from the 36-month CSV overlap.",
+        "price_income_ratio_rows":    len(price_income_ratio),
+        "median_home_price_latest":   mspus[-1][0] if mspus else None,
+        "median_hh_income_latest":    income_annual[-1][0] if income_annual else None,
     }
 
     if not MBA_CSV.exists():

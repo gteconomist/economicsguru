@@ -158,8 +158,18 @@
       <div class="subtitle">(NAR Fixed-Rate Housing Affordability Index, seasonally adjusted; 100 = median family income exactly qualifies for the median-priced home)</div>
       <div class="chart-wrap"><canvas id="chartMaAffordability"></canvas></div>
       <div class="source">
-        <span>Source: National Association of Realtors via Haver Analytics (mnemonic HXAFFFM.IUSA, Moody's Analytics SA) for full history back to Jan 1981. FRED FIXHAI (NSA) extends trailing months past the Haver cutoff when needed; a small seam may appear at the boundary until fresh Haver data is loaded.</span>
+        <span>Source: National Association of Realtors. History from Haver mnemonics HXAFFFM.IUSA (Moody's SA) + XHXAFFFM.IUSA (NSA), Jan 1981 onward. New months scraped from the NAR press release via Tavily; in-house monthly seasonal factors derived from the 36-month CSV overlap are applied to scraped NSA to yield SA estimates that match Moody's to ~0.01 pt.</span>
         <a href="#" class="csv-link" data-chart="chartMaAffordability">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Median Home Price &divide; Median Household Income</div>
+      <div class="subtitle">(Ratio; quarterly home price &divide; linearly-interpolated annual household income; both nominal, current dollars)</div>
+      <div class="chart-wrap"><canvas id="chartMaPriceIncome"></canvas></div>
+      <div class="source">
+        <span>Sources: U.S. Census Bureau / HUD &mdash; MSPUS (median sales price of houses sold, quarterly, $); U.S. Census Bureau &mdash; nominal median household income (annual). FRED MEHOINUSA646N covers 1984-current; Census P-60 historical (1967-1983) is seeded at data/historical/median_hh_income.csv. Income interpolated linearly across quarters; for the current year, held at the last published annual value until Census P-60 publishes the new one (September each year).</span>
+        <a href="#" class="csv-link" data-chart="chartMaPriceIncome">Download CSV</a>
       </div>
     </div>
 

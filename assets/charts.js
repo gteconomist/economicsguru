@@ -5801,6 +5801,7 @@ function rangedViewMortgageActivity(data, range) {
     delinquency_rate:       maTailByDate(data.delinquency_rate || [], cutoff),
     mortgage_debt_out:      maTailByDate(data.mortgage_debt_out || [], cutoff),
     affordability_index:    maTailByDate(data.affordability_index || [], cutoff),
+    price_income_ratio:     maTailByDate(data.price_income_ratio || [], cutoff),
     kpis: data.kpis,
     latest_label: data.latest_label,
     notice: data.notice,
@@ -6006,6 +6007,25 @@ function buildMaAffordability(view) {
   };
 }
 
+function buildMaPriceIncome(view) {
+  const r = view.price_income_ratio || [];
+  const labels = r.map(p => shortLabel(p[0]));
+  const pr = pointSizeForLength(labels.length);
+  return {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Median Home Price / Median HH Income',
+          data: r.map(p => p[1]),
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.2, borderWidth: 2.5, pointRadius: pr },
+      ],
+    },
+    options: baseOptions(v => v == null ? 'n/a' : v.toFixed(2) + 'x'),
+  };
+}
+
 const MORTGAGE_ACTIVITY_BUILDERS = {
   chartMaApps:            buildMaApps,
   chartMaRates:           buildMaRates,
@@ -6014,6 +6034,7 @@ const MORTGAGE_ACTIVITY_BUILDERS = {
   chartMaDelinquency:     buildMaDelinquency,
   chartMaDebt:            buildMaDebt,
   chartMaAffordability:   buildMaAffordability,
+  chartMaPriceIncome:     buildMaPriceIncome,
 };
 
 function renderAllMortgageActivity(view) {
@@ -6066,6 +6087,10 @@ function renderKpisMortgageActivity(data) {
       valueFmt: k => fmtIdx1(k.value),
       deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(1)} vs prior month`,
       goodDir: 'up' },
+    { key: 'price_income_ratio', label: 'Price / Income Ratio', accent: BRAND.teal,
+      valueFmt: k => k.value == null ? 'n/a' : k.value.toFixed(2) + 'x',
+      deltaFmt: k => k.delta == null ? 'no prior data' : `${k.delta > 0 ? '+' : ''}${k.delta.toFixed(2)} vs prior quarter`,
+      goodDir: 'down' },
   ];
   kpiHost.innerHTML = KPI_DEFS.map(def => {
     const k = data.kpis[def.key] || { value: null, delta: null };
@@ -6106,6 +6131,9 @@ function registerAllCsvsMortgageActivity(view) {
   registerCsv('chartMaAffordability', 'housing-affordability-index.csv',
     ['Month', 'NAR Fixed-Rate Housing Affordability Index'],
     view.affordability_index);
+  registerCsv('chartMaPriceIncome', 'median-home-price-to-income-ratio.csv',
+    ['Quarter', 'Median Home Price / Median HH Income (Ratio)'],
+    view.price_income_ratio);
 }
 
 window.EG = {
@@ -6367,6 +6395,7 @@ window.EG = {
       delinquency:     'chartMaDelinquency',
       debt:            'chartMaDebt',
       affordability:   'chartMaAffordability',
+      priceincome:     'chartMaPriceIncome',
     };
     const id = map[chartKey] || 'chartMaApps';
     if (MORTGAGE_ACTIVITY_BUILDERS[id]) makeChart(id, MORTGAGE_ACTIVITY_BUILDERS[id](view));
