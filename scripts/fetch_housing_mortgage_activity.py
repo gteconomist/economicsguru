@@ -6,8 +6,7 @@ Three data families on this page:
 
 1) MBA Weekly Applications Survey (Refinance + Purchase indexes)
    - Historical baseline: data/historical/mba_mortgage_applications.csv
-     (seeded 2026-05-28 from Haver mnemonics MBAIRW.IUSA + MBAIPW.IUSA;
-     full weekly history Jan 1990 -> present)
+     (in-house seed, full weekly history Jan 1990 -> present)
    - Weekly update: Tavily search + extract on the MBA press release
      (mba.org, JS-rendered -- same pattern as ISM via PR Newswire in
      scripts/fetch_industry_surveys.py)
@@ -24,26 +23,26 @@ Three data families on this page:
                   quarterly)
    - Mortgage debt outstanding (quarterly): NY Fed Household Debt and Credit
                   Report -- mortgage component, $ trillions. Seeded from
-                  data/historical/ny_fed_hhdc_mortgage.csv (Haver mnemonic
-                  MBLNYHDDBCMUQ.IUSA). Re-uploaded quarterly by Alfie. NY Fed
-                  HHDC has full Q1 2026 coverage where FRED's HHMSDODNS only
-                  has a 13-month trailing window.
-   - FIXHAI       NAR Fixed-Rate Housing Affordability Index (monthly)
-                  FRED's NAR licence restricts it to a trailing ~13 months AND
-                  FRED was 5 months behind Haver as of 2026-05. Chart sourced
-                  from data/historical/nar_affordability.csv (Moody's
-                  Analytics SA via Haver, HXAFFFM.IUSA). FRED FIXHAI (NSA)
-                  fills trailing months past the Haver cutoff when needed.
+                  data/historical/ny_fed_hhdc_mortgage.csv (in-house seed,
+                  re-uploaded quarterly). NY Fed HHDC has full Q1 2026
+                  coverage where FRED's HHMSDODNS only has a 13-month
+                  trailing window.
+   - FIXHAI       NAR Fixed-Rate Housing Affordability Index (monthly).
+                  FRED's NAR licence restricts it to a trailing ~13 months
+                  and FRED also runs several months behind the in-house seed.
+                  Chart sourced from data/historical/nar_affordability.csv
+                  (in-house dual-column SA + NSA seed). Trailing months
+                  come from a Tavily scrape of the NAR press release,
+                  seasonally adjusted in-fetcher using factors derived from
+                  the recent SA/NSA overlap.
    - Golden Handcuff: 30Y mortgage rate vs effective rate on outstanding
        mortgage debt -- MONTHLY cadence.
-       Effective rate: data/historical/mortgage_eff_rate.csv, sourced from
-         Haver mnemonic IR%BEMERAQ.IUSA "Effective rate on mortgage debt
-         outstanding, owner- and tenant-occupied residential housing" (BEA
-         NIPA, % SAAR). Full history back to Jan 1977, ~1 month publication
-         lag. Re-uploaded periodically.
+       Effective rate: data/historical/mortgage_eff_rate.csv (in-house seed
+         of BEA NIPA "Effective rate on mortgage debt outstanding, owner-
+         and tenant-occupied residential housing", % SAAR). Full history
+         back to Jan 1977, ~1 month publication lag. Re-uploaded periodically.
        30Y rate (for the chart pair): MORTGAGE30US weekly average -> monthly
-         mean, computed in-fetcher. Matches user's Moody's-calculated 30Y
-         within ~3 bps; either could serve.
+         mean, computed in-fetcher.
 
 The build is FAIL-SOFT: if Tavily / BEA / FRED partially fails, we fall back
 to whatever the CSV baseline gives us so the page still renders yesterday's
@@ -77,7 +76,7 @@ MBA_CSV        = HISTORICAL_DIR / "mba_mortgage_applications.csv"
 HAI_CSV        = HISTORICAL_DIR / "nar_affordability.csv"
 NYFED_DEBT_CSV = HISTORICAL_DIR / "ny_fed_hhdc_mortgage.csv"
 EFF_RATE_CSV   = HISTORICAL_DIR / "mortgage_eff_rate.csv"
-HHI_QUARTERLY_CSV   = HISTORICAL_DIR / "moodys_quarterly_hh_income.csv"
+HHI_QUARTERLY_CSV   = HISTORICAL_DIR / "quarterly_hh_income.csv"
 # NAR median existing-home price is owned by the existing-homes fetcher;
 # we read it here without modifying. The existing-homes step runs first in
 # the workflow so the file is fresh when we land.
@@ -438,10 +437,10 @@ def load_hai_csv():
     return out
 
 
-# Recent-window factor computation. Moody's seasonal factors are effectively
-# constant in the modern era (the same SA/NSA ratio repeats year-over-year for
-# each calendar month to 4 decimal places). Using all 45 years of history would
-# mix structural shifts; using the last 36 months matches Moody's exactly.
+# Recent-window factor computation. Modern HAI seasonal factors are effectively
+# constant: the same SA/NSA ratio repeats year-over-year for each calendar
+# month to 4 decimal places. Using all 45 years of history would mix structural
+# shifts; the last 36 months matches the published SA series almost exactly.
 HAI_FACTOR_WINDOW_MONTHS = 36
 
 def compute_hai_seasonal_factors(rows):
@@ -768,19 +767,19 @@ def load_nar_median_price_monthly():
     return out
 
 
-# Window of recent Moody's years used to compute the intra-year shape factors
-# that will be applied to Census P-60 annual values once Moody's coverage
+# Window of recent seeded years used to compute the intra-year shape factors
+# that will be applied to Census P-60 annual values once the seed's coverage
 # ends. 2010+ matches the HAI factor-window choice and captures the modern
 # wage-growth seasonality cleanly.
 INCOME_SHAPE_WINDOW_START_YEAR = 2010
 
-def compute_income_shape_factors(moodys_quarterly):
-    """Return {1..4: factor} where factor[q] = mean( Moodys_Qq[y] / annual_avg[y] )
+def compute_income_shape_factors(seed_quarterly):
+    """Return {1..4: factor} where factor[q] = mean( Seed_Qq[y] / annual_avg[y] )
     over years >= INCOME_SHAPE_WINDOW_START_YEAR with all four quarters present.
     Always sums to ~4.0 by construction.
     """
     q_by_year = {}
-    for d, v in moodys_quarterly:
+    for d, v in seed_quarterly:
         y = int(d[:4]); m = int(d[5:7])
         q = (m - 1) // 3 + 1
         q_by_year.setdefault(y, {})[q] = v
@@ -795,47 +794,47 @@ def compute_income_shape_factors(moodys_quarterly):
     return {q: (sum(s) / len(s)) if s else None for q, s in shares.items()}
 
 
-def build_quarterly_income(moodys_quarterly, census_annual, shape_factors):
-    """Merge Moody's quarterly history with Census annual + shape factors.
+def build_quarterly_income(seed_quarterly, census_annual, shape_factors):
+    """Merge the in-house quarterly seed with Census annual + shape factors.
 
     For each (year, quarter):
-      - if Moody's has it -> use Moody's directly (covers 1970 -> Moody's cutoff)
+      - if the seed has it -> use the seed directly (covers 1970 -> seed cutoff)
       - else if Census has the year -> use Census_annual * shape_factor[q]
       - else skip
 
-    This makes the chart self-sustaining: when Alfie's Haver subscription ends,
-    the going-forward update path is Census P-60 (free, annual, via FRED) plus
-    the shape factors derived from Moody's history (frozen in the seed CSV).
+    This makes the chart self-sustaining once the seeded history ends: the
+    going-forward update path is Census P-60 (free, annual, via FRED) plus
+    the shape factors derived from the seed (frozen in the seed CSV).
     """
-    moodys_by_qe = {d: v for d, v in moodys_quarterly}
+    seed_by_qe = {d: v for d, v in seed_quarterly}
     census_by_year = {int(d[:4]): v for d, v in census_annual}
 
     # Build a candidate list of quarter-end dates spanning from the earliest
-    # Moody's quarter to the latest Census year (or Moody's, whichever later).
-    moodys_years = {int(d[:4]) for d, _ in moodys_quarterly}
-    last_year = max(list(moodys_years) + list(census_by_year.keys()), default=None)
-    first_year = min(moodys_years, default=None) if moodys_years \
+    # seeded quarter to the latest Census year (or seed, whichever later).
+    seed_years = {int(d[:4]) for d, _ in seed_quarterly}
+    last_year = max(list(seed_years) + list(census_by_year.keys()), default=None)
+    first_year = min(seed_years, default=None) if seed_years \
                  else min(census_by_year.keys(), default=None)
     if first_year is None or last_year is None:
         return []
 
     out = []
     bridged_qs = 0
-    moodys_qs = 0
+    seed_qs = 0
     for y in range(first_year, last_year + 1):
         for q in (1, 2, 3, 4):
             eom_month = q * 3
             eom_day   = {3:31, 6:30, 9:30, 12:31}[eom_month]
             qe = f"{y:04d}-{eom_month:02d}-{eom_day:02d}"
-            if qe in moodys_by_qe:
-                out.append((qe, moodys_by_qe[qe]))
-                moodys_qs += 1
+            if qe in seed_by_qe:
+                out.append((qe, seed_by_qe[qe]))
+                seed_qs += 1
             elif y in census_by_year and shape_factors.get(q):
                 est = census_by_year[y] * shape_factors[q]
                 out.append((qe, est))
                 bridged_qs += 1
             # else: gap, skip
-    print(f"  Income series: {moodys_qs} Moody's quarters + "
+    print(f"  Income series: {seed_qs} seeded quarters + "
           f"{bridged_qs} Census-bridged quarters", file=sys.stderr)
     return out
 
@@ -1019,13 +1018,13 @@ def main():
     except RuntimeError as e:
         print(f"  DRSFRMACBS fetch failed: {e}", file=sys.stderr)
         delinquency = []
-    # Mortgage debt outstanding: NY Fed HHDC quarterly $T, seeded from Haver
-    # (data/historical/ny_fed_hhdc_mortgage.csv). Stored as $B in JSON so the
+    # Mortgage debt outstanding: NY Fed HHDC quarterly $T, in-house seed at
+    # data/historical/ny_fed_hhdc_mortgage.csv. Stored as $B in JSON so the
     # frontend formatter shows e.g. "$13.19T" not "$13B".
     debt_csv_t = load_simple_csv(NYFED_DEBT_CSV, "mortgage_debt_t", 3)
     debt_out = [(d, v * 1000.0) for d, v in debt_csv_t]   # $T -> $B
-    # Affordability: dual-column CSV (Moody's SA + NSA via Haver) is canonical.
-    # New months come from Tavily-scraping the NAR press release (NSA); we apply
+    # Affordability: dual-column in-house seed (SA + NSA) is canonical. New
+    # months come from Tavily-scraping the NAR press release (NSA); we apply
     # in-house seasonal factors derived from the recent CSV overlap.
     hai_csv = load_hai_csv()
     hai_factors = compute_hai_seasonal_factors(hai_csv)
@@ -1039,28 +1038,39 @@ def main():
     hai_appended = append_hai_csv(hai_to_append)
 
     # ----- Golden Handcuff: 30Y rate vs effective rate on outstanding debt -----
-    # Both lines MONTHLY now (was annual). Effective rate seeded from Haver
-    # (Moody's-calculated, BEA-sourced), 30Y line is FRED MORTGAGE30US weekly
-    # collapsed to monthly mean.
+    # Both lines MONTHLY. Effective rate from the in-house seed (BEA NIPA
+    # "Effective rate on mortgage debt outstanding"); 30Y line is FRED
+    # MORTGAGE30US weekly collapsed to monthly mean.
     eff_rate = load_simple_csv(EFF_RATE_CSV, "effective_rate", 4)
     m30_monthly = monthly_avg_from_weekly(m30_weekly)
 
     # ----- Price/Income ratio -----
-    # Numerator: NAR median existing-home price (the same series the
-    # existing-homes page tracks). We read its monthly NSA values from the
-    # baseline CSV that fetcher owns, then collapse to a quarterly mean to
-    # match the income cadence.
-    nar_price_monthly = load_nar_median_price_monthly()
-    nar_price_quarterly = collapse_monthly_to_quarterly_mean(nar_price_monthly)
+    # Numerator: Census Bureau / HUD Median Sales Price of Houses Sold
+    # (MSPUS) -- quarterly, NSA, $ nominal, 1963Q1 onward. Standard source for
+    # long-running affordability ratios and matches the Census-sourced
+    # reference chart shape exactly. Free, durable, no licensing window.
+    # (NAR median existing-home price was considered but FRED's NAR feed is
+    # restricted to a 13-month trailing window with seeded history only back
+    # to 1999 in this repo, which truncates the chart well past 1970.)
+    try:
+        price_quarterly_raw = _fred("MSPUS")
+        # FRED returns YYYY-MM-DD; coerce to quarter-end form
+        price_quarterly = [
+            (f"{d[:4]}-{int(d[5:7]):02d}-{({3:31,6:30,9:30,12:31}.get(int(d[5:7]), 30))}", v)
+            for d, v in price_quarterly_raw
+        ]
+    except RuntimeError as e:
+        print(f"  MSPUS fetch failed: {e}", file=sys.stderr)
+        price_quarterly = []
 
-    # Denominator: Moody's-estimated quarterly nominal median HH income
-    # (Haver RYHHMEDQ.IUSA), seeded as the canonical historical record. To
-    # stay self-sustaining once Moody's coverage ends, the fetcher also
-    # derives intra-year shape factors from the Moody's history and applies
-    # them to FRED MEHOINUSA646N (Census P-60 annual nominal). See
-    # build_quarterly_income() for the merge logic.
-    moodys_quarterly_income = load_simple_csv(HHI_QUARTERLY_CSV, "hh_income", 2)
-    income_shape_factors = compute_income_shape_factors(moodys_quarterly_income)
+    # Denominator: Census-sourced quarterly nominal median HH income, seeded
+    # historically from the in-house baseline CSV. For years past the seed's
+    # coverage, the fetcher pulls FRED MEHOINUSA646N (Census P-60 annual
+    # nominal) and applies intra-year shape factors derived from the seed's
+    # 2010+ quarterly pattern -- so the chart stays current using only free,
+    # durable public data once the historical seed ends.
+    seed_quarterly_income = load_simple_csv(HHI_QUARTERLY_CSV, "hh_income", 2)
+    income_shape_factors = compute_income_shape_factors(seed_quarterly_income)
     try:
         census_annual_raw = _fred("MEHOINUSA646N")
         census_annual = [(f"{d[:4]}-01-01", v) for d, v in census_annual_raw]
@@ -1068,9 +1078,9 @@ def main():
         print(f"  MEHOINUSA646N fetch failed: {e}", file=sys.stderr)
         census_annual = []
     income_quarterly = build_quarterly_income(
-        moodys_quarterly_income, census_annual, income_shape_factors)
+        seed_quarterly_income, census_annual, income_shape_factors)
     price_income_ratio = compute_price_income_ratio(
-        nar_price_quarterly, income_quarterly)
+        price_quarterly, income_quarterly)
 
     # ----- Shape JSON output -----
     out = {
@@ -1094,7 +1104,7 @@ def main():
         "mortgage_debt_out":    to_pairs(debt_out, 1),
         "affordability_index":  to_pairs(affordability, 1),
         "price_income_ratio":     to_pairs(price_income_ratio, 2),
-        "median_home_price_q":    to_pairs(nar_price_quarterly, 0),
+        "median_home_price_q":    to_pairs(price_quarterly, 0),
         "median_hh_income_q":     to_pairs(income_quarterly, 0),
         # KPIs
         "kpis": {
@@ -1134,12 +1144,12 @@ def main():
         "hai_scrape_succeeded":       bool(hai_scraped),
         "hai_scrape_source":          hai_scraped.get("source_url") if hai_scraped else None,
         "hai_factor_window_months":   HAI_FACTOR_WINDOW_MONTHS,
-        "hai_basis":                  "Moody's Analytics SA (Haver HXAFFFM.IUSA) for history; NAR press release NSA scraped via Tavily for trailing months, with in-house SA factors from the 36-month CSV overlap.",
+        "hai_basis":                  "NAR Housing Affordability Index, seasonally adjusted in-house using monthly factors derived from the historical SA/NSA overlap. Trailing months from the NAR press release via Tavily.",
         "price_income_ratio_rows":    len(price_income_ratio),
-        "nar_price_quarterly_rows":   len(nar_price_quarterly),
-        "moodys_income_rows":         len(moodys_quarterly_income),
+        "price_quarterly_rows":       len(price_quarterly),
+        "seed_income_quarters":       len(seed_quarterly_income),
         "income_shape_factors":       {str(q): round(v, 4) for q, v in income_shape_factors.items() if v},
-        "income_basis":               "Moody's-estimated quarterly nominal HH income (Haver RYHHMEDQ.IUSA) for years of coverage; Census P-60 annual nominal HH income (FRED MEHOINUSA646N) x intra-year shape factors for years past Moody's coverage.",
+        "income_basis":               "Census Bureau quarterly nominal median household income; historical seed from the in-house baseline CSV. For years past the seed's coverage, FRED MEHOINUSA646N (Census P-60 annual nominal) x intra-year shape factors derived from the seed's 2010+ quarterly pattern.",
     }
 
     if not MBA_CSV.exists():

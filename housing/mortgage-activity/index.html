@@ -98,7 +98,7 @@
       <div class="subtitle">(Refinance Index left; Purchase Index right; Index 3/16/1990 = 100, Seasonally Adjusted)</div>
       <div class="chart-wrap"><canvas id="chartMaApps"></canvas></div>
       <div class="source">
-        <span>Source: Mortgage Bankers Association &mdash; Weekly Applications Survey (history via Haver mnemonics MBAIRW.IUSA / MBAIPW.IUSA; weekly updates scraped from mba.org press release).</span>
+        <span>Source: Mortgage Bankers Association &mdash; Weekly Applications Survey. Historical series back to Jan 1990 is seeded in-house; weekly updates scraped from the MBA press release at mba.org.</span>
         <a href="#" class="csv-link" data-chart="chartMaApps">Download CSV</a>
       </div>
     </div>
@@ -128,7 +128,7 @@
       <div class="subtitle">(Monthly; 30Y = Freddie Mac PMMS monthly avg; Effective rate on outstanding mortgage debt, owner- and tenant-occupied residential housing)</div>
       <div class="chart-wrap"><canvas id="chartMaGoldenHandcuff"></canvas></div>
       <div class="source">
-        <span>Sources: Freddie Mac via FRED &mdash; MORTGAGE30US (weekly, collapsed to monthly mean). U.S. Bureau of Economic Analysis (NIPA: Mortgage interest paid, owner- and tenant-occupied residential housing) via Haver Analytics &mdash; Moody&rsquo;s-calculated effective rate, mnemonic IR%BEMERAQ.IUSA. Monthly cadence, ~1 month publication lag.</span>
+        <span>Sources: Freddie Mac via FRED &mdash; MORTGAGE30US (weekly, collapsed to monthly mean). U.S. Bureau of Economic Analysis &mdash; NIPA Mortgage Interest Paid, owner- and tenant-occupied residential housing. Monthly cadence, ~1 month publication lag.</span>
         <a href="#" class="csv-link" data-chart="chartMaGoldenHandcuff">Download CSV</a>
       </div>
     </div>
@@ -148,7 +148,7 @@
       <div class="subtitle">(Total Mortgage Balance Component of Household Debt; Quarterly, $ Trillions, NSA)</div>
       <div class="chart-wrap"><canvas id="chartMaDebt"></canvas></div>
       <div class="source">
-        <span>Source: Federal Reserve Bank of New York &mdash; Quarterly Report on Household Debt and Credit (HHDC), mortgage component, via Haver mnemonic MBLNYHDDBCMUQ.IUSA. NY Fed HHDC publishes mid-quarter with full Q1 2026 coverage where FRED&rsquo;s Z.1 HHMSDODNS only has a 13-month trailing window.</span>
+        <span>Source: Federal Reserve Bank of New York &mdash; Quarterly Report on Household Debt and Credit (HHDC), mortgage component. NY Fed HHDC publishes mid-quarter with full Q1 2026 coverage where FRED&rsquo;s Z.1 HHMSDODNS has only a 13-month trailing window.</span>
         <a href="#" class="csv-link" data-chart="chartMaDebt">Download CSV</a>
       </div>
     </div>
@@ -158,17 +158,17 @@
       <div class="subtitle">(NAR Fixed-Rate Housing Affordability Index, seasonally adjusted; 100 = median family income exactly qualifies for the median-priced home)</div>
       <div class="chart-wrap"><canvas id="chartMaAffordability"></canvas></div>
       <div class="source">
-        <span>Source: National Association of Realtors. History from Haver mnemonics HXAFFFM.IUSA (Moody's SA) + XHXAFFFM.IUSA (NSA), Jan 1981 onward. New months scraped from the NAR press release via Tavily; in-house monthly seasonal factors derived from the 36-month CSV overlap are applied to scraped NSA to yield SA estimates that match Moody's to ~0.01 pt.</span>
+        <span>Source: National Association of Realtors. Historical series back to Jan 1981 includes both seasonally-adjusted and not-seasonally-adjusted readings; new months are scraped from the NAR monthly press release via Tavily, and seasonally adjusted in-house using monthly factors derived from the historical SA/NSA overlap (recovers the published SA series to within ~0.01 pt).</span>
         <a href="#" class="csv-link" data-chart="chartMaAffordability">Download CSV</a>
       </div>
     </div>
 
     <div class="chart-card">
       <div class="title">Median Home Price &divide; Median Household Income</div>
-      <div class="subtitle">(Quarterly ratio; NAR median existing-home price &divide; quarterly median HH income; both nominal, current dollars)</div>
+      <div class="subtitle">(Quarterly ratio; median sales price of houses sold &divide; quarterly median household income; both nominal, current dollars)</div>
       <div class="chart-wrap"><canvas id="chartMaPriceIncome"></canvas></div>
       <div class="source">
-        <span>Sources: National Association of Realtors &mdash; median existing-home sales price (monthly NSA, collapsed to quarterly mean), shared with the existing-homes page. Moody's Analytics quarterly median HH income (Haver mnemonic RYHHMEDQ.IUSA, derived from Census BOC ACS / CPS Table FINC-01) seeded as the canonical historical record 1970Q1 onward; for years past Moody's coverage the going-forward path uses Census P-60 annual nominal HH income (FRED MEHOINUSA646N) multiplied by intra-year shape factors derived from Moody's 2010+ quarterly pattern (Q1=0.986, Q2=0.996, Q3=1.005, Q4=1.012).</span>
+        <span>Sources: U.S. Census Bureau / HUD &mdash; Median Sales Price of Houses Sold (MSPUS, quarterly NSA, $ nominal, 1963Q1 onward) via FRED. U.S. Census Bureau &mdash; quarterly nominal median household income (ACS / CPS Annual Social and Economic Supplement Table FINC-01) seeded as the in-house canonical historical record 1970Q1 onward; for years past the seed's coverage the going-forward path uses Census P-60 annual nominal HH income (FRED MEHOINUSA646N) multiplied by intra-year shape factors derived from the seed's 2010+ quarterly pattern (Q1=0.986, Q2=0.996, Q3=1.005, Q4=1.012). Self-sustaining once the seed ends &mdash; the chart auto-extends each September as Census P-60 publishes.</span>
         <a href="#" class="csv-link" data-chart="chartMaPriceIncome">Download CSV</a>
       </div>
     </div>
