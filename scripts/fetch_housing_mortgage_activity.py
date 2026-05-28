@@ -22,15 +22,21 @@ Three data families on this page:
 3) Stress / context (mostly quarterly)
    - DRSFRMACBS   Single-family residential mortgage delinquency rate (Fed)
    - HHMSDODNS    Households & NPISH; 1-4 family residential mortgages; liability level (Z.1)
+                  Note: published in MILLIONS of dollars -- we divide by 1000
+                  inside the fetcher so downstream code can treat as $ billions.
    - FIXHAI       NAR Fixed-Rate Housing Affordability Index (monthly)
    - Golden Handcuff: 30Y mortgage rate vs effective rate on outstanding
-       mortgage debt. Effective rate is constructed quarterly as:
-         eff_rate = (annualized home mortgage interest paid by households)
-                    / (average mortgage debt outstanding over the quarter)
-       Numerator: BEA NIPA Table 7.11, line where LineDescription contains
-         "Home mortgages" under Households/persons. Pulled via BEA API.
-       Denominator: HHMSDODNS quarterly stock (end-of-period; we average
-         current + prior to approximate quarter-average).
+       mortgage debt. Effective rate is constructed annually as:
+         eff_rate = (annual mortgage interest paid: owner-occupied housing $B)
+                    / (annual average mortgage debt outstanding $B)
+       Numerator: FRED W498RC1A027NBEA "Monetary interest paid: Households:
+         Owner-occupied housing" (BEA Account Code W498RC; sourced from
+         BEA NIPA's supplementary table "Mortgage Interest Paid, Owner- and
+         Tenant-Occupied Residential Housing"). Annual frequency, $ billions.
+       Denominator: HHMSDODNS quarterly debt outstanding ($M), averaged
+         within each calendar year and converted to $ billions.
+       Chart x-axis: annual (Jan 1 of each year); 30Y rate is collapsed to
+         the same annual cadence by averaging weekly observations.
 
 The build is FAIL-SOFT: if Tavily / BEA / FRED partially fails, we fall back
 to whatever the CSV baseline gives us so the page still renders yesterday's
@@ -38,8 +44,7 @@ numbers. The workflow's auto-commit step preserves the last good JSON.
 
 Environment variables
 ---------------------
-  FRED_API_KEY    required
-  BEA_API_KEY     required for Golden Handcuff (effective rate)
+  FRED_API_KEY    required (covers everything except MBA weekly scrape)
   TAVILY_API_KEY  required for weekly MBA refresh; absent => CSV-only
 
 Output
@@ -416,64 +421,66 @@ def append_mba_csv(new_row):
     return True
 
 
-# ======================================================== BEA Golden Handcuff
+# ======================================================== Golden Handcuff
+
+# FRED's annual BEA series for "Mortgage interest paid, owner-occupied
+# residential housing." This is BEA Account Code W498RC, sourced from the
+# BEA NIPA supplementary table "Mortgage Interest Paid, Owner- and Tenant-
+# Occupied Residential Housing." Frequency is annual, units are $ billions.
+# (Tenant-occupied portion is published by BEA in the same supplementary
+# table but not on FRED as a standalone series; owner-occupied carries the
+# vast majority of the dollar volume so the chart story holds.)
+FRED_MORTGAGE_INTEREST = "W498RC1A027NBEA"
+
 
 def fetch_home_mortgage_interest_paid():
-    """Return [(YYYY-MM-DD quarter-end, annualized $B), ...] for home mortgage
-    interest paid by households (NIPA Table 7.11). Searches lines by description
-    to be resilient to BEA line renumbering. Returns [] on failure.
+    """Return [(YYYY-01-01, $B), ...] -- annual home mortgage interest paid
+    by households on owner-occupied housing, from BEA via FRED.
     """
     try:
-        rows = _bea_nipa_table("T71100", frequency="Q")
+        pairs = _fred(FRED_MORTGAGE_INTEREST)
     except RuntimeError as e:
-        print(f"  BEA T71100 fetch failed: {e}", file=sys.stderr)
+        print(f"  FRED {FRED_MORTGAGE_INTEREST} fetch failed: {e}", file=sys.stderr)
         return []
-
-    # Build {line_number: (description, [(period, value), ...])}
-    by_line = {}
-    for r in rows:
-        ln  = r.get("LineNumber")
-        desc = (r.get("LineDescription") or "").strip()
-        per  = r.get("TimePeriod", "")     # e.g. "2024Q3"
-        try:
-            val = float((r.get("DataValue") or "0").replace(",", ""))
-        except ValueError:
-            continue
-        if not ln or not per:
-            continue
-        entry = by_line.setdefault(ln, [desc, []])
-        entry[1].append((per, val))
-
-    # Match the home-mortgage line. NIPA T7.11 wording varies across vintages:
-    #   "Home mortgages"   |   "Home mortgage interest"
-    # We want the line under "Interest paid: Households" (a.k.a. persons /
-    # nonprofit institutions). Score candidates by description; prefer the
-    # bare "Home mortgages" line that sits inside the household section.
-    candidates = []
-    for ln, (desc, pairs) in by_line.items():
-        d_lc = desc.lower()
-        if "home mortgage" in d_lc:
-            # Score: shorter, more specific descriptions rank higher
-            candidates.append((len(desc), ln, desc, pairs))
-    if not candidates:
-        print("  BEA T71100: no line description containing 'home mortgage' "
-              "found; cannot build effective rate", file=sys.stderr)
-        return []
-    candidates.sort()  # shortest desc first
-    chosen = candidates[0]
-    print(f"  BEA T71100: using line {chosen[1]} {chosen[2]!r}", file=sys.stderr)
-
-    # Convert "YYYYQn" -> quarter-end date "YYYY-MM-DD"
-    out = []
-    for per, val in chosen[3]:
-        m = re.match(r"^(\d{4})Q([1-4])$", per)
-        if not m:
-            continue
-        y = int(m.group(1)); q = int(m.group(2))
-        eom_month = q * 3
-        eom_day   = {3:31, 6:30, 9:30, 12:31}[eom_month]
-        out.append((f"{y:04d}-{eom_month:02d}-{eom_day:02d}", val))
+    # Coerce to YYYY-01-01 (FRED already returns annual data dated to Jan 1)
+    out = [(f"{d[:4]}-01-01", v) for d, v in pairs]
     out.sort()
+    return out
+
+
+def annualize_quarterly_debt_b(debt_quarterly_millions):
+    """Convert quarterly debt outstanding (HHMSDODNS, $M) to annual averages
+    in $ billions. Each calendar year averages its 4 quarterly observations
+    (or fewer if the year is partial)."""
+    by_year = {}
+    for d, v in debt_quarterly_millions:
+        year = d[:4]
+        by_year.setdefault(year, []).append(v / 1000.0)   # $M -> $B
+    return sorted((f"{y}-01-01", sum(vs) / len(vs)) for y, vs in by_year.items())
+
+
+def annualize_weekly_rate(weekly_pairs):
+    """Collapse weekly Freddie Mac mortgage rate to annual mean."""
+    by_year = {}
+    for d, v in weekly_pairs:
+        year = d[:4]
+        by_year.setdefault(year, []).append(v)
+    return sorted((f"{y}-01-01", sum(vs) / len(vs)) for y, vs in by_year.items())
+
+
+def compute_effective_rate(interest_paid_annual_b, debt_annual_b):
+    """Annual effective rate (%) on outstanding mortgage debt.
+    interest_paid_annual_b: [(YYYY-01-01, $B)]   -- numerator
+    debt_annual_b:          [(YYYY-01-01, $B)]   -- denominator (annual avg)
+    """
+    debt_by_y = {d: v for d, v in debt_annual_b}
+    int_by_y  = {d: v for d, v in interest_paid_annual_b}
+    out = []
+    for d in sorted(set(int_by_y) & set(debt_by_y)):
+        avg_debt = debt_by_y[d]
+        if avg_debt <= 0:
+            continue
+        out.append((d, int_by_y[d] / avg_debt * 100.0))
     return out
 
 
@@ -485,28 +492,6 @@ def quarter_end(date_str):
     eom_month = q * 3
     eom_day   = {3:31, 6:30, 9:30, 12:31}[eom_month]
     return f"{y:04d}-{eom_month:02d}-{eom_day:02d}"
-
-
-def compute_effective_rate(interest_paid_q, debt_outstanding_q):
-    """Quarterly effective rate (%) on outstanding home mortgage debt.
-    interest_paid_q:  [(YYYY-MM-DD, $B annualized)]
-    debt_outstanding_q: [(YYYY-MM-DD, $B end-of-period)]
-    Average current + prior debt to approximate quarter-average stock.
-    """
-    debt_by_q = {qe: v for qe, v in debt_outstanding_q}
-    int_by_q  = {qe: v for qe, v in interest_paid_q}
-    qs = sorted(set(int_by_q) & set(debt_by_q))
-    prior_debt = None
-    out = []
-    for qe in qs:
-        debt = debt_by_q[qe]
-        avg_debt = (debt + prior_debt) / 2 if prior_debt is not None else debt
-        prior_debt = debt
-        if avg_debt <= 0:
-            continue
-        rate = int_by_q[qe] / avg_debt * 100.0
-        out.append((qe, rate))
-    return out
 
 
 # ======================================================== Derivation helpers
@@ -651,9 +636,13 @@ def main():
         print(f"  DRSFRMACBS fetch failed: {e}", file=sys.stderr)
         delinquency = []
     try:
-        debt_out = _fred("HHMSDODNS")
+        # HHMSDODNS is published in $ MILLIONS. Convert to $ billions so the
+        # frontend formatter (which assumes billions) shows $14T not $14,000T.
+        debt_out_raw = _fred("HHMSDODNS")
+        debt_out = [(d, v / 1000.0) for d, v in debt_out_raw]
     except RuntimeError as e:
         print(f"  HHMSDODNS fetch failed: {e}", file=sys.stderr)
+        debt_out_raw = []
         debt_out = []
     try:
         affordability = _fred("FIXHAI")
@@ -662,24 +651,22 @@ def main():
         affordability = []
 
     # ----- Golden Handcuff: effective rate on outstanding mortgage debt -----
-    interest_paid = []
-    if os.environ.get("BEA_API_KEY"):
-        try:
-            interest_paid = fetch_home_mortgage_interest_paid()
-        except Exception as e:
-            print(f"  BEA interest-paid fetch failed: {e}", file=sys.stderr)
-            interest_paid = []
-    # Coerce debt-outstanding dates to quarter-ends for alignment
-    debt_q = [(quarter_end(d), v) for d, v in debt_out]
-    eff_rate = compute_effective_rate(interest_paid, debt_q) if interest_paid else []
+    # Numerator: BEA-sourced annual mortgage interest paid on owner-occupied
+    # housing (FRED W498RC1A027NBEA, $ billions). Denominator: HHMSDODNS
+    # (raw $M, quarterly) collapsed to annual averages in $B.
+    try:
+        interest_paid_annual = fetch_home_mortgage_interest_paid()
+    except Exception as e:
+        print(f"  Mortgage interest fetch failed: {e}", file=sys.stderr)
+        interest_paid_annual = []
+    debt_annual_b = annualize_quarterly_debt_b(debt_out_raw)
+    eff_rate = compute_effective_rate(interest_paid_annual, debt_annual_b) \
+               if interest_paid_annual else []
 
-    # Monthly average of MORTGAGE30US for the Golden Handcuff chart (smooths
-    # weekly noise; matches the BEA quarterly cadence on the same chart).
-    # Then collapse to quarter-end via mean.
-    m30_by_q = {}
-    for d, v in m30_weekly:
-        m30_by_q.setdefault(quarter_end(d), []).append(v)
-    m30_quarterly = sorted((q, sum(vs)/len(vs)) for q, vs in m30_by_q.items())
+    # Annual average of MORTGAGE30US for the Golden Handcuff chart -- matches
+    # the annual cadence of BEA's mortgage-interest series so both lines have
+    # the same x-axis density.
+    m30_annual = annualize_weekly_rate(m30_weekly)
 
     # ----- Shape JSON output -----
     out = {
@@ -695,8 +682,8 @@ def main():
         "mortgage_15y":   to_pairs(m15_weekly, 2),
         "treasury_10y":   to_pairs([(d, v) for d, v in sorted(t10_by_week.items())], 2),
         "spread_30y_10y": to_pairs(spread, 2),
-        # Golden Handcuff (quarterly)
-        "mortgage_30y_q":  to_pairs(m30_quarterly, 2),
+        # Golden Handcuff (annual)
+        "mortgage_30y_a":       to_pairs(m30_annual, 2),
         "eff_rate_outstanding": to_pairs(eff_rate, 2),
         # Stress / context
         "delinquency_rate":     to_pairs(delinquency, 2),
@@ -727,7 +714,8 @@ def main():
         "build_time":            dt.datetime.utcnow().isoformat(timespec="seconds") + "Z",
         "csv_rows_appended_this_run": int(appended),
         "tavily_scrape_succeeded":    bool(mba_scraped),
-        "bea_eff_rate_succeeded":     bool(eff_rate),
+        "eff_rate_succeeded":         bool(eff_rate),
+        "mortgage_interest_series":   FRED_MORTGAGE_INTEREST,
         "csv_baseline_loaded":        MBA_CSV.exists(),
         "mba_history_rows":           len(mba_hist),
     }
@@ -744,8 +732,8 @@ def main():
     print(
         f"Wrote {OUT_PATH} ({OUT_PATH.stat().st_size} bytes); "
         f"MBA rows={len(mba_hist)} latest_week={out['mba_latest_week']}; "
-        f"30Y points={len(m30_weekly)}; eff_rate quarters={len(eff_rate)}; "
-        f"Tavily ok={out['tavily_scrape_succeeded']}; BEA ok={out['bea_eff_rate_succeeded']}"
+        f"30Y points={len(m30_weekly)}; eff_rate years={len(eff_rate)}; "
+        f"Tavily ok={out['tavily_scrape_succeeded']}; eff_rate ok={out['eff_rate_succeeded']}"
     )
 
 
