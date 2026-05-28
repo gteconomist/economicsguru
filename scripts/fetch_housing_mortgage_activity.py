@@ -1054,11 +1054,10 @@ def main():
     # to 1999 in this repo, which truncates the chart well past 1970.)
     try:
         price_quarterly_raw = _fred("MSPUS")
-        # FRED returns YYYY-MM-DD; coerce to quarter-end form
-        price_quarterly = [
-            (f"{d[:4]}-{int(d[5:7]):02d}-{({3:31,6:30,9:30,12:31}.get(int(d[5:7]), 30))}", v)
-            for d, v in price_quarterly_raw
-        ]
+        # FRED returns the first-of-quarter date (YYYY-01/04/07/10-01); convert
+        # to quarter-END dates so we align with the income series, which keys
+        # off quarter ends.
+        price_quarterly = [(quarter_end(d), v) for d, v in price_quarterly_raw]
     except RuntimeError as e:
         print(f"  MSPUS fetch failed: {e}", file=sys.stderr)
         price_quarterly = []
