@@ -129,7 +129,7 @@ def fetch_fred(series_id, observation_start=None, retries=4):
                 out.append((o["date"], val))   # date is YYYY-MM-DD
             out.sort()
             return out
-        except (error.HTTPError, error.URLError) as e:
+        except (error.HTTPError, error.URLError, TimeoutError) as e:
             last_err = e
             wait = 2 ** attempt
             print(f"  FRED {series_id} attempt {attempt+1}/{retries} failed: {e}; retrying in {wait}s",

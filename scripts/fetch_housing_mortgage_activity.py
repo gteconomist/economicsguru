@@ -115,7 +115,7 @@ def _fred(series_id, observation_start=None, retries=4):
                 out.append((o["date"], val))
             out.sort()
             return out
-        except (error.HTTPError, error.URLError) as e:
+        except (error.HTTPError, error.URLError, TimeoutError) as e:
             last_err = e
             wait = 2 ** attempt
             print(f"  FRED {series_id} attempt {attempt+1}/{retries} failed: {e}; retrying in {wait}s",
@@ -148,7 +148,7 @@ def _bea_nipa_table(table_name, frequency="Q", retries=3):
                 err = results.get("Error") or results
                 raise RuntimeError(f"BEA returned no data for {table_name}: {err}")
             return data
-        except (error.HTTPError, error.URLError, ValueError, RuntimeError) as e:
+        except (error.HTTPError, error.URLError, ValueError, RuntimeError, TimeoutError) as e:
             last_err = e
             wait = 2 ** attempt
             print(f"  BEA {table_name} attempt {attempt+1}/{retries} failed: {e}; retrying in {wait}s",

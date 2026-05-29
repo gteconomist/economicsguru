@@ -111,7 +111,7 @@ def _http_get(url, retries=4, timeout=60, ua="economicsguru.com data refresh"):
             req = request.Request(url, headers={"User-Agent": ua})
             with request.urlopen(req, timeout=timeout) as r:
                 return r.read()
-        except (error.HTTPError, error.URLError) as e:
+        except (error.HTTPError, error.URLError, TimeoutError) as e:
             last_err = e
             wait = 2 ** attempt
             print(f"  HTTP attempt {attempt+1}/{retries} failed: {e}; retrying in {wait}s",

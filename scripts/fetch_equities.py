@@ -83,7 +83,7 @@ def _http_get(url, retries=3, timeout=60, ua=None):
             })
             with request.urlopen(req, timeout=timeout) as r:
                 return r.read()
-        except (error.HTTPError, error.URLError) as e:
+        except (error.HTTPError, error.URLError, TimeoutError) as e:
             last_err = e
             wait = 2 ** attempt
             print(f"    retry {attempt + 1} after {wait}s ({type(e).__name__}: {e})",

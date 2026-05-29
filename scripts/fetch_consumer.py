@@ -114,7 +114,7 @@ def _fred_obs_try(candidate_ids, start_year=None):
                 print(f"  FRED: using {sid} ({len(obs)} obs)", flush=True)
                 return obs, sid
             print(f"  FRED: {sid} returned empty - trying next", flush=True)
-        except (error.HTTPError, error.URLError, RuntimeError) as e:
+        except (error.HTTPError, error.URLError, RuntimeError, TimeoutError) as e:
             print(f"  FRED: {sid} failed ({e}) - trying next", flush=True)
     return [], None
 
