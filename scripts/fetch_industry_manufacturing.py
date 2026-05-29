@@ -264,8 +264,10 @@ def main():
         ("AMXTNO",    "New Orders: Mfg ex Transportation (Core)"),
         ("DGORDER",   "New Orders: Durable Goods (Total)"),
         ("ADXTNO",    "New Orders: Durable Goods ex Transportation"),
+        ("ADXDNO",    "New Orders: Durable Goods ex Defense"),
         ("AMNMNO",    "New Orders: Nondurable Goods"),
         ("NEWORDER",  "New Orders: Nondefense Capital Goods Ex Aircraft (Core Capex)"),
+        ("ADEFNO",    "New Orders: Defense Capital Goods"),
         ("ATCGVS",    "Shipments: Total Capital Goods"),
         ("ANDEVS",    "Shipments: Nondefense Capital Goods"),
         ("ANXAVS",    "Shipments: Nondef Cap Goods ex Aircraft"),
@@ -325,6 +327,19 @@ def main():
     sh_ndef  = pct_change_mom(fred_data.get("ANDEVS", []))
     sh_nx    = pct_change_mom(fred_data.get("ANXAVS", []))
 
+    # ----- Advance Durable Goods - New Orders (Census M3 advance report) -----
+    # Six M-M% series in the display order of the advance report. Five share
+    # the left axis; Defense (ADEFNO) is far more volatile and is plotted on a
+    # right axis on the page. (total/ex_trans/nondef_exair/core_ship duplicate
+    # series computed above; recomputed here so this block is self-contained
+    # and the chart + CSV pull from one place.)
+    ad_total        = pct_change_mom(fred_data.get("DGORDER",  []))
+    ad_ex_trans     = pct_change_mom(fred_data.get("ADXTNO",   []))
+    ad_ex_defense   = pct_change_mom(fred_data.get("ADXDNO",   []))
+    ad_nondef_exair = pct_change_mom(fred_data.get("NEWORDER", []))
+    ad_core_ship    = pct_change_mom(fred_data.get("ANXAVS",   []))
+    ad_defense      = pct_change_mom(fred_data.get("ADEFNO",   []))
+
     # ----- Electricity 12-month MA + CPI Electricity -----
     eia_12mma = trailing_12mma(eia_gen)
     cpi_elec  = fred_data.get("CUUR0000SEHF01", [])
@@ -382,6 +397,17 @@ def main():
             "total_capital_mom":          to_label_pairs(sh_tot,  decimals=2),
             "nondef_capital_mom":         to_label_pairs(sh_ndef, decimals=2),
             "nondef_capital_ex_air_mom":  to_label_pairs(sh_nx,   decimals=2),
+        },
+
+        # Advance Durable Goods - New Orders (Census M3 advance report), M-M%.
+        # Display order matches the report; Defense plotted on a right axis.
+        "advance_durable": {
+            "total_mom":                  to_label_pairs(ad_total,        decimals=2),
+            "ex_transportation_mom":      to_label_pairs(ad_ex_trans,     decimals=2),
+            "ex_defense_mom":             to_label_pairs(ad_ex_defense,   decimals=2),
+            "nondef_capital_ex_air_mom":  to_label_pairs(ad_nondef_exair, decimals=2),
+            "core_capital_shipments_mom": to_label_pairs(ad_core_ship,    decimals=2),
+            "defense_mom":                to_label_pairs(ad_defense,      decimals=2),
         },
 
         # Electricity (chart shows 12-month moving average vs. CPI Electricity)

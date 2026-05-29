@@ -32,6 +32,7 @@
     <canvas id="chartIndMfgIpLong"          style="display:none"></canvas>
     <canvas id="chartIndMfgCapUtil"         style="display:none"></canvas>
     <canvas id="chartIndMfgFactoryOrders"   style="display:none"></canvas>
+    <canvas id="chartIndMfgAdvanceDurable"  style="display:none"></canvas>
     <canvas id="chartIndMfgShipments"       style="display:none"></canvas>
     <canvas id="chartIndMfgElectricity"     style="display:none"></canvas>
   </div>
@@ -48,6 +49,7 @@ const CHART_INFO = {
   'ip-long':       { canvas: 'chartIndMfgIpLong',        title: 'Industrial Production &mdash; Long Run',     subtitle: '(Y-Y % Line + M-M % Bars)' },
   'cap-util':      { canvas: 'chartIndMfgCapUtil',       title: 'Capacity Utilization',                       subtitle: '(% of Potential Output; Total + Manufacturing)' },
   'factory-orders':{ canvas: 'chartIndMfgFactoryOrders', title: 'U.S. Factory Orders',                        subtitle: '(Manufacturers&rsquo; New Orders; M-M % Change)' },
+  'advance-durable':{ canvas: 'chartIndMfgAdvanceDurable', title: 'Advance Durable Goods &mdash; New Orders',   subtitle: '(Census M3 Advance; M-M % Change; Defense on Right Axis, 3:1 Scale)' },
   shipments:       { canvas: 'chartIndMfgShipments',     title: 'Value of Shipments &mdash; Capital Goods',   subtitle: '(M-M %; Total / Nondefense / Nondef ex Aircraft)' },
   electricity:     { canvas: 'chartIndMfgElectricity',   title: 'Total Electricity Net Generation',           subtitle: '(Electric Power Sector; 12-Month MA; CPI Electricity Right Axis)' },
 };

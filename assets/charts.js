@@ -4467,6 +4467,7 @@ function rangedViewIndustryManufacturing(data, range) {
   const cu = data.capacity_utilization || {};
   const fo = data.factory_orders || {};
   const sh = data.shipments || {};
+  const ad = data.advance_durable || {};
   const el = data.electricity || {};
   return {
     ip: {
@@ -4492,6 +4493,14 @@ function rangedViewIndustryManufacturing(data, range) {
       total_capital_mom:         tail(sh.total_capital_mom         || [], n),
       nondef_capital_mom:        tail(sh.nondef_capital_mom        || [], n),
       nondef_capital_ex_air_mom: tail(sh.nondef_capital_ex_air_mom || [], n),
+    },
+    advance_durable: {
+      total_mom:                  tail(ad.total_mom                  || [], n),
+      ex_transportation_mom:      tail(ad.ex_transportation_mom      || [], n),
+      ex_defense_mom:             tail(ad.ex_defense_mom             || [], n),
+      nondef_capital_ex_air_mom:  tail(ad.nondef_capital_ex_air_mom  || [], n),
+      core_capital_shipments_mom: tail(ad.core_capital_shipments_mom || [], n),
+      defense_mom:                tail(ad.defense_mom                || [], n),
     },
     electricity: {
       generation_12mma: tail(el.generation_12mma || [], n),
@@ -4667,6 +4676,75 @@ function buildIndMfgShipments(view) {
   };
 }
 
+// Advance Durable Goods - New Orders — M-M% clustered bars (Census M3 advance).
+// Five series share the left axis (Total / Ex Transportation / Ex Defense /
+// Nondef. Cap. Goods Ex Aircraft / Core Capital Goods Shipments). Defense is
+// far more volatile and is plotted on a right axis locked to a fixed 3:1 ratio
+// vs. the left axis, mirroring the Census advance-report chart layout.
+function buildIndMfgAdvanceDurable(view) {
+  const ad = view.advance_durable || {};
+  const labels = (ad.total_mom || []).map(r => shortLabel(r[0]));
+  const align = (key) => {
+    const m = new Map((ad[key] || []).map(r => [r[0], r[1]]));
+    return (ad.total_mom || []).map(r => m.has(r[0]) ? m.get(r[0]) : null);
+  };
+  const dTotal   = (ad.total_mom || []).map(r => r[1]);
+  const dExTrans = align('ex_transportation_mom');
+  const dExDef   = align('ex_defense_mom');
+  const dNxAir   = align('nondef_capital_ex_air_mom');
+  const dCoreShp = align('core_capital_shipments_mom');
+  const dDefense = align('defense_mom');
+
+  // Fixed 3:1 axis ratio. Build "nice" left-axis bounds from the five
+  // left-axis series PLUS defense/3 (so the right axis, at 3x, always contains
+  // the defense bars), then set the right axis to exactly 3 x the left axis.
+  const leftVals = [].concat(dTotal, dExTrans, dExDef, dNxAir, dCoreShp)
+                     .concat(dDefense.map(v => (v == null ? null : v / 3)));
+  const finite = leftVals.filter(v => v != null && isFinite(v));
+  let lo = Math.min(0, ...(finite.length ? finite : [0]));
+  let hi = Math.max(0, ...(finite.length ? finite : [0]));
+  const spanPad = ((hi - lo) || 1) * 0.08;
+  lo -= spanPad; hi += spanPad;
+  const rawStep = ((hi - lo) / 6) || 1;
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const norm = rawStep / mag;
+  const niceUnit = norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10;
+  const step = niceUnit * mag;
+  const leftMin = Math.floor(lo / step) * step;
+  const leftMax = Math.ceil(hi / step) * step;
+  const fmt1 = v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
+
+  const cfg = {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Total', data: dTotal,
+          backgroundColor: BRAND.navy, borderColor: BRAND.navy, borderWidth: 1, yAxisID: 'yLeft' },
+        { label: 'Excluding Transportation (Core)', data: dExTrans,
+          backgroundColor: BRAND.mustard, borderColor: BRAND.mustard, borderWidth: 1, yAxisID: 'yLeft' },
+        { label: 'Excluding Defense', data: dExDef,
+          backgroundColor: '#d9cf94', borderColor: '#d9cf94', borderWidth: 1, yAxisID: 'yLeft' },
+        { label: 'Non-defense Capital Goods Excluding Aircraft and Parts', data: dNxAir,
+          backgroundColor: BRAND.silver, borderColor: BRAND.silver, borderWidth: 1, yAxisID: 'yLeft' },
+        { label: 'Core Capital Goods - Shipments', data: dCoreShp,
+          backgroundColor: BRAND.teal, borderColor: BRAND.teal, borderWidth: 1, yAxisID: 'yLeft' },
+        { label: 'Defense (Right Axis)', data: dDefense,
+          backgroundColor: BRAND.khaki, borderColor: BRAND.khaki, borderWidth: 1, yAxisID: 'yDef' },
+        { label: '0% line', type: 'line', data: labels.map(()=>0),
+          borderColor: BRAND.silver, borderWidth: 1.0, borderDash: [4,4], pointRadius: 0, fill: false, yAxisID: 'yLeft', order: 99 },
+      ],
+    },
+    options: baseOptions(fmtPctSignedIndMfg),
+  };
+  cfg.options.scales = {
+    x: { grid: { display: false, drawBorder: true }, ticks: { color: BRAND.navy, font: { size: 11 }, autoSkip: true, maxRotation: 0 }, border: { color: BRAND.navy, width: 1 } },
+    yLeft: { ...axisSpec(fmt1, 'left'),  min: leftMin,     max: leftMax },
+    yDef:  { ...axisSpec(fmt1, 'right'), min: leftMin * 3, max: leftMax * 3 },
+  };
+  return cfg;
+}
+
 // Electricity — 12-month MA (left) + CPI Electricity (right)
 function buildIndMfgElectricity(view) {
   const el = view.electricity || {};
@@ -4728,6 +4806,7 @@ const INDUSTRY_MFG_BUILDERS = {
   chartIndMfgIpLong:          buildIndMfgIpLong,
   chartIndMfgCapUtil:         buildIndMfgCapUtil,
   chartIndMfgFactoryOrders:   buildIndMfgFactoryOrders,
+  chartIndMfgAdvanceDurable:  buildIndMfgAdvanceDurable,
   chartIndMfgShipments:       buildIndMfgShipments,
   chartIndMfgElectricity:     buildIndMfgElectricity,
 };
@@ -4744,6 +4823,7 @@ function registerAllCsvsIndustryManufacturing(view) {
   const cu = view.capacity_utilization || {};
   const fo = view.factory_orders || {};
   const sh = view.shipments || {};
+  const ad = view.advance_durable || {};
   const el = view.electricity || {};
 
   registerCsv('chartIndMfgIpMom', 'industrial-production-mom-yoy.csv',
@@ -4772,6 +4852,21 @@ function registerAllCsvsIndustryManufacturing(view) {
                  fo.core_durable_mom || [],
                  fo.nondurable_mom   || [],
                  fo.core_capex_mom   || []]));
+
+  registerCsv('chartIndMfgAdvanceDurable', 'advance-durable-new-orders-mom.csv',
+    ['Month',
+     'Total M-M %',
+     'Excluding Transportation (Core) M-M %',
+     'Excluding Defense M-M %',
+     'Non-defense Capital Goods Ex Aircraft & Parts M-M %',
+     'Core Capital Goods Shipments M-M %',
+     'Defense M-M %'],
+    mergeSeries([ad.total_mom                  || [],
+                 ad.ex_transportation_mom      || [],
+                 ad.ex_defense_mom             || [],
+                 ad.nondef_capital_ex_air_mom  || [],
+                 ad.core_capital_shipments_mom || [],
+                 ad.defense_mom                || []]));
 
   registerCsv('chartIndMfgShipments', 'capital-goods-shipments-mom.csv',
     ['Month', 'Total Capital Goods M-M %', 'Nondefense Capital Goods M-M %', 'Nondef ex Aircraft (Core Capex) M-M %'],
@@ -6615,6 +6710,7 @@ window.EG = {
       'ip-long':        'chartIndMfgIpLong',
       'cap-util':       'chartIndMfgCapUtil',
       'factory-orders': 'chartIndMfgFactoryOrders',
+      'advance-durable':'chartIndMfgAdvanceDurable',
       shipments:        'chartIndMfgShipments',
       electricity:      'chartIndMfgElectricity',
     };

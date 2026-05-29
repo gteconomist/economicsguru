@@ -101,7 +101,7 @@
   </div>
 
   <div class="interactivity-hint">
-    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post. The time range applies to all six charts at once. The electricity chart is a 12-month moving average against CPI Electricity (right axis) and starts in 2005 (when EIA monthly history begins).
+    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post. The time range applies to all seven charts at once. The electricity chart is a 12-month moving average against CPI Electricity (right axis) and starts in 2005 (when EIA monthly history begins).
   </div>
 
   <div class="chart-grid">
@@ -142,6 +142,16 @@
       <div class="source">
         <span>Source: Census M3 via FRED &mdash; AMTMNO (Total), AMXTNO (Mfg ex Trans), DGORDER (Durable), ADXTNO (Durable ex Trans), AMNMNO (Nondurable; orders = shipments by Census convention), NEWORDER (Core Capex = Nondef. Capital Goods ex Aircraft).</span>
         <a href="#" class="csv-link" data-chart="chartIndMfgFactoryOrders">Download CSV</a>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="title">Advance Durable Goods &mdash; New Orders</div>
+      <div class="subtitle">(Manufacturers&rsquo; New Orders, Census M3 Advance Report; Seasonally Adjusted; M-M % Change; Defense on Right Axis at a 3:1 Scale)</div>
+      <div class="chart-wrap"><canvas id="chartIndMfgAdvanceDurable"></canvas></div>
+      <div class="source">
+        <span>Source: Census M3 (Advance) via FRED &mdash; DGORDER (Total), ADXTNO (Ex. Transportation), ADXDNO (Ex. Defense), NEWORDER (Nondef. Capital Goods Ex Aircraft &amp; Parts), ANXAVS (Core Capital Goods Shipments), ADEFNO (Defense, right axis). Defense orders swing far harder than the other series, so they read against the right axis (scaled 3&times; the left).</span>
+        <a href="#" class="csv-link" data-chart="chartIndMfgAdvanceDurable">Download CSV</a>
       </div>
     </div>
 
