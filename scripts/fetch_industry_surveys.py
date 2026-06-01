@@ -284,7 +284,7 @@ _MONTH_NAME = r"(January|February|March|April|May|June|July|August|September|Oct
 #
 # Note ® / ™ chars are stripped by _strip_html, so patterns can use \s+ across
 # the "PMI [verb]" boundary even when the rendered page has "PMI® at".
-_PCT = r"\s*(?:percent|%)"  # accepts "52.7 percent", "52.7%", "52.7 %"
+_PCT = r"\s*(?:percent(?!age)|%)"  # accepts "52.7 percent", "52.7%"; (?!age) rejects "percentage point" deltas
 # Verbs cover both past tense ("registered") and present participle
 # ("registering" -- common in component sentences: "...registering 54.1 percent").
 _VERB = r"(?:register(?:ed|ing)|reading\s+was|came\s+in\s+at|at|was)"
@@ -496,12 +496,16 @@ def _scrape_ism_via_tavily(sector, csv_path, headline_patterns,
                   file=sys.stderr)
             return []
 
-        # Tavily search for the official PR Newswire release for this month
-        query = f"ISM {sector} PMI {month_full} {year} prnewswire"
+        # Tavily search for the official PR Newswire release for this month.
+        # Domain is already pinned via include_domains, so the query stays clean
+        # (no redundant "prnewswire" token). max_results is generous: on release
+        # day the brand-new URL can rank below older ISM releases, so a small cap
+        # would silently miss it and the scraper would freeze on last month.
+        query = f"ISM {sector} PMI {month_full} {year} report"
         try:
             results = tavily_search(query,
                                     include_domains=["prnewswire.com"],
-                                    max_results=3)
+                                    max_results=10)
         except Exception as e:
             print(f"  ISM {sector} Tavily search failed for "
                   f"{month_full} {year}: {e}", file=sys.stderr)
@@ -758,23 +762,23 @@ NFIB_URL = "https://www.nfib.com/news/monthly_report/sbet/"
 
 _NFIB_VERB = r"(?:rose|fell|increased|decreased|declined|gained|dropped|climbed|jumped|edged\s+up|ticked\s+up|edged\s+down|ticked\s+down)"
 
-_NUM = r"\d+(?:\.\d+)?"          # 95 or 95.8 -- never grabs trailing punctuation
+_NFIB_NUM = r"\d+(?:\.\d+)?"     # 95 or 95.8; group-less (NFIB patterns add their own parens). Renamed from _NUM so it no longer clobbers the grouped ISM _NUM used by _find_subindex.
 _INT = r"\d+"
 
 _NFIB_OPTIMISM_PATTERNS = [
     # "Optimism Index fell 3.0 points in March to 95.8"
     re.compile(
         r"NFIB\s+Small\s+Business\s+Optimism\s+Index\s+" + _NFIB_VERB +
-        r"\s+(" + _NUM + r")\s+points?\s+in\s+(\w+)\s+to\s+(" + _NUM + r")",
+        r"\s+(" + _NFIB_NUM + r")\s+points?\s+in\s+(\w+)\s+to\s+(" + _NFIB_NUM + r")",
         re.IGNORECASE),
     # "Optimism Index fell 3.0 points to 95.8 in March"
     re.compile(
         r"NFIB\s+Small\s+Business\s+Optimism\s+Index\s+" + _NFIB_VERB +
-        r"\s+(" + _NUM + r")\s+points?\s+to\s+(" + _NUM + r")\s+in\s+(\w+)",
+        r"\s+(" + _NFIB_NUM + r")\s+points?\s+to\s+(" + _NFIB_NUM + r")\s+in\s+(\w+)",
         re.IGNORECASE),
     # Looser fallback: "Optimism Index ... to 95.8" plus separate month detection
     re.compile(
-        r"Small\s+Business\s+Optimism\s+Index[^.]{0,80}?to\s+(" + _NUM + r")",
+        r"Small\s+Business\s+Optimism\s+Index[^.]{0,80}?to\s+(" + _NFIB_NUM + r")",
         re.IGNORECASE),
 ]
 
@@ -782,7 +786,7 @@ _NFIB_UNCERTAINTY_PATTERNS = [
     # "Uncertainty Index rose 4 points from February to 92"
     re.compile(
         r"Uncertainty\s+Index\s+" + _NFIB_VERB +
-        r"\s+(" + _NUM + r")\s+points?\s+(?:from\s+\w+\s+)?to\s+(" + _INT + r")",
+        r"\s+(" + _NFIB_NUM + r")\s+points?\s+(?:from\s+\w+\s+)?to\s+(" + _INT + r")",
         re.IGNORECASE),
     # "Uncertainty Index ... to 92"
     re.compile(
