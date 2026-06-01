@@ -4959,11 +4959,20 @@ function fmtIdxLevelIndSurv(v)   { return v == null ? 'n/a' : v.toFixed(3); }
 function fmtPctSignedIndSurv(v)  { return v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(1) + '%'; }
 function fmtDistFromFiftyIndSurv(v) { return v == null ? 'n/a' : (v >= 0 ? '+' : '') + v.toFixed(1); }
 
-// Chart 1: ISM Manufacturing — long-run line + 50 reference
+// Chart 1: ISM Manufacturing — PMI long-run line + components overlay + 50 reference
+// Component lines (Employment / New Orders / Backlog / Commodity Prices Paid) use
+// the same colors as the Major Components bar chart, dashed and slightly thinner so
+// the headline PMI stays the emphasis line. Components are aligned to Total's dates;
+// Backlog (from 1993) and Commodity Prices (from 2003) render null before their start.
 function buildIndSurveysIsmMfg(view) {
   const m = view.ism_manufacturing || {};
   const series = m.total || [];
   const labels = series.map(r => shortLabel(r[0]));
+  const dateLabels = series.map(r => r[0]);
+  const align = (pairs) => {
+    const map = new Map(pairs.map(r => [r[0], r[1]]));
+    return dateLabels.map(d => map.has(d) ? map.get(d) : null);
+  };
   const pr = pointSizeForLength(labels.length);
   return {
     type: 'line',
@@ -4973,6 +4982,18 @@ function buildIndSurveysIsmMfg(view) {
         { label: 'ISM Manufacturing PMI', data: series.map(r => r[1]),
           borderColor: BRAND.navy, backgroundColor: BRAND.navy,
           tension: 0.2, borderWidth: 2.4, pointRadius: pr, fill: false },
+        { label: 'Employment Index', data: align(m.employment || []),
+          borderColor: BRAND.mustard, backgroundColor: BRAND.mustard,
+          tension: 0.2, borderWidth: 2.0, pointRadius: pr, fill: false, borderDash: [5, 5], spanGaps: true },
+        { label: 'New Orders Index', data: align(m.new_orders || []),
+          borderColor: BRAND.silver, backgroundColor: BRAND.silver,
+          tension: 0.2, borderWidth: 2.0, pointRadius: pr, fill: false, borderDash: [5, 5], spanGaps: true },
+        { label: 'Backlog of Orders Index', data: align(m.backlog || []),
+          borderColor: BRAND.teal, backgroundColor: BRAND.teal,
+          tension: 0.2, borderWidth: 2.0, pointRadius: pr, fill: false, borderDash: [5, 5], spanGaps: true },
+        { label: 'Commodity Prices Paid', data: align(m.prices_paid || []),
+          borderColor: BRAND.khaki, backgroundColor: BRAND.khaki,
+          tension: 0.2, borderWidth: 2.0, pointRadius: pr, fill: false, borderDash: [5, 5], spanGaps: true },
         { label: '50 (Expansion / Contraction)', data: labels.map(()=>50),
           borderColor: BRAND.ink, borderWidth: 1.4, borderDash: [], pointRadius: 0, fill: false, order: 99 },
       ],
@@ -5234,8 +5255,8 @@ function registerAllCsvsIndustrySurveys(view) {
   const c = view.cass_freight      || {};
 
   registerCsv('chartIndSurveysIsmMfg', 'ism-manufacturing-pmi.csv',
-    ['Month', 'ISM Manufacturing PMI'],
-    m.total || []);
+    ['Month', 'ISM Manufacturing PMI', 'Employment', 'New Orders', 'Backlog of Orders', 'Commodity Prices Paid'],
+    mergeSeries([m.total || [], m.employment || [], m.new_orders || [], m.backlog || [], m.prices_paid || []]));
 
   registerCsv('chartIndSurveysIsmMfgComponents', 'ism-manufacturing-components.csv',
     ['Month', 'Total Index', 'Employment', 'New Orders', 'Backlog of Orders', 'Commodity Prices Paid'],
