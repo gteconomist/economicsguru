@@ -210,6 +210,11 @@ jobs:
       # The [skip ci] tag prevents the bot's commit from re-triggering this
       # workflow.
       - name: Commit fresh data files + CSV baselines (if changed)
+        # continue-on-error so a raced/conflicting auto-commit (two refresh runs
+        # overlapping and both regenerating data/*.json) never blocks the deploy.
+        # The commit only serves data-persistence/CSV-baseline extension; the
+        # deploy below uses the working-tree files, which are already fresh.
+        continue-on-error: true
         run: |
           set -e
           git config user.name  "github-actions[bot]"
@@ -261,7 +266,10 @@ jobs:
             for i in 1 2 3; do
               if git push; then pushed=1; break; fi
               echo "Push rejected (attempt $i/3); rebasing onto remote main..."
-              git pull --rebase --autostash origin main
+              # -X theirs auto-resolves data/*.json conflicts in favor of this
+              # run's freshly-fetched values; abort cleanly if a rebase still
+              # can't apply so the loop (and continue-on-error) handle it.
+              git pull --rebase --autostash -X theirs origin main || { git rebase --abort || true; }
             done
             if [[ "$pushed" -eq 1 ]]; then
               echo "Committed:$changed"
