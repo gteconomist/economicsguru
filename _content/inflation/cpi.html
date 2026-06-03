@@ -1,0 +1,50 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+
+<div class="hero-card">
+  <div class="top">
+    <div>
+      <div class="ct">Consumer Price Index</div>
+      <div class="cs">Year-over-year (lines) &amp; monthly (bars) — seasonally adjusted</div>
+    </div>
+    <span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span>
+  </div>
+  <div class="plot"><canvas id="cHero"></canvas></div>
+  <div class="src">Source: BLS — CUUR0000SA0 (headline YoY), CUUR0000SA0L1E (core YoY), CUSR0000SA0 (headline MoM).</div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">Headline · Core · Supercore</div><div class="cs">Year-over-year percent change</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cYoy"></canvas></div>
+    <div class="src">Source: BLS — services less rent of shelter = "supercore".</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Monthly Inflation</div><div class="cs">Month-over-month, seasonally adjusted</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMom"></canvas></div>
+    <div class="src">Source: BLS — CUSR0000SA0, CUSR0000SA0L1E.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">CPI Components</div><div class="cs">Year-over-year percent change</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cComp"></canvas></div>
+    <div class="src">Source: BLS — food, energy, shelter, services.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Energy Prices, Indexed</div><div class="cs">Start of selected range = 100</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnergy"></canvas></div>
+    <div class="src">Source: BLS — gasoline (SETB01), energy (SA0E).</div>
+  </div>
+</div>

@@ -1,0 +1,25 @@
+/* economicsguru.com — design tokens (dark, official Georgia Tech palette) */
+:root{
+  /* GT primary */
+  --navy:#003057; --gold:#B3A369; --white:#FFFFFF;
+  /* GT secondary */
+  --buzz-gold:#EAA000; --diploma:#F9F6E5; --pi-mile:#D6DBD4; --gray-matter:#54585A;
+  /* GT tertiary (chart series that pop on navy) */
+  --t-teal:#008C95; --t-blue:#3A5DAE; --t-electric:#64CCC9; --t-purple:#5F249F;
+  --t-lime:#A4D233; --t-orange:#E04F39; --t-yellow:#FFCD00;
+
+  /* Surfaces (dark theme) */
+  --bg:#04263f;            /* page canvas */
+  --card:#0a3357;          /* elevated navy panel */
+  --ink:#eaf1f7;           /* primary text */
+  --muted:#9fb1c2;         /* secondary text */
+  --slate:#7e93a6;         /* tertiary text */
+  --line:rgba(255,255,255,.10);
+  --accent:var(--gold);
+
+  --shadow:0 1px 2px rgba(0,0,0,.25), 0 12px 34px rgba(0,0,0,.38);
+  --radius:14px;
+
+  --sans:"Source Sans Pro",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  --serif:"Source Serif 4",Georgia,serif;
+}

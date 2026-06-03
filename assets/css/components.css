@@ -1,0 +1,41 @@
+/* economicsguru.com — components (KPIs, controls, chart cards) */
+
+/* KPI cards */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin:22px 0;}
+@media(max-width:1000px){.kpis{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:560px){.kpis{grid-template-columns:repeat(2,1fr);}}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:15px 16px;box-shadow:var(--shadow);}
+.kpi .l{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);}
+.kpi .v{font-family:var(--serif);font-weight:700;font-size:30px;line-height:1.05;color:var(--ink);margin-top:6px;}
+.kpi .v .u{font-size:15px;color:var(--muted);font-family:var(--sans);font-weight:600;margin-left:1px;}
+.kpi .dd{display:inline-flex;align-items:center;gap:4px;margin-top:9px;font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px;}
+.kpi .dd.up{color:#ff9a80;background:rgba(224,79,57,.18);}
+.kpi .dd.down{color:#64CCC9;background:rgba(0,140,149,.22);}
+.kpi .dd.flat{color:var(--muted);background:rgba(255,255,255,.08);}
+.kpi .dd .arr{font-size:10px;}
+.kpi .cap{font-size:11.5px;color:var(--slate);margin-top:7px;}
+
+/* Controls (segmented range + hint) */
+.controls{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:6px 0 14px;}
+.seg{display:inline-flex;background:rgba(255,255,255,.08);border-radius:999px;padding:3px;}
+.seg button{border:0;background:none;padding:7px 15px;font:inherit;font-size:13px;font-weight:700;color:var(--muted);border-radius:999px;cursor:pointer;transition:.15s;}
+.seg button.active{background:var(--gold);color:#10233a;box-shadow:0 1px 3px rgba(0,0,0,.18);}
+.hint{font-size:12.5px;color:var(--slate);}
+
+/* Chart cards */
+.hero-card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:20px 22px 16px;margin-bottom:18px;}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+@media(max-width:920px){.grid{grid-template-columns:1fr;}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px 14px;}
+.card .ct{font-weight:700;font-size:16.5px;color:var(--ink);letter-spacing:-.01em;}
+.card .cs{font-size:12.5px;color:var(--muted);margin-top:1px;}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.dls{display:inline-flex;gap:14px;padding-top:3px;}
+.dl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--gold);white-space:nowrap;cursor:pointer;}
+.dl:hover{text-decoration:underline;}
+.plot{position:relative;height:300px;margin-top:14px;}
+.hero-card .plot{height:340px;}
+.src{font-size:11px;color:var(--slate);margin-top:10px;}
+
+/* Notice banner */
+.notice{margin:14px 0 0;padding:12px 16px;background:rgba(234,160,0,.10);border-left:4px solid var(--gold);border-radius:8px;font-size:14px;color:var(--diploma);}

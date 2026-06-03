@@ -1,0 +1,38 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">Headline vs Core PPI</div><div class="cs">Year-over-year percent change</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPpiYoy"></canvas></div>
+    <div class="src">Source: BLS — WPUFD4 (Headline), WPUFD49104 (Core).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Monthly PPI Change by Aggregate</div><div class="cs">Month-over-month, seasonally adjusted</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPpiMom"></canvas></div>
+    <div class="src">Source: BLS — WPSFD4 (Final Demand), WPSFD49104 (Core), WPSFD413 (Core Goods), WPSFD42 (Services).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">PPI Components</div><div class="cs">Year-over-year percent change</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPpiComp"></canvas></div>
+    <div class="src">Source: BLS — Goods (WPUFD41), Services (WPUFD42), Foods (WPUFD411), Energy (WPUFD412).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Goods vs Services, Indexed</div><div class="cs">Start of selected range = 100</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPpiSpotlight"></canvas></div>
+    <div class="src">Source: BLS — WPSFD41 (Goods), WPSFD42 (Services).</div>
+  </div>
+</div>

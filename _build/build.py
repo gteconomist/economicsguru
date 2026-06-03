@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+"""economicsguru.com static page generator.
+
+Single source of truth: _data/site.json. Assembles pages from _templates/base.html,
+shared nav, per-indicator content fragments in _content/, and the split chart engine.
+Generated index.html files are committed and served statically by GitHub Pages.
+
+Incremental rollout: only groups/indicators marked "status":"new" are generated here;
+"legacy" pages are left untouched (their hand-written HTML still ships) until ported.
+
+Usage:  python _build/build.py          (run from repo root before `git add`)
+Zero third-party dependencies (stdlib only).
+"""
+import json, pathlib, html
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+SITE = json.loads((ROOT / "_data" / "site.json").read_text())
+BASE = (ROOT / "_templates" / "base.html").read_text()
+CHARTJS = "https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+
+def esc(s): return html.escape(s or "", quote=True)
+
+def ind_url(g, ind):
+    return "/{}/".format(g["slug"]) if not ind.get("slug") else "/{}/{}/".format(g["slug"], ind["slug"])
+
+def real_inds(g):
+    """indicators that are their own subpage (have a slug)"""
+    return [i for i in g["indicators"] if i.get("slug")]
+
+# ---------- navigation (one definition, used on every generated page) ----------
+def nav_html(active_slug):
+    out = ['<a href="/"%s>Home</a>' % (' class="active"' if active_slug == "home" else "")]
+    for g in SITE["groups"]:
+        gurl = "/%s/" % g["slug"]
+        active = " active" if g["slug"] == active_slug else ""
+        subs = real_inds(g)
+        if len(subs) > 1:
+            items = ['<a href="%s"><div class="mt">Overview</div><div class="md">%s</div></a>'
+                     % (gurl, esc(g.get("blurb", "")))]
+            for i in subs:
+                items.append('<a href="%s"><div class="mt">%s</div><div class="md">%s</div></a>'
+                             % (ind_url(g, i), esc(i.get("nav", i["title"])), esc(i.get("card", ""))))
+            out.append('<div class="item has-menu%s"><a href="%s">%s</a><div class="menu">%s</div></div>'
+                       % (active, gurl, esc(g["title"]), "".join(items)))
+        else:
+            out.append('<div class="item%s"><a href="%s">%s</a></div>' % (active, gurl, esc(g["title"])))
+    return "".join(out)
+
+def render(relpath, title, desc, content, scripts="", active="", head_extra=""):
+    page = (BASE
+            .replace("{{TITLE}}", esc(title))
+            .replace("{{DESC}}", esc(desc))
+            .replace("{{HEAD_EXTRA}}", head_extra)
+            .replace("{{NAV}}", nav_html(active))
+            .replace("{{CONTENT}}", content)
+            .replace("{{SCRIPTS}}", scripts))
+    dest = ROOT / relpath
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(page)
+    return relpath
+
+def breadcrumb(parts):
+    bits = []
+    for i, (label, url) in enumerate(parts):
+        last = (i == len(parts) - 1)
+        bits.append(esc(label) if last or not url else '<a href="%s">%s</a>' % (url, esc(label)))
+    return '<div class="crumb">' + '<span class="sep">/</span>'.join(bits) + "</div>"
+
+def pagehead(title, sub, with_latest=False):
+    latest = '<div class="latest">Latest data &nbsp;<b id="latest">…</b></div>' if with_latest else ""
+    return ('<div class="pagehead"><div><h1>%s</h1><p class="sub">%s</p></div>%s</div>'
+            % (esc(title), esc(sub), latest))
+
+def pills(g, active_ind):
+    subs = real_inds(g)
+    if len(subs) < 2:
+        return ""
+    links = ['<a href="%s"%s>%s</a>' % (ind_url(g, i),
+             ' class="active"' if i is active_ind else "", esc(i.get("nav", i["title"])))
+             for i in subs]
+    return '<nav class="pills">' + "".join(links) + "</nav>"
+
+# ---------- page builders ----------
+def build_hub(g):
+    cards = []
+    for i in g["indicators"]:
+        cards.append('<a class="hub-card" href="%s"><div class="badge">Available</div><h3>%s</h3><p>%s</p></a>'
+                     % (ind_url(g, i), esc(i["title"]), esc(i.get("card", ""))))
+    content = (breadcrumb([("Home", "/"), (g["title"], None)])
+               + pagehead(g["title"], g.get("blurb", ""))
+               + '<div class="hub-grid">' + "".join(cards) + "</div>")
+    return render("%s/index.html" % g["slug"], "%s — Economics Guru" % g["title"],
+                  g.get("blurb", ""), content, active=g["slug"])
+
+def build_leaf(g, ind):
+    frag_path = ROOT / "_content" / g["slug"] / ("%s.html" % ind["slug"])
+    fragment = frag_path.read_text()
+    content = (breadcrumb([("Home", "/"), (g["title"], "/%s/" % g["slug"]), (ind.get("nav", ind["title"]), None)])
+               + pagehead(ind["title"], ind.get("subtitle", ""), with_latest=True)
+               + pills(g, ind)
+               + fragment)
+    scripts = ('<script src="%s"></script>\n'
+               '<script src="/assets/js/chart-core.js"></script>\n'
+               '<script src="/assets/js/pages/%s.js"></script>\n'
+               '<script>EG.boot("%s", "%s");</script>'
+               % (CHARTJS, ind["module"], ind["data"], ind["page"]))
+    return render("%s/%s/index.html" % (g["slug"], ind["slug"]),
+                  "%s — Economics Guru" % ind["title"], ind.get("subtitle", ""),
+                  content, scripts=scripts, active=g["slug"])
+
+def main():
+    written = []
+    for g in SITE["groups"]:
+        if g.get("status") != "new":
+            continue
+        written.append(build_hub(g))
+        for ind in g["indicators"]:
+            if ind.get("status") == "new" and ind.get("slug"):
+                written.append(build_leaf(g, ind))
+    print("Generated %d page(s):" % len(written))
+    for w in written:
+        print("  ", w)
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,59 @@
+{
+  "brand": "EconomicsGuru",
+  "groups": [
+    {
+      "slug": "inflation", "title": "Inflation", "status": "new",
+      "blurb": "Three ways the U.S. measures inflation — consumer prices (CPI), producer prices (PPI), and the PCE deflator.",
+      "indicators": [
+        { "slug": "cpi", "title": "US Consumer Price Index", "nav": "CPI",
+          "subtitle": "Headline and core CPI, components, and energy prices — sourced live from the U.S. Bureau of Labor Statistics.",
+          "card": "Headline & core CPI, monthly change, components, energy prices. Source: BLS.",
+          "data": "/data/inflation.json", "module": "inflation", "page": "cpi", "status": "new",
+          "keywords": ["cpi", "consumer price index", "core", "supercore", "shelter", "energy", "bls", "inflation"] },
+        { "slug": "ppi", "title": "US Producer Price Index", "nav": "PPI",
+          "subtitle": "Final-demand prices producers receive — headline, core, goods, services, foods, energy. Source: BLS.",
+          "card": "Final-demand prices producers receive — headline, core, goods, services. Source: BLS.",
+          "data": "/data/ppi.json", "module": "inflation", "page": "ppi", "status": "new",
+          "keywords": ["ppi", "producer price index", "final demand", "wholesale", "bls"] },
+        { "slug": "pce", "title": "PCE Price Index", "nav": "PCE",
+          "subtitle": "The Fed's preferred inflation gauge — headline, core, services, and supercore. Source: BEA.",
+          "card": "The Fed's preferred gauge — headline, core, services, supercore. Source: BEA.",
+          "data": "/data/pce.json", "module": "inflation", "page": "pce", "status": "new",
+          "keywords": ["pce", "personal consumption", "deflator", "supercore", "fed", "bea"] }
+      ]
+    },
+    { "slug": "labor", "title": "Labor", "status": "legacy",
+      "blurb": "Payrolls, unemployment, JOLTS, wages, participation.",
+      "indicators": [
+        { "slug": "", "title": "Labor Market", "nav": "Overview", "card": "Payrolls, unemployment, JOLTS, wage growth, participation.", "status": "legacy" } ] },
+    { "slug": "housing", "title": "Housing", "status": "legacy",
+      "blurb": "Sales, permits & starts, prices, mortgage activity.",
+      "indicators": [
+        { "slug": "existing", "title": "Existing Home Sales", "nav": "Existing", "status": "legacy" },
+        { "slug": "new-homes", "title": "New Home Sales", "nav": "New Homes", "status": "legacy" },
+        { "slug": "permits-starts", "title": "Permits & Starts", "nav": "Permits & Starts", "status": "legacy" },
+        { "slug": "mortgage-activity", "title": "Mortgage Activity", "nav": "Mortgage Activity", "status": "legacy" } ] },
+    { "slug": "gdp", "title": "GDP", "status": "legacy",
+      "blurb": "Real GDP, contributions, profits, productivity, GDP vs GDI.",
+      "indicators": [ { "slug": "", "title": "Gross Domestic Product", "nav": "Overview", "status": "legacy" } ] },
+    { "slug": "consumer", "title": "Consumer", "status": "legacy",
+      "blurb": "Retail sales, income & spending, sentiment & confidence.",
+      "indicators": [
+        { "slug": "income-spending-debt", "title": "Income, Spending & Debt", "nav": "Income & Spending", "status": "legacy" },
+        { "slug": "retail-confidence", "title": "Retail Sales & Confidence", "nav": "Retail & Confidence", "status": "legacy" } ] },
+    { "slug": "rates", "title": "Rates", "status": "legacy",
+      "blurb": "Treasury yields, the curve, credit spreads, equities, commodities.",
+      "indicators": [
+        { "slug": "treasuries", "title": "Treasuries & the Yield Curve", "nav": "Treasuries", "status": "legacy" },
+        { "slug": "equities", "title": "Equities", "nav": "Equities", "status": "legacy" },
+        { "slug": "commodities", "title": "Commodities", "nav": "Commodities", "status": "legacy" } ] },
+    { "slug": "industry", "title": "Industry", "status": "legacy",
+      "blurb": "Industrial production, factory orders, ISM PMIs.",
+      "indicators": [
+        { "slug": "manufacturing", "title": "Manufacturing", "nav": "Manufacturing", "status": "legacy" },
+        { "slug": "surveys", "title": "Business Surveys", "nav": "Surveys", "status": "legacy" } ] },
+    { "slug": "government", "title": "Gov't", "status": "legacy",
+      "blurb": "Federal debt, fiscal flows, money supply, the Fed balance sheet.",
+      "indicators": [ { "slug": "", "title": "Government & Fiscal Policy", "nav": "Overview", "status": "legacy" } ] }
+  ]
+}
