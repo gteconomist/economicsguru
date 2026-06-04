@@ -43,6 +43,16 @@ window.EG = (function () {
 
   // ---- shared chart option builders ----
   var grid = { color:T.grid, drawTicks:false };
+  // Add one space between each legend's color circle and its label (less crowded).
+  function gapLabels(chart){
+    var gen = Chart.defaults.plugins.legend.labels && Chart.defaults.plugins.legend.labels.generateLabels;
+    var items = (typeof gen === 'function') ? gen(chart) : chart.data.datasets.map(function(ds, i){
+      return { text:ds.label, fillStyle:ds.borderColor || ds.backgroundColor, strokeStyle:ds.borderColor,
+        lineWidth:ds.borderWidth || 0, hidden:chart.getDatasetMeta(i).hidden, datasetIndex:i, pointStyle:'circle' };
+    });
+    items.forEach(function(it){ if(it.text != null && String(it.text).charAt(0) !== ' ') it.text = ' ' + it.text; });
+    return items;
+  }
   function baseScales(pct){
     return {
       x:{ grid:{display:false}, ticks:{ maxRotation:0, autoSkip:true, maxTicksLimit:8, font:{size:11} } },
@@ -53,7 +63,7 @@ window.EG = (function () {
     return {
       responsive:true, maintainAspectRatio:false, interaction:{mode:'index', intersect:false},
       plugins:{
-        legend:{ position:'bottom', labels:{ usePointStyle:true, pointStyle:'circle', boxWidth:7, padding:16, font:{size:12, weight:'600'} } },
+        legend:{ position:'bottom', labels:{ usePointStyle:true, pointStyle:'circle', boxWidth:7, padding:16, font:{size:12, weight:'600'}, generateLabels:gapLabels } },
         tooltip:{ backgroundColor:T.tooltipBg, titleColor:T.tooltipText, bodyColor:T.tooltipText, padding:11, cornerRadius:9,
           titleFont:{size:12}, bodyFont:{size:12.5}, boxPadding:4, usePointStyle:true,
           callbacks:{ label:function(c){ return ' '+c.dataset.label+': '+(c.parsed.y==null?'—':c.parsed.y.toFixed(2)+(pct?'%':'')); } } }
@@ -103,7 +113,7 @@ window.EG = (function () {
     var axTitle=function(t){ return {display:true, text:t, color:T.exAxis, font:{size:12.5*sc, weight:'700'}}; };
     var o={ responsive:false, animation:false, devicePixelRatio:1, maintainAspectRatio:false,
       layout:{padding:{top:6*sc, right:10*sc, bottom:2*sc, left:2*sc}},
-      plugins:{ legend:{position:'bottom', labels:{color:T.exAxis, usePointStyle:true, pointStyle:'circle', boxWidth:9*sc, padding:15*sc, font:{size:14.5*sc, weight:'700'}}}, tooltip:{enabled:false} },
+      plugins:{ legend:{position:'bottom', labels:{color:T.exAxis, usePointStyle:true, pointStyle:'circle', boxWidth:9*sc, padding:15*sc, font:{size:14.5*sc, weight:'700'}, generateLabels:gapLabels}}, tooltip:{enabled:false} },
       scales:{ x:{ grid:{display:false}, border:{color:T.exGrid}, ticks:Object.assign({maxRotation:0, autoSkip:true, maxTicksLimit:13}, tick) } } };
     if(hasY1){
       o.scales.y ={position:'left',  grid:g, border:{display:false}, ticks:Object.assign({callback:function(v){return v+'%';}}, tick), title:axTitle('YoY')};
