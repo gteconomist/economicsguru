@@ -40,3 +40,18 @@
 
 /* Notice banner */
 .notice{margin:14px 0 0;padding:12px 16px;background:rgba(234,160,0,.10);border-left:4px solid var(--gold);border-radius:8px;font-size:14px;color:var(--diploma);}
+
+/* ── Mobile (≤600px): give charts vertical room, tighten cards, shrink KPI value ── */
+@media(max-width:600px){
+  .kpi{padding:13px 13px;}
+  .kpi .v{font-size:25px;}
+  .kpi .v .u{font-size:13px;}
+  .controls{gap:10px;}
+  .hint{flex-basis:100%;}
+  .top{flex-wrap:wrap;}
+  .dls{padding-top:2px;}
+  .card{padding:14px 13px 12px;}
+  .hero-card{padding:16px 14px 12px;}
+  .plot{height:340px;}
+  .hero-card .plot{height:360px;}
+}
