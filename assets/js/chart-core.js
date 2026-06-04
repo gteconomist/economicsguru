@@ -189,12 +189,16 @@ window.EG = (function () {
       if(theme && theme.barFill && c.indexOf('255,255,255') > -1) return theme.barFill;  // translucent white bars -> gray on light
       return c;
     }
-    return { labels: ch.data.labels, datasets: ch.data.datasets.map(function(d){
+    var datasets = [];
+    ch.data.datasets.forEach(function(d, i){
+      // Respect legend-deselected series: skip datasets the user has hidden on screen.
+      if (typeof ch.isDatasetVisible === 'function' && !ch.isDatasetVisible(i)) return;
       var nd = Object.assign({}, d); nd.pointRadius=0; nd.pointHoverRadius=0;
       if((nd.type||ch.config.type)==='line'){ nd.borderWidth=2.6*sc; if(d.borderDash) nd.borderDash=d.borderDash.map(function(v){return v*sc;}); nd.fill=false; }
       if(map || (theme && theme.barFill)){ nd.borderColor = remap(d.borderColor); nd.backgroundColor = remap(d.backgroundColor); }
-      return nd;
-    })};
+      datasets.push(nd);
+    });
+    return { labels: ch.data.labels, datasets: datasets };
   }
   // Rebuild the source chart's scales at export scale: reuse its tick callbacks,
   // titles and axis positions (so % / counts / dual-axis all render correctly),
