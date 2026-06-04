@@ -38,6 +38,7 @@ import os
 import json
 import sys
 import time
+import random
 import datetime as dt
 from pathlib import Path
 from urllib import request, parse, error
@@ -52,20 +53,49 @@ FD_BASE   = "https://api.fiscaldata.treasury.gov/services/api/fiscal_service"
 # =========================================================================
 # HTTP helper (used by both FRED and Fiscal Data calls)
 # =========================================================================
-def _http_get(url, retries=4, timeout=60, ua="economicsguru.com data refresh"):
+def _http_get(url, retries=6, timeout=60, ua="economicsguru.com data refresh"):
     last_err = None
     for attempt in range(retries):
         try:
             req = request.Request(url, headers={"User-Agent": ua})
             with request.urlopen(req, timeout=timeout) as r:
                 return r.read()
-        except (error.HTTPError, error.URLError, TimeoutError) as e:
+        except error.HTTPError as e:
             last_err = e
-            wait = 2 ** attempt
-            print(f"  retry {attempt + 1} after {wait}s ({type(e).__name__}: {e})",
+            # 429 (rate limited) and 5xx (transient server) get a long, jittered
+            # backoff and honor the server's Retry-After header when present.
+            if e.code == 429 or 500 <= e.code < 600:
+                retry_after = e.headers.get("Retry-After") if e.headers else None
+                if retry_after and str(retry_after).strip().isdigit():
+                    wait = int(retry_after) + random.uniform(0, 2)
+                else:
+                    wait = min(60, 5 * (2 ** attempt)) + random.uniform(0, 3)  # 5,10,20,40,60(+jitter)
+            else:
+                wait = 2 ** attempt  # other HTTP errors: quick backoff as before
+            print(f"  retry {attempt + 1} after {wait:.1f}s (HTTP {e.code}: {e.reason})",
+                  file=sys.stderr)
+            time.sleep(wait)
+        except (error.URLError, TimeoutError) as e:
+            last_err = e
+            wait = 2 ** attempt + random.uniform(0, 1)
+            print(f"  retry {attempt + 1} after {wait:.1f}s ({type(e).__name__}: {e})",
                   file=sys.stderr)
             time.sleep(wait)
     raise RuntimeError(f"HTTP fetch failed for {url} after {retries} attempts: {last_err}")
+
+
+# --- FRED request throttle: keep calls spaced out so we stay under FRED's
+# --- per-minute rate limit (the nightly run bursts ~13 series back-to-back,
+# --- and many other fetch scripts hit FRED from the same Actions runner IP).
+_FRED_MIN_INTERVAL = 0.6   # seconds between FRED requests (~100/min ceiling)
+_last_fred_ts = 0.0
+
+def _fred_throttle():
+    global _last_fred_ts
+    elapsed = time.time() - _last_fred_ts
+    if elapsed < _FRED_MIN_INTERVAL:
+        time.sleep(_FRED_MIN_INTERVAL - elapsed)
+    _last_fred_ts = time.time()
 
 
 # =========================================================================
@@ -78,6 +108,7 @@ def fetch_fred(series_id):
         raise RuntimeError("FRED_API_KEY is not set")
     params = {"series_id": series_id, "api_key": api_key, "file_type": "json"}
     url = f"{FRED_BASE}?{parse.urlencode(params)}"
+    _fred_throttle()
     payload = json.loads(_http_get(url))
     out = []
     for o in payload.get("observations", []):
