@@ -1,0 +1,58 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">MBA Mortgage Applications</div><div class="cs">Refinance index (left) &amp; purchase index (right) — index 3/16/1990 = 100, SA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMaApps"></canvas></div>
+    <div class="src">Source: Mortgage Bankers Association — Weekly Applications Survey. History to Jan 1990 seeded in-house; weekly updates from the MBA press release.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">30-Year vs 15-Year Fixed Mortgage Rate</div><div class="cs">Freddie Mac PMMS, weekly</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMaRates"></canvas></div>
+    <div class="src">Source: Freddie Mac via FRED — MORTGAGE30US, MORTGAGE15US.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">30-Year Mortgage − 10-Year Treasury Spread</div><div class="cs">Weekly; blew out historically wide post-2022</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMaSpread"></canvas></div>
+    <div class="src">Source: Freddie Mac + U.S. Treasury via FRED — MORTGAGE30US − DGS10 (DGS10 averaged over the trailing 5 business days).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">“Golden Handcuff”: Market Rate vs Effective Rate on Outstanding Debt</div><div class="cs">Monthly; 30Y PMMS vs effective rate on outstanding mortgage debt</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMaGoldenHandcuff"></canvas></div>
+    <div class="src">Sources: Freddie Mac via FRED — MORTGAGE30US (monthly mean). U.S. BEA — NIPA mortgage interest paid, owner- and tenant-occupied residential housing.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Mortgage Delinquency Rate</div><div class="cs">Single-family residential at all commercial banks; quarterly, SA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMaDelinquency"></canvas></div>
+    <div class="src">Source: Federal Reserve Board via FRED — DRSFRMACBS.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Mortgage Debt Outstanding</div><div class="cs">1-4 family residential mortgage balance; quarterly, $ trillions, NSA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMaDebt"></canvas></div>
+    <div class="src">Source: Federal Reserve Bank of New York — Quarterly Report on Household Debt and Credit (HHDC), mortgage component.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Housing Affordability Index</div><div class="cs">NAR fixed-rate index, SA; 100 = median income exactly qualifies for median-priced home</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMaAffordability"></canvas></div>
+    <div class="src">Source: National Association of Realtors. History to Jan 1981; new months scraped from the NAR press release and seasonally adjusted in-house.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Median Home Price ÷ Median Household Income</div><div class="cs">Quarterly ratio; both nominal, current dollars</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMaPriceIncome"></canvas></div>
+    <div class="src">Sources: U.S. Census Bureau / HUD — MSPUS (quarterly NSA); U.S. Census Bureau quarterly nominal median household income (seeded in-house, extended via Census P-60).</div>
+  </div>
+</div>

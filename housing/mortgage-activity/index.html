@@ -2,210 +2,104 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Mortgage Activity &mdash; Economics Guru</title>
-<meta name="description" content="Live US mortgage market dashboard: MBA Weekly Applications (Purchase + Refinance), 30Y and 15Y mortgage rates, mortgage-Treasury spread, the &quot;golden handcuff&quot; effective rate vs prevailing 30Y, delinquencies, debt outstanding, and affordability. Sourced live from FRED, BEA, and the Mortgage Bankers Association.">
+<title>US Mortgage Activity — Economics Guru</title>
+<meta name="description" content="Application volume, rates &amp; spreads, the “golden handcuff,” and stress indicators — sourced live from the MBA, Freddie Mac, the Federal Reserve, and BEA.">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="/assets/styles.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<style>
-  .interactivity-hint { margin: 10px 0 16px; font-size: 12.5px; font-style: italic; color: var(--ink-on-navy-soft); }
-  .chart-card .source { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; }
-  .chart-card .csv-link { font-size: 11px; font-weight: 700; color: var(--mustard); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; text-decoration: none; }
-  .chart-card .csv-link::before { content: '\2193  '; }
-  .chart-card .csv-link:hover { text-decoration: underline; }
-  .controls { display: flex; gap: 12px; align-items: center; margin: 4px 0 0; flex-wrap: wrap; }
-  .controls .label-text { font-size: 12px; color: var(--ink-on-navy-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;900&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
 
-  .subnav {
-    display: flex; gap: 0; align-items: stretch; flex-wrap: wrap;
-    margin: 8px 0 18px;
-    border-bottom: 1px solid rgba(255,255,255,0.15);
-  }
-  .subnav a, .subnav span {
-    padding: 8px 14px; font-size: 12.5px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.06em;
-    color: #f3ecd0; text-decoration: none;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -1px;
-    opacity: 0.7;
-  }
-  .subnav a:hover { opacity: 1; text-decoration: none; }
-  .subnav a.active { color: var(--mustard); border-bottom-color: var(--mustard); opacity: 1; }
-  .subnav .disabled { color: #9ba3ab; cursor: not-allowed; opacity: 0.7; }
-</style>
 </head>
 <body>
 
-<header class="site-header">
+<header class="hdr">
   <div class="wrap">
-    <div class="brand">Economics<span class="tag">Guru</span></div>
-    <nav>
-      <a href="/">Home</a>
-      <a href="/inflation/">Inflation</a>
-      <a href="/labor/">Labor</a>
-      <a href="/housing/" class="active">Housing</a>
-      <a href="/gdp/">GDP</a>
-      <a href="/consumer/">Consumer</a>
-      <a href="/rates/">Rates</a>
-      <a href="/industry/">Industry</a>
-<a href="/government/">Government</a>
-      <a href="/about/">About</a>
-    </nav>
+    <a class="brand" href="/">Economics<span class="g">Guru</span></a>
+    <nav class="nav"><a href="/">Home</a><div class="item has-menu"><a href="/inflation/">Inflation</a><div class="menu"><a href="/inflation/"><div class="mt">Overview</div><div class="md">Three ways the U.S. measures inflation — consumer prices (CPI), producer prices (PPI), and the PCE deflator.</div></a><a href="/inflation/cpi/"><div class="mt">CPI</div><div class="md">Headline &amp; core CPI, monthly change, components, energy prices. Source: BLS.</div></a><a href="/inflation/ppi/"><div class="mt">PPI</div><div class="md">Final-demand prices producers receive — headline, core, goods, services. Source: BLS.</div></a><a href="/inflation/pce/"><div class="mt">PCE</div><div class="md">The Fed&#x27;s preferred gauge — headline, core, services, supercore. Source: BEA.</div></a></div></div><div class="item"><a href="/labor/">Labor</a></div><div class="item has-menu active"><a href="/housing/">Housing</a><div class="menu"><a href="/housing/"><div class="mt">Overview</div><div class="md">Sales, permits &amp; starts, prices, mortgage activity.</div></a><a href="/housing/existing/"><div class="mt">Existing</div><div class="md">Existing home sales, median price, inventory, Case-Shiller HPI, mortgage rate. Source: FRED.</div></a><a href="/housing/new-homes/"><div class="mt">New Homes</div><div class="md">New home sales, median &amp; average price, inventory, regional sales, NAHB sentiment. Source: Census, FRED, NAHB.</div></a><a href="/housing/permits-starts/"><div class="mt">Permits &amp; Starts</div><div class="md">Permits &amp; starts — total, single-family, multi-family, MoM by type, permits-to-starts ratio. Source: Census/FRED.</div></a><a href="/housing/mortgage-activity/"><div class="mt">Mortgage Activity</div><div class="md">MBA applications, 30Y/15Y rates, spread, the golden handcuff, delinquency, debt, affordability. Source: MBA, Freddie Mac, Fed, BEA.</div></a></div></div><div class="item"><a href="/gdp/">GDP</a></div><div class="item has-menu"><a href="/consumer/">Consumer</a><div class="menu"><a href="/consumer/"><div class="mt">Overview</div><div class="md">Retail sales, income &amp; spending, sentiment &amp; confidence.</div></a><a href="/consumer/income-spending-debt/"><div class="mt">Income &amp; Spending</div><div class="md"></div></a><a href="/consumer/retail-confidence/"><div class="mt">Retail &amp; Confidence</div><div class="md"></div></a></div></div><div class="item has-menu"><a href="/rates/">Rates</a><div class="menu"><a href="/rates/"><div class="mt">Overview</div><div class="md">Treasury yields, the curve, credit spreads, equities, commodities.</div></a><a href="/rates/treasuries/"><div class="mt">Treasuries</div><div class="md"></div></a><a href="/rates/equities/"><div class="mt">Equities</div><div class="md"></div></a><a href="/rates/commodities/"><div class="mt">Commodities</div><div class="md"></div></a></div></div><div class="item has-menu"><a href="/industry/">Industry</a><div class="menu"><a href="/industry/"><div class="mt">Overview</div><div class="md">Industrial production, factory orders, ISM PMIs.</div></a><a href="/industry/manufacturing/"><div class="mt">Manufacturing</div><div class="md"></div></a><a href="/industry/surveys/"><div class="mt">Surveys</div><div class="md"></div></a></div></div><div class="item"><a href="/government/">Gov&#x27;t</a></div></nav>
+    <div class="spacer"></div>
+    <label class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9fb1c2" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input placeholder="Search 40+ indicators…" aria-label="Search indicators">
+    </label>
   </div>
 </header>
 
-<main>
-  <nav class="subnav">
-    <a href="/housing/existing/">Existing Homes</a>
-    <a href="/housing/new-homes/">New Homes</a>
-    <a href="/housing/permits-starts/">Permits &amp; Starts</a>
-    <a href="/housing/mortgage-activity/" class="active">Mortgage Activity</a>
-  </nav>
-  <div class="page-header">
-    <h1>US Mortgage Activity</h1>
-    <div class="subtitle">Application volume, rates &amp; spreads, the &ldquo;golden handcuff,&rdquo; and stress indicators &mdash; sourced live from the Mortgage Bankers Association, Freddie Mac, the Federal Reserve, and BEA.</div>
-    <div class="latest">Latest data: <strong id="latest-month">&hellip;</strong></div>
+<main class="wrap">
+<div class="crumb"><a href="/">Home</a><span class="sep">/</span><a href="/housing/">Housing</a><span class="sep">/</span>Mortgage Activity</div><div class="pagehead"><div><h1>US Mortgage Activity</h1><p class="sub">Application volume, rates &amp; spreads, the “golden handcuff,” and stress indicators — sourced live from the MBA, Freddie Mac, the Federal Reserve, and BEA.</p></div><div class="latest">Latest data &nbsp;<b id="latest">…</b></div></div><nav class="pills"><a href="/housing/existing/">Existing</a><a href="/housing/new-homes/">New Homes</a><a href="/housing/permits-starts/">Permits &amp; Starts</a><a href="/housing/mortgage-activity/" class="active">Mortgage Activity</a></nav><div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
   </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
 
-  <div class="notice" id="notice" style="display:none">
-    <strong>Data note:</strong> <span id="notice-text"></span>
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">MBA Mortgage Applications</div><div class="cs">Refinance index (left) &amp; purchase index (right) — index 3/16/1990 = 100, SA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMaApps"></canvas></div>
+    <div class="src">Source: Mortgage Bankers Association — Weekly Applications Survey. History to Jan 1990 seeded in-house; weekly updates from the MBA press release.</div>
   </div>
-
-  <div id="kpis" class="kpi-grid"></div>
-
-  <div class="controls">
-    <span class="label-text">Time range:</span>
-    <div class="range-toggle">
-      <button data-range="6m">6 mo</button>
-      <button data-range="12m" class="active">12 mo</button>
-      <button data-range="5y">5 yr</button>
-      <button data-range="10y">10 yr</button>
-      <button data-range="20y">20 yr</button>
-      <button data-range="max">Max</button>
-    </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">30-Year vs 15-Year Fixed Mortgage Rate</div><div class="cs">Freddie Mac PMMS, weekly</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMaRates"></canvas></div>
+    <div class="src">Source: Freddie Mac via FRED — MORTGAGE30US, MORTGAGE15US.</div>
   </div>
-
-  <div class="interactivity-hint">
-    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post.
+  <div class="card">
+    <div class="top"><div><div class="ct">30-Year Mortgage − 10-Year Treasury Spread</div><div class="cs">Weekly; blew out historically wide post-2022</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMaSpread"></canvas></div>
+    <div class="src">Source: Freddie Mac + U.S. Treasury via FRED — MORTGAGE30US − DGS10 (DGS10 averaged over the trailing 5 business days).</div>
   </div>
-
-  <div class="chart-grid">
-    <div class="chart-card">
-      <div class="title">MBA Mortgage Applications</div>
-      <div class="subtitle">(Refinance Index left; Purchase Index right; Index 3/16/1990 = 100, Seasonally Adjusted)</div>
-      <div class="chart-wrap"><canvas id="chartMaApps"></canvas></div>
-      <div class="source">
-        <span>Source: Mortgage Bankers Association &mdash; Weekly Applications Survey. Historical series back to Jan 1990 is seeded in-house; weekly updates scraped from the MBA press release at mba.org.</span>
-        <a href="#" class="csv-link" data-chart="chartMaApps">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">30-Year vs 15-Year Fixed Mortgage Rate</div>
-      <div class="subtitle">(Freddie Mac PMMS, Weekly)</div>
-      <div class="chart-wrap"><canvas id="chartMaRates"></canvas></div>
-      <div class="source">
-        <span>Source: Freddie Mac via FRED &mdash; MORTGAGE30US, MORTGAGE15US.</span>
-        <a href="#" class="csv-link" data-chart="chartMaRates">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">30-Year Mortgage &minus; 10-Year Treasury Spread</div>
-      <div class="subtitle">(Weekly; spread blew out historically wide post-2022 even as Treasury yields rallied off the peak)</div>
-      <div class="chart-wrap"><canvas id="chartMaSpread"></canvas></div>
-      <div class="source">
-        <span>Source: Freddie Mac + U.S. Treasury via FRED &mdash; MORTGAGE30US &minus; DGS10 (DGS10 averaged over the trailing 5 business days to match the PMMS release window).</span>
-        <a href="#" class="csv-link" data-chart="chartMaSpread">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">&ldquo;Golden Handcuff&rdquo;: 30-Year Mortgage Rate vs Effective Rate on Outstanding Mortgage Debt</div>
-      <div class="subtitle">(Monthly; 30Y = Freddie Mac PMMS monthly avg; Effective rate on outstanding mortgage debt, owner- and tenant-occupied residential housing)</div>
-      <div class="chart-wrap"><canvas id="chartMaGoldenHandcuff"></canvas></div>
-      <div class="source">
-        <span>Sources: Freddie Mac via FRED &mdash; MORTGAGE30US (weekly, collapsed to monthly mean). U.S. Bureau of Economic Analysis &mdash; NIPA Mortgage Interest Paid, owner- and tenant-occupied residential housing. Monthly cadence, ~1 month publication lag.</span>
-        <a href="#" class="csv-link" data-chart="chartMaGoldenHandcuff">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Mortgage Delinquency Rate</div>
-      <div class="subtitle">(Single-Family Residential Mortgages at All Commercial Banks; Quarterly, Seasonally Adjusted)</div>
-      <div class="chart-wrap"><canvas id="chartMaDelinquency"></canvas></div>
-      <div class="source">
-        <span>Source: Federal Reserve Board via FRED &mdash; DRSFRMACBS. Proxy for MBA&rsquo;s subscription-only National Delinquency Survey.</span>
-        <a href="#" class="csv-link" data-chart="chartMaDelinquency">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Mortgage Debt Outstanding</div>
-      <div class="subtitle">(Total Mortgage Balance Component of Household Debt; Quarterly, $ Trillions, NSA)</div>
-      <div class="chart-wrap"><canvas id="chartMaDebt"></canvas></div>
-      <div class="source">
-        <span>Source: Federal Reserve Bank of New York &mdash; Quarterly Report on Household Debt and Credit (HHDC), mortgage component. NY Fed HHDC publishes mid-quarter with full Q1 2026 coverage where FRED&rsquo;s Z.1 HHMSDODNS has only a 13-month trailing window.</span>
-        <a href="#" class="csv-link" data-chart="chartMaDebt">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Housing Affordability Index</div>
-      <div class="subtitle">(NAR Fixed-Rate Housing Affordability Index, seasonally adjusted; 100 = median family income exactly qualifies for the median-priced home)</div>
-      <div class="chart-wrap"><canvas id="chartMaAffordability"></canvas></div>
-      <div class="source">
-        <span>Source: National Association of Realtors. Historical series back to Jan 1981 includes both seasonally-adjusted and not-seasonally-adjusted readings; new months are scraped from the NAR monthly press release via Tavily, and seasonally adjusted in-house using monthly factors derived from the historical SA/NSA overlap (recovers the published SA series to within ~0.01 pt).</span>
-        <a href="#" class="csv-link" data-chart="chartMaAffordability">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Median Home Price &divide; Median Household Income</div>
-      <div class="subtitle">(Quarterly ratio; median sales price of houses sold &divide; quarterly median household income; both nominal, current dollars)</div>
-      <div class="chart-wrap"><canvas id="chartMaPriceIncome"></canvas></div>
-      <div class="source">
-        <span>Sources: U.S. Census Bureau / HUD &mdash; Median Sales Price of Houses Sold (MSPUS, quarterly NSA, $ nominal, 1963Q1 onward) via FRED. U.S. Census Bureau &mdash; quarterly nominal median household income (ACS / CPS Annual Social and Economic Supplement Table FINC-01) seeded as the in-house canonical historical record 1970Q1 onward; for years past the seed's coverage the going-forward path uses Census P-60 annual nominal HH income (FRED MEHOINUSA646N) multiplied by intra-year shape factors derived from the seed's 2010+ quarterly pattern (Q1=0.986, Q2=0.996, Q3=1.005, Q4=1.012). Self-sustaining once the seed ends &mdash; the chart auto-extends each September as Census P-60 publishes.</span>
-        <a href="#" class="csv-link" data-chart="chartMaPriceIncome">Download CSV</a>
-      </div>
-    </div>
-
+  <div class="card">
+    <div class="top"><div><div class="ct">“Golden Handcuff”: Market Rate vs Effective Rate on Outstanding Debt</div><div class="cs">Monthly; 30Y PMMS vs effective rate on outstanding mortgage debt</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMaGoldenHandcuff"></canvas></div>
+    <div class="src">Sources: Freddie Mac via FRED — MORTGAGE30US (monthly mean). U.S. BEA — NIPA mortgage interest paid, owner- and tenant-occupied residential housing.</div>
   </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Mortgage Delinquency Rate</div><div class="cs">Single-family residential at all commercial banks; quarterly, SA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMaDelinquency"></canvas></div>
+    <div class="src">Source: Federal Reserve Board via FRED — DRSFRMACBS.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Mortgage Debt Outstanding</div><div class="cs">1-4 family residential mortgage balance; quarterly, $ trillions, NSA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMaDebt"></canvas></div>
+    <div class="src">Source: Federal Reserve Bank of New York — Quarterly Report on Household Debt and Credit (HHDC), mortgage component.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Housing Affordability Index</div><div class="cs">NAR fixed-rate index, SA; 100 = median income exactly qualifies for median-priced home</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMaAffordability"></canvas></div>
+    <div class="src">Source: National Association of Realtors. History to Jan 1981; new months scraped from the NAR press release and seasonally adjusted in-house.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Median Home Price ÷ Median Household Income</div><div class="cs">Quarterly ratio; both nominal, current dollars</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cMaPriceIncome"></canvas></div>
+    <div class="src">Sources: U.S. Census Bureau / HUD — MSPUS (quarterly NSA); U.S. Census Bureau quarterly nominal median household income (seeded in-house, extended via Census P-60).</div>
+  </div>
+</div>
+
 </main>
 
-<footer class="site-footer">
+<footer class="foot">
   <div class="wrap">
-    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, BEA, and Census. <a href="/about/">Methodology</a></div>
-    <div>Data refreshes nightly. Last successful build: <span id="build-time">&hellip;</span></div>
+    <div>© <span id="yr"></span> Economics Guru · Public data from BLS, FRED, BEA, Census, EIA, UMich, Conference Board, and ICE BofA. <a href="/about/">Methodology</a></div>
+    <div>A product of <a href="https://www.economicimpact.com" target="_blank" rel="noopener">Economic Impact Group, LLC</a> · Data refreshes nightly</div>
   </div>
 </footer>
 
-<script src="/assets/charts.js"></script>
-<script>
-document.getElementById('yr').textContent = new Date().getFullYear();
-
-fetch('/data/housing_mortgage_activity.json', { cache: 'no-cache' })
-  .then(r => r.json())
-  .then(data => {
-    EG.renderMortgageActivity(data);
-    if (data.notice) {
-      document.getElementById('notice').style.display = '';
-      document.getElementById('notice-text').textContent = data.notice;
-    }
-    if (data.build_time) {
-      document.getElementById('build-time').textContent =
-        new Date(data.build_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
-    }
-  })
-  .catch(err => {
-    console.error(err);
-    document.querySelector('main').insertAdjacentHTML('afterbegin',
-      '<div class="notice"><strong>Could not load data.</strong> Try refreshing in a moment.</div>');
-  });
-</script>
-
+<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/assets/js/chart-core.js"></script>
+<script src="/assets/js/pages/housing.js"></script>
+<script>EG.boot("/data/housing_mortgage_activity.json", "mortgage-activity");</script>
 </body>
 </html>

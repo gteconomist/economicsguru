@@ -2,218 +2,104 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Building Permits &amp; Housing Starts &mdash; Economics Guru</title>
-<meta name="description" content="Live US building permits and housing starts dashboard: total, single-family, and multi-family permits (with 2-4 unit and 5+ unit detail), single-family and multi-family starts, permits-vs-starts spread, year-over-year change, and the permits-to-starts ratio. Updated daily from FRED (Census-sourced).">
+<title>US Building Permits &amp; Housing Starts — Economics Guru</title>
+<meta name="description" content="Permits authorized and units started — total, single-family, and multi-family (with the 2-4 and 5+ unit breakdown). Sourced live from the US Census Bureau via FRED; SAAR.">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="/assets/styles.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<style>
-  .interactivity-hint { margin: 10px 0 16px; font-size: 12.5px; font-style: italic; color: var(--ink-on-navy-soft); }
-  .chart-card .source { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; }
-  .chart-card .csv-link { font-size: 11px; font-weight: 700; color: var(--mustard); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; text-decoration: none; }
-  .chart-card .csv-link::before { content: '\2193  '; }
-  .chart-card .csv-link:hover { text-decoration: underline; }
-  .controls { display: flex; gap: 12px; align-items: center; margin: 4px 0 0; flex-wrap: wrap; }
-  .controls .label-text { font-size: 12px; color: var(--ink-on-navy-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;900&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
 
-  /* permits-starts KPI cards: render both MoM (level) and YoY (%) */
-  .kpi .delta-yoy {
-    display: block; margin-top: 2px;
-    font-size: 11.5px; font-weight: 600;
-    color: var(--ink-soft); letter-spacing: 0.02em;
-  }
-  .kpi .delta-yoy.up   { color: #b94a3a; }   /* coral-ish */
-  .kpi .delta-yoy.down { color: #5a7a30; }   /* green-ish */
-  .kpi .delta-yoy.flat { color: var(--ink-soft); }
-
-  .subnav {
-    display: flex; gap: 0; align-items: stretch; flex-wrap: wrap;
-    margin: 8px 0 18px;
-    border-bottom: 1px solid rgba(255,255,255,0.15);
-  }
-  .subnav a, .subnav span {
-    padding: 8px 14px; font-size: 12.5px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.06em;
-    color: #f3ecd0; text-decoration: none;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -1px;
-    opacity: 0.7;
-  }
-  .subnav a:hover { opacity: 1; text-decoration: none; }
-  .subnav a.active { color: var(--mustard); border-bottom-color: var(--mustard); opacity: 1; }
-  .subnav .disabled { color: #9ba3ab; cursor: not-allowed; opacity: 0.7; }
-</style>
 </head>
 <body>
 
-<header class="site-header">
+<header class="hdr">
   <div class="wrap">
-    <div class="brand">Economics<span class="tag">Guru</span></div>
-    <nav>
-      <a href="/">Home</a>
-      <a href="/inflation/">Inflation</a>
-      <a href="/labor/">Labor</a>
-      <a href="/housing/" class="active">Housing</a>
-      <a href="/gdp/">GDP</a>
-      <a href="/consumer/">Consumer</a>
-      <a href="/rates/">Rates</a>
-      <a href="/industry/">Industry</a>
-<a href="/government/">Government</a>
-      <a href="/about/">About</a>
-    </nav>
+    <a class="brand" href="/">Economics<span class="g">Guru</span></a>
+    <nav class="nav"><a href="/">Home</a><div class="item has-menu"><a href="/inflation/">Inflation</a><div class="menu"><a href="/inflation/"><div class="mt">Overview</div><div class="md">Three ways the U.S. measures inflation — consumer prices (CPI), producer prices (PPI), and the PCE deflator.</div></a><a href="/inflation/cpi/"><div class="mt">CPI</div><div class="md">Headline &amp; core CPI, monthly change, components, energy prices. Source: BLS.</div></a><a href="/inflation/ppi/"><div class="mt">PPI</div><div class="md">Final-demand prices producers receive — headline, core, goods, services. Source: BLS.</div></a><a href="/inflation/pce/"><div class="mt">PCE</div><div class="md">The Fed&#x27;s preferred gauge — headline, core, services, supercore. Source: BEA.</div></a></div></div><div class="item"><a href="/labor/">Labor</a></div><div class="item has-menu active"><a href="/housing/">Housing</a><div class="menu"><a href="/housing/"><div class="mt">Overview</div><div class="md">Sales, permits &amp; starts, prices, mortgage activity.</div></a><a href="/housing/existing/"><div class="mt">Existing</div><div class="md">Existing home sales, median price, inventory, Case-Shiller HPI, mortgage rate. Source: FRED.</div></a><a href="/housing/new-homes/"><div class="mt">New Homes</div><div class="md">New home sales, median &amp; average price, inventory, regional sales, NAHB sentiment. Source: Census, FRED, NAHB.</div></a><a href="/housing/permits-starts/"><div class="mt">Permits &amp; Starts</div><div class="md">Permits &amp; starts — total, single-family, multi-family, MoM by type, permits-to-starts ratio. Source: Census/FRED.</div></a><a href="/housing/mortgage-activity/"><div class="mt">Mortgage Activity</div><div class="md">MBA applications, 30Y/15Y rates, spread, the golden handcuff, delinquency, debt, affordability. Source: MBA, Freddie Mac, Fed, BEA.</div></a></div></div><div class="item"><a href="/gdp/">GDP</a></div><div class="item has-menu"><a href="/consumer/">Consumer</a><div class="menu"><a href="/consumer/"><div class="mt">Overview</div><div class="md">Retail sales, income &amp; spending, sentiment &amp; confidence.</div></a><a href="/consumer/income-spending-debt/"><div class="mt">Income &amp; Spending</div><div class="md"></div></a><a href="/consumer/retail-confidence/"><div class="mt">Retail &amp; Confidence</div><div class="md"></div></a></div></div><div class="item has-menu"><a href="/rates/">Rates</a><div class="menu"><a href="/rates/"><div class="mt">Overview</div><div class="md">Treasury yields, the curve, credit spreads, equities, commodities.</div></a><a href="/rates/treasuries/"><div class="mt">Treasuries</div><div class="md"></div></a><a href="/rates/equities/"><div class="mt">Equities</div><div class="md"></div></a><a href="/rates/commodities/"><div class="mt">Commodities</div><div class="md"></div></a></div></div><div class="item has-menu"><a href="/industry/">Industry</a><div class="menu"><a href="/industry/"><div class="mt">Overview</div><div class="md">Industrial production, factory orders, ISM PMIs.</div></a><a href="/industry/manufacturing/"><div class="mt">Manufacturing</div><div class="md"></div></a><a href="/industry/surveys/"><div class="mt">Surveys</div><div class="md"></div></a></div></div><div class="item"><a href="/government/">Gov&#x27;t</a></div></nav>
+    <div class="spacer"></div>
+    <label class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9fb1c2" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input placeholder="Search 40+ indicators…" aria-label="Search indicators">
+    </label>
   </div>
 </header>
 
-<main>
-  <nav class="subnav">
-    <a href="/housing/existing/">Existing Homes</a>
-    <a href="/housing/new-homes/">New Homes</a>
-    <a href="/housing/permits-starts/" class="active">Permits &amp; Starts</a>
-  </nav>
-  <div class="page-header">
-    <h1>US Building Permits &amp; Housing Starts</h1>
-    <div class="subtitle">Permits authorized to build and units actually started &mdash; total, single-family, and multi-family (with the 2-4 unit and 5+ unit breakdown). Sourced live from the US Census Bureau via FRED. All headline figures are seasonally adjusted at an annual rate (SAAR) in thousands of units.</div>
-    <div class="latest">Latest data: <strong id="latest-month">&hellip;</strong></div>
+<main class="wrap">
+<div class="crumb"><a href="/">Home</a><span class="sep">/</span><a href="/housing/">Housing</a><span class="sep">/</span>Permits &amp; Starts</div><div class="pagehead"><div><h1>US Building Permits &amp; Housing Starts</h1><p class="sub">Permits authorized and units started — total, single-family, and multi-family (with the 2-4 and 5+ unit breakdown). Sourced live from the US Census Bureau via FRED; SAAR.</p></div><div class="latest">Latest data &nbsp;<b id="latest">…</b></div></div><nav class="pills"><a href="/housing/existing/">Existing</a><a href="/housing/new-homes/">New Homes</a><a href="/housing/permits-starts/" class="active">Permits &amp; Starts</a><a href="/housing/mortgage-activity/">Mortgage Activity</a></nav><div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
   </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
 
-  <div class="notice" id="notice" style="display:none">
-    <strong>Data note:</strong> <span id="notice-text"></span>
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">Building Permits</div><div class="cs">Privately-owned units authorized — SAAR; total, single- and multi-family</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsPermits"></canvas></div>
+    <div class="src">Source: US Census Bureau, Building Permits Survey via FRED — PERMIT, PERMIT1, derived multi-family.</div>
   </div>
-
-  <div id="kpis" class="kpi-grid"></div>
-
-  <div class="controls">
-    <span class="label-text">Time range:</span>
-    <div class="range-toggle">
-      <button data-range="6m">6 mo</button>
-      <button data-range="12m" class="active">12 mo</button>
-      <button data-range="5y">5 yr</button>
-      <button data-range="10y">10 yr</button>
-      <button data-range="20y">20 yr</button>
-      <button data-range="max">Max</button>
-    </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Building Permits — MoM % Change by Type</div><div class="cs">Percent change from prior month, by permit category</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsPermitsMom"></canvas></div>
+    <div class="src">Source: US Census Bureau via FRED — PERMIT, PERMIT1, PERMIT24, PERMIT5 (and derived multi-family total).</div>
   </div>
-
-  <div class="interactivity-hint">
-    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post.
+  <div class="card">
+    <div class="top"><div><div class="ct">Multi-Family Permits Detail</div><div class="cs">5+ unit (left) vs. 2-4 unit (right) buildings — SAAR, dual axis</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsPermitsMf"></canvas></div>
+    <div class="src">Source: US Census Bureau, Building Permits Survey via FRED — PERMIT24, PERMIT5.</div>
   </div>
-
-  <div class="chart-grid">
-    <div class="chart-card">
-      <div class="title">Building Permits</div>
-      <div class="subtitle">(Privately-Owned Housing Units Authorized in Permit-Issuing Places &mdash; SAAR, Thousands)</div>
-      <div class="chart-wrap"><canvas id="chartPsPermits"></canvas></div>
-      <div class="source">
-        <span>Source: US Census Bureau, Building Permits Survey (via FRED: PERMIT, PERMIT1, derived multi-family).</span>
-        <a href="#" class="csv-link" data-chart="chartPsPermits">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Building Permits &mdash; MoM % Change by Type</div>
-      <div class="subtitle">(Percent Change from Prior Month, by Permit Category &mdash; SAAR inputs)</div>
-      <div class="chart-wrap"><canvas id="chartPsPermitsMom"></canvas></div>
-      <div class="source">
-        <span>Source: US Census Bureau via FRED &mdash; computed from PERMIT, PERMIT1, PERMIT24, PERMIT5 (and derived multi-family total).</span>
-        <a href="#" class="csv-link" data-chart="chartPsPermitsMom">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Multi-Family Permits Detail</div>
-      <div class="subtitle">(2-4 Unit Buildings vs. 5+ Unit Buildings &mdash; SAAR, Thousands)</div>
-      <div class="chart-wrap"><canvas id="chartPsPermitsMf"></canvas></div>
-      <div class="source">
-        <span>Source: US Census Bureau, Building Permits Survey (via FRED: PERMIT24, PERMIT5).</span>
-        <a href="#" class="csv-link" data-chart="chartPsPermitsMf">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Housing Starts</div>
-      <div class="subtitle">(Privately-Owned Housing Units Started &mdash; SAAR, Thousands)</div>
-      <div class="chart-wrap"><canvas id="chartPsStarts"></canvas></div>
-      <div class="source">
-        <span>Source: US Census Bureau, Survey of Construction (via FRED: HOUST, HOUST1F, derived multi-family).</span>
-        <a href="#" class="csv-link" data-chart="chartPsStarts">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Housing Starts &mdash; MoM % Change by Type</div>
-      <div class="subtitle">(Total Privately-Owned, Single-Family, Multi-Family &mdash; Percent Change from Prior Month, SAAR inputs)</div>
-      <div class="chart-wrap"><canvas id="chartPsStartsMom"></canvas></div>
-      <div class="source">
-        <span>Source: US Census Bureau via FRED &mdash; computed from HOUST, HOUST1F (and derived multi-family).</span>
-        <a href="#" class="csv-link" data-chart="chartPsStartsMom">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Permits vs. Starts</div>
-      <div class="subtitle">(Total SAAR &mdash; Permits Lead Starts by ~1 Month; Gaps Show Builder Hesitation)</div>
-      <div class="chart-wrap"><canvas id="chartPsPvsS"></canvas></div>
-      <div class="source">
-        <span>Source: US Census Bureau via FRED &mdash; PERMIT and HOUST, both SAAR.</span>
-        <a href="#" class="csv-link" data-chart="chartPsPvsS">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Year-over-Year % Change</div>
-      <div class="subtitle">(Permits and Starts, Total SAAR vs. Same Month Prior Year &mdash; Cycle Indicator)</div>
-      <div class="chart-wrap"><canvas id="chartPsYoy"></canvas></div>
-      <div class="source">
-        <span>Source: US Census Bureau via FRED &mdash; derived from SAAR totals.</span>
-        <a href="#" class="csv-link" data-chart="chartPsYoy">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Permits-to-Starts Ratio</div>
-      <div class="subtitle">(Total Permits &divide; Total Starts &mdash; Above 1.0 Means Builders Are Authorizing Faster Than They&rsquo;re Breaking Ground)</div>
-      <div class="chart-wrap"><canvas id="chartPsRatio"></canvas></div>
-      <div class="source">
-        <span>Source: US Census Bureau via FRED &mdash; PERMIT &divide; HOUST.</span>
-        <a href="#" class="csv-link" data-chart="chartPsRatio">Download CSV</a>
-      </div>
-    </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Housing Starts</div><div class="cs">Privately-owned units started — SAAR; total, single- and multi-family</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsStarts"></canvas></div>
+    <div class="src">Source: US Census Bureau, Survey of Construction via FRED — HOUST, HOUST1F, derived multi-family.</div>
   </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Housing Starts — MoM % Change by Type</div><div class="cs">Total, single-family, multi-family — percent change from prior month</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsStartsMom"></canvas></div>
+    <div class="src">Source: US Census Bureau via FRED — HOUST, HOUST1F (and derived multi-family).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Permits vs. Starts</div><div class="cs">Total SAAR — permits lead starts by ~1 month</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsPvsS"></canvas></div>
+    <div class="src">Source: US Census Bureau via FRED — PERMIT and HOUST, both SAAR.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Year-over-Year % Change</div><div class="cs">Permits and starts, total SAAR — cycle indicator</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsYoy"></canvas></div>
+    <div class="src">Source: US Census Bureau via FRED — derived from SAAR totals.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Permits-to-Starts Ratio</div><div class="cs">Total permits ÷ total starts — above 1.0 = authorizing faster than breaking ground</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsRatio"></canvas></div>
+    <div class="src">Source: US Census Bureau via FRED — PERMIT ÷ HOUST.</div>
+  </div>
+</div>
+
 </main>
 
-<footer class="site-footer">
+<footer class="foot">
   <div class="wrap">
-    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, BEA, Census, and NAHB. <a href="/about/">Methodology</a></div>
-    <div>Data refreshes nightly. Last successful build: <span id="build-time">&hellip;</span></div>
+    <div>© <span id="yr"></span> Economics Guru · Public data from BLS, FRED, BEA, Census, EIA, UMich, Conference Board, and ICE BofA. <a href="/about/">Methodology</a></div>
+    <div>A product of <a href="https://www.economicimpact.com" target="_blank" rel="noopener">Economic Impact Group, LLC</a> · Data refreshes nightly</div>
   </div>
 </footer>
 
-<script src="/assets/charts.js"></script>
-<script>
-document.getElementById('yr').textContent = new Date().getFullYear();
-
-fetch('/data/housing_permits.json', { cache: 'no-cache' })
-  .then(r => r.json())
-  .then(data => {
-    EG.renderPermitsStarts(data);
-    if (data.notice) {
-      document.getElementById('notice').style.display = '';
-      document.getElementById('notice-text').textContent = data.notice;
-    }
-    if (data.build_time) {
-      document.getElementById('build-time').textContent =
-        new Date(data.build_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
-    }
-  })
-  .catch(err => {
-    console.error(err);
-    document.querySelector('main').insertAdjacentHTML('afterbegin',
-      '<div class="notice"><strong>Could not load data.</strong> Try refreshing in a moment.</div>');
-  });
-</script>
-
+<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/assets/js/chart-core.js"></script>
+<script src="/assets/js/pages/housing.js"></script>
+<script>EG.boot("/data/housing_permits.json", "permits-starts");</script>
 </body>
 </html>

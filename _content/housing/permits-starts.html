@@ -1,0 +1,58 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">Building Permits</div><div class="cs">Privately-owned units authorized — SAAR; total, single- and multi-family</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsPermits"></canvas></div>
+    <div class="src">Source: US Census Bureau, Building Permits Survey via FRED — PERMIT, PERMIT1, derived multi-family.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Building Permits — MoM % Change by Type</div><div class="cs">Percent change from prior month, by permit category</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsPermitsMom"></canvas></div>
+    <div class="src">Source: US Census Bureau via FRED — PERMIT, PERMIT1, PERMIT24, PERMIT5 (and derived multi-family total).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Multi-Family Permits Detail</div><div class="cs">5+ unit (left) vs. 2-4 unit (right) buildings — SAAR, dual axis</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsPermitsMf"></canvas></div>
+    <div class="src">Source: US Census Bureau, Building Permits Survey via FRED — PERMIT24, PERMIT5.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Housing Starts</div><div class="cs">Privately-owned units started — SAAR; total, single- and multi-family</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsStarts"></canvas></div>
+    <div class="src">Source: US Census Bureau, Survey of Construction via FRED — HOUST, HOUST1F, derived multi-family.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Housing Starts — MoM % Change by Type</div><div class="cs">Total, single-family, multi-family — percent change from prior month</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsStartsMom"></canvas></div>
+    <div class="src">Source: US Census Bureau via FRED — HOUST, HOUST1F (and derived multi-family).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Permits vs. Starts</div><div class="cs">Total SAAR — permits lead starts by ~1 month</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsPvsS"></canvas></div>
+    <div class="src">Source: US Census Bureau via FRED — PERMIT and HOUST, both SAAR.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Year-over-Year % Change</div><div class="cs">Permits and starts, total SAAR — cycle indicator</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsYoy"></canvas></div>
+    <div class="src">Source: US Census Bureau via FRED — derived from SAAR totals.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Permits-to-Starts Ratio</div><div class="cs">Total permits ÷ total starts — above 1.0 = authorizing faster than breaking ground</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsRatio"></canvas></div>
+    <div class="src">Source: US Census Bureau via FRED — PERMIT ÷ HOUST.</div>
+  </div>
+</div>

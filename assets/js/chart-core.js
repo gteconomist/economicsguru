@@ -27,6 +27,14 @@ window.EG = (function () {
   // ---- formatting / data helpers ----
   function lab(s){ var p=String(s).split('-'); return new Date(p[0], (p[1]||1)-1).toLocaleString('en-US',{month:'short',year:'2-digit'}); }
   function tail(a,n){ return n>=a.length ? a.slice() : a.slice(-n); }
+  function pd(s){ return new Date(s.length===7 ? s+'-01' : s); }   // parse 'YYYY-MM' or 'YYYY-MM-DD'
+  // date-window filter (for weekly/daily/quarterly series where point-count tailing is wrong)
+  function rangeByDate(series, range){
+    if(!series || !series.length) return [];
+    var m = months(range); if(m >= 1e9) return series.slice();
+    var cutoff = pd(series[series.length-1][0]); cutoff.setMonth(cutoff.getMonth() - m);
+    return series.filter(function(r){ return pd(r[0]) >= cutoff; });
+  }
   function val(a){ return a.map(function(p){return p[1];}); }
   function months(r){ return ({'6m':6,'12m':12,'5y':60,'10y':120,'20y':240,'max':1e9})[r] || 12; }
   function rebase(a){ var b=a[0][1]; return a.map(function(p){return p[1]/b*100;}); }
@@ -85,6 +93,8 @@ window.EG = (function () {
   function fmtIdx(v){ return v==null?'n/a':v.toFixed(1); }
   function fmtMonths(v){ return v==null?'n/a':v.toFixed(1)+' mo'; }
   function fmtMillions(v){ return v==null?'n/a':(v/1000).toFixed(1)+'M'; }   // input in thousands -> millions
+  function fmtUnitsK(v){ return v==null?'n/a':fmtBig(v*1000); }               // input in thousands -> auto k/M
+  function fmtRatio(v){ return v==null?'n/a':v.toFixed(2); }
   function tipLabel(fmt){ return function(c){ return ' '+c.dataset.label+': '+(c.parsed.y==null?'n/a':fmt(c.parsed.y)); }; }
   // single non-% y axis with a custom formatter
   function singleOpts(yFmt){
@@ -118,22 +128,32 @@ window.EG = (function () {
     var el = document.getElementById(containerId); if(!el) return;
     el.innerHTML = defs.map(function(d){
       var o = kpis && kpis[d.key]; if(!o) return '';
-      var scale = d.scale==null ? 1 : d.scale;
-      var dec   = d.decimals==null ? 2 : d.decimals;
-      var ddec  = d.deltaDecimals==null ? 2 : d.deltaDecimals;
-      var unit  = d.unit==null ? '%' : d.unit;
-      var dunit = d.deltaUnit==null ? 'pp' : d.deltaUnit;
-      var v = o.value*scale, dv = o.delta*scale;
-      var flat = Math.abs(o.delta) < 1e-9;
-      var good = !flat && ((dv > 0 && d.goodDir === 'up') || (dv < 0 && d.goodDir !== 'up'));
-      var cls = flat ? 'flat' : (good ? 'down' : 'up');   // down=green, up=red
-      var arr = flat ? '' : (dv > 0 ? '▲' : '▼');
-      var vstr = (d.prefix||'') + (d.signed && v > 0 ? '+' : '') + v.toFixed(dec);
-      if (d.neutral) cls = 'flat';
+      var rawV = o.value;
+      var rawD = o[d.deltaKey || 'delta']; if(rawD == null) rawD = 0;   // deltaKey lets pages pick e.g. 'mom'
+      var flat = Math.abs(rawD) < 1e-9;
+      var good = !flat && ((rawD > 0 && d.goodDir === 'up') || (rawD < 0 && d.goodDir !== 'up'));
+      var cls = (flat || d.neutral) ? 'flat' : (good ? 'down' : 'up');  // down=green, up=red
+      var arr = flat ? '' : (rawD > 0 ? '▲' : '▼');
+      var vstr, unit, dstr;
+      if (d.valueFmt) {                                                 // custom formatter (e.g. k/M auto)
+        vstr = (d.signed && rawV > 0 ? '+' : '') + d.valueFmt(rawV);
+        unit = '';
+        dstr = (d.deltaFmt || d.valueFmt)(Math.abs(rawD));
+      } else {
+        var scale = d.scale==null ? 1 : d.scale;
+        var dec   = d.decimals==null ? 2 : d.decimals;
+        var ddec  = d.deltaDecimals==null ? 2 : d.deltaDecimals;
+        var v = rawV*scale, dv = rawD*scale;
+        vstr = (d.prefix||'') + (d.signed && v > 0 ? '+' : '') + v.toFixed(dec);
+        unit = d.unit==null ? '%' : d.unit;
+        dstr = Math.abs(dv).toFixed(ddec) + ' ' + (d.deltaUnit==null ? 'pp' : d.deltaUnit);
+      }
+      var cap = d.cap || 'vs. prior month';
+      if (d.capKey && o[d.capKey] != null) { var yv = o[d.capKey]; cap = (yv>=0?'+':'') + yv.toFixed(1) + '% y/y'; }
       return '<div class="kpi"><div class="l">'+d.label+'</div>'+
-        '<div class="v">'+vstr+'<span class="u">'+unit+'</span></div>'+
-        '<div class="dd '+cls+'"><span class="arr">'+arr+'</span>'+Math.abs(dv).toFixed(ddec)+' '+dunit+'</div>'+
-        '<div class="cap">'+(d.cap||'vs. prior month')+'</div></div>';
+        '<div class="v">'+vstr+(unit?'<span class="u">'+unit+'</span>':'')+'</div>'+
+        '<div class="dd '+cls+'"><span class="arr">'+arr+'</span>'+dstr+'</div>'+
+        '<div class="cap">'+cap+'</div></div>';
     }).join('');
   }
 
@@ -286,9 +306,9 @@ window.EG = (function () {
     }).catch(function(err){ console.error(err); showError(); });
   }
 
-  var EG = { T:T, lab:lab, tail:tail, val:val, months:months, rebase:rebase,
+  var EG = { T:T, lab:lab, tail:tail, rangeByDate:rangeByDate, val:val, months:months, rebase:rebase,
     reset:reset, newChart:newChart, baseOpts:baseOpts, baseScales:baseScales, grid:grid, line:line,
-    fmtBig:fmtBig, fmtUsd:fmtUsd, fmtPct1:fmtPct1, fmtPct1s:fmtPct1s, fmtPct2:fmtPct2, fmtIdx:fmtIdx, fmtMonths:fmtMonths, fmtMillions:fmtMillions,
+    fmtBig:fmtBig, fmtUsd:fmtUsd, fmtPct1:fmtPct1, fmtPct1s:fmtPct1s, fmtPct2:fmtPct2, fmtIdx:fmtIdx, fmtMonths:fmtMonths, fmtMillions:fmtMillions, fmtUnitsK:fmtUnitsK, fmtRatio:fmtRatio,
     singleOpts:singleOpts, dualOpts:dualOpts,
     renderKpis:renderKpis, boot:boot };
   return EG;

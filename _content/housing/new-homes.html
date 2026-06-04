@@ -1,0 +1,63 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">New Home Sales</div><div class="cs">Seasonally adjusted annual rate, units</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cNhSales"></canvas></div>
+    <div class="src">Source: US Census Bureau, New Residential Sales (SOLD/ASOLD).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Median &amp; Average Sales Price</div><div class="cs">NSA, USD — the gap tracks upper-tail pricing</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cNhMedianPrice"></canvas></div>
+    <div class="src">Source: US Census Bureau, New Residential Sales (SOLD/MEDIAN and SOLD/AVERAG, NSA).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Inventory by Stage of Construction</div><div class="cs">Houses for sale at end of period, SA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cNhInventory"></canvas></div>
+    <div class="src">Source: US Census Bureau (FORSALE: TOTAL / COMPED / UNDERC, SA).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Months Supply</div><div class="cs">At current sales rate, NSA &amp; SA, months</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cNhMonthsSupply"></canvas></div>
+    <div class="src">Source: US Census Bureau (FORSALE/MONSUP).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">New Home Sales by Region</div><div class="cs">SAAR — Northeast, Midwest, South, West</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cNhRegional"></canvas></div>
+    <div class="src">Source: US Census Bureau via FRED — HSN1FNE / HSN1FMW / HSN1FS / HSN1FW.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">New Home Sales — YoY % Change</div><div class="cs">Year-over-year percent change in SAAR — cycle indicator</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cNhSalesYoy"></canvas></div>
+    <div class="src">Source: US Census Bureau, derived from sales SAAR.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">NAHB/Wells Fargo Housing Market Index</div><div class="cs">Builder sentiment — 0 to 100, 50 = neutral</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cNhNahbHmi"></canvas></div>
+    <div class="src">Source: NAHB — scraped monthly from press release; historical baseline from data/historical/nahb_hmi.csv.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">NAHB Sub-Indices</div><div class="cs">Current sales, expectations next 6 months, buyer traffic — 0 to 100</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cNhNahbSub"></canvas></div>
+    <div class="src">Source: NAHB — scraped monthly; historical from data/historical/nahb_hmi.csv.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">NAHB HMI by Region</div><div class="cs">Regional builder sentiment — Northeast, Midwest, South, West</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cNhNahbRegional"></canvas></div>
+    <div class="src">Source: NAHB — scraped monthly; historical from data/historical/nahb_hmi.csv.</div>
+  </div>
+</div>
