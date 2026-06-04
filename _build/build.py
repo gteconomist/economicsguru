@@ -93,9 +93,18 @@ def build_hub(g):
                   g.get("blurb", ""), content, active=g["slug"])
 
 def build_leaf(g, ind):
-    frag_path = ROOT / "_content" / g["slug"] / ("%s.html" % ind["slug"])
-    fragment = frag_path.read_text()
-    content = (breadcrumb([("Home", "/"), (g["title"], "/%s/" % g["slug"]), (ind.get("nav", ind["title"]), None)])
+    """Render an indicator chart page. Works for both /group/slug/ (hub child)
+    and /group/ (single-page group, when ind has no slug)."""
+    slug = ind.get("slug", "")
+    frag_name = slug if slug else "index"
+    fragment = (ROOT / "_content" / g["slug"] / ("%s.html" % frag_name)).read_text()
+    if slug:
+        crumb = breadcrumb([("Home", "/"), (g["title"], "/%s/" % g["slug"]), (ind.get("nav", ind["title"]), None)])
+        relpath = "%s/%s/index.html" % (g["slug"], slug)
+    else:
+        crumb = breadcrumb([("Home", "/"), (g["title"], None)])
+        relpath = "%s/index.html" % g["slug"]
+    content = (crumb
                + pagehead(ind["title"], ind.get("subtitle", ""), with_latest=True)
                + pills(g, ind)
                + fragment)
@@ -104,8 +113,7 @@ def build_leaf(g, ind):
                '<script src="/assets/js/pages/%s.js"></script>\n'
                '<script>EG.boot("%s", "%s");</script>'
                % (CHARTJS, ind["module"], ind["data"], ind["page"]))
-    return render("%s/%s/index.html" % (g["slug"], ind["slug"]),
-                  "%s — Economics Guru" % ind["title"], ind.get("subtitle", ""),
+    return render(relpath, "%s — Economics Guru" % ind["title"], ind.get("subtitle", ""),
                   content, scripts=scripts, active=g["slug"])
 
 def main():
@@ -113,9 +121,15 @@ def main():
     for g in SITE["groups"]:
         if g.get("status") != "new":
             continue
-        written.append(build_hub(g))
-        for ind in g["indicators"]:
-            if ind.get("status") == "new" and ind.get("slug"):
+        subs = real_inds(g)
+        if subs:                       # multi-page hub group
+            written.append(build_hub(g))
+            for ind in g["indicators"]:
+                if ind.get("status") == "new" and ind.get("slug"):
+                    written.append(build_leaf(g, ind))
+        else:                          # single-page group → chart page at /group/
+            ind = g["indicators"][0]
+            if ind.get("status") == "new":
                 written.append(build_leaf(g, ind))
     print("Generated %d page(s):" % len(written))
     for w in written:

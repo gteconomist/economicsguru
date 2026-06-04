@@ -1,0 +1,58 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">Unemployment &amp; Participation</div><div class="cs">Seasonally adjusted, percent — dual axis</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cUrLfp"></canvas></div>
+    <div class="src">Source: BLS — LNS14000000 (U-3), LNS13327709 (U-6), LNS11300000 (LFP).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Monthly Change in Nonfarm Payrolls</div><div class="cs">Seasonally adjusted; thousands of jobs</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPayrolls"></canvas></div>
+    <div class="src">Source: BLS Current Employment Statistics — CES0000000001.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Payrolls vs Household Employment</div><div class="cs">Monthly change; seasonally adjusted; thousands</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPayrollsHh"></canvas></div>
+    <div class="src">Source: BLS — CES0000000001 (payrolls), LNS12000000 (household employment).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Payrolls — 3-Month Moving Average</div><div class="cs">Monthly change; seasonally adjusted; thousands</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPay3mma"></canvas></div>
+    <div class="src">Source: BLS CES — CES0000000001 (3-month trailing average).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Wages &amp; Hours</div><div class="cs">Total private; AHE YoY (left) and avg weekly hours (right)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cWages"></canvas></div>
+    <div class="src">Source: BLS CES — CES0500000003 (AHE), CES0500000002 (hours).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Full-Time vs Part-Time Employment</div><div class="cs">Seasonally adjusted; start of selected range = 100</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cFtPt"></canvas></div>
+    <div class="src">Source: BLS CPS — LNS12500000 (FT), LNS12600000 (PT).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Foreign-Born vs Native-Born Employment</div><div class="cs">Year-over-year percent change; NSA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cNativity"></canvas></div>
+    <div class="src">Source: BLS CPS Table A-7 — LNU02073413, LNU02073395.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">JOLTS — Openings, Hires, Quits</div><div class="cs">Total nonfarm; thousands, seasonally adjusted</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cJolts"></canvas></div>
+    <div class="src">Source: BLS JOLTS — JTSJOL / JTSHIL / JTSQUL.</div>
+  </div>
+</div>

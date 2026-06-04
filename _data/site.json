@@ -22,10 +22,14 @@
           "keywords": ["pce", "personal consumption", "deflator", "supercore", "fed", "bea"] }
       ]
     },
-    { "slug": "labor", "title": "Labor", "status": "legacy",
+    { "slug": "labor", "title": "Labor", "status": "new",
       "blurb": "Payrolls, unemployment, JOLTS, wages, participation.",
       "indicators": [
-        { "slug": "", "title": "Labor Market", "nav": "Overview", "card": "Payrolls, unemployment, JOLTS, wage growth, participation.", "status": "legacy" } ] },
+        { "slug": "", "title": "US Labor Market", "nav": "Overview",
+          "subtitle": "Payrolls, unemployment, wages, hours, participation, and JOLTS — sourced live from the U.S. Bureau of Labor Statistics.",
+          "card": "Payrolls, unemployment, JOLTS, wage growth, participation.",
+          "data": "/data/labor.json", "module": "labor", "page": "labor", "status": "new",
+          "keywords": ["labor", "jobs", "payrolls", "unemployment", "jolts", "wages", "participation", "bls"] } ] },
     { "slug": "housing", "title": "Housing", "status": "legacy",
       "blurb": "Sales, permits & starts, prices, mortgage activity.",
       "indicators": [

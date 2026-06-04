@@ -77,17 +77,26 @@ window.EG = (function () {
   }
 
   // ---- KPI cards ----
+  // def: { key, label, unit='%', decimals=2, deltaUnit='pp', deltaDecimals=2,
+  //        scale=1, signed=false, goodDir='down' (lower is better), cap }
   function renderKpis(containerId, defs, kpis){
     var el = document.getElementById(containerId); if(!el) return;
     el.innerHTML = defs.map(function(d){
       var o = kpis && kpis[d.key]; if(!o) return '';
-      var up = o.delta > 0, flat = Math.abs(o.delta) < 1e-9;
-      var cls = flat ? 'flat' : (up ? 'up' : 'down');
-      var arr = flat ? '' : (up ? '▲' : '▼');
-      var unit = d.unit || '%';
+      var scale = d.scale==null ? 1 : d.scale;
+      var dec   = d.decimals==null ? 2 : d.decimals;
+      var ddec  = d.deltaDecimals==null ? 2 : d.deltaDecimals;
+      var unit  = d.unit==null ? '%' : d.unit;
+      var dunit = d.deltaUnit==null ? 'pp' : d.deltaUnit;
+      var v = o.value*scale, dv = o.delta*scale;
+      var flat = Math.abs(o.delta) < 1e-9;
+      var good = !flat && ((dv > 0 && d.goodDir === 'up') || (dv < 0 && d.goodDir !== 'up'));
+      var cls = flat ? 'flat' : (good ? 'down' : 'up');   // down=green, up=red
+      var arr = flat ? '' : (dv > 0 ? '▲' : '▼');
+      var vstr = (d.signed && v > 0 ? '+' : '') + v.toFixed(dec);
       return '<div class="kpi"><div class="l">'+d.label+'</div>'+
-        '<div class="v">'+o.value.toFixed(2)+'<span class="u">'+unit+'</span></div>'+
-        '<div class="dd '+cls+'"><span class="arr">'+arr+'</span>'+Math.abs(o.delta).toFixed(2)+' '+(d.deltaUnit||'pp')+'</div>'+
+        '<div class="v">'+vstr+'<span class="u">'+unit+'</span></div>'+
+        '<div class="dd '+cls+'"><span class="arr">'+arr+'</span>'+Math.abs(dv).toFixed(ddec)+' '+dunit+'</div>'+
         '<div class="cap">'+(d.cap||'vs. prior month')+'</div></div>';
     }).join('');
   }
@@ -107,21 +116,34 @@ window.EG = (function () {
       return nd;
     })};
   }
-  function exOpts(hasY1, pct, sc){
-    var tick={ color:T.exAxis, font:{size:15*sc, weight:'700'} };
-    var g={ color:T.exGrid, drawTicks:false };
-    var axTitle=function(t){ return {display:true, text:t, color:T.exAxis, font:{size:12.5*sc, weight:'700'}}; };
-    var o={ responsive:false, animation:false, devicePixelRatio:1, maintainAspectRatio:false,
+  // Rebuild the source chart's scales at export scale: reuse its tick callbacks,
+  // titles and axis positions (so % / counts / dual-axis all render correctly),
+  // only overriding fonts/colors to the big-white export style.
+  function exScales(src, sc){
+    var tick = { color:T.exAxis, font:{size:15*sc, weight:'700'} };
+    var out = {};
+    Object.keys(src || {}).forEach(function(k){
+      var s = src[k] || {}; var isX = (k === 'x');
+      var ns = {
+        position: s.position,
+        grid: isX ? {display:false} : ((s.grid && s.grid.display === false) ? {display:false} : {color:T.exGrid, drawTicks:false}),
+        border: {display:false, color:T.exGrid},
+        ticks: Object.assign({}, s.ticks, tick)
+      };
+      if(isX){ ns.ticks.maxRotation = 0; ns.ticks.autoSkip = true; ns.ticks.maxTicksLimit = 13; }
+      if(s.title && s.title.text){ ns.title = {display:true, text:s.title.text, color:T.exAxis, font:{size:12.5*sc, weight:'700'}}; }
+      out[k] = ns;
+    });
+    if(!out.x){ out.x = { grid:{display:false}, ticks:Object.assign({maxRotation:0, autoSkip:true, maxTicksLimit:13}, tick) }; }
+    return out;
+  }
+  function exOpts(srcOptions, sc){
+    return {
+      responsive:false, animation:false, devicePixelRatio:1, maintainAspectRatio:false,
       layout:{padding:{top:6*sc, right:10*sc, bottom:2*sc, left:2*sc}},
       plugins:{ legend:{position:'bottom', labels:{color:T.exAxis, usePointStyle:true, pointStyle:'circle', boxWidth:9*sc, padding:15*sc, font:{size:14.5*sc, weight:'700'}, generateLabels:gapLabels}}, tooltip:{enabled:false} },
-      scales:{ x:{ grid:{display:false}, border:{color:T.exGrid}, ticks:Object.assign({maxRotation:0, autoSkip:true, maxTicksLimit:13}, tick) } } };
-    if(hasY1){
-      o.scales.y ={position:'left',  grid:g, border:{display:false}, ticks:Object.assign({callback:function(v){return v+'%';}}, tick), title:axTitle('YoY')};
-      o.scales.y1={position:'right', grid:{display:false}, border:{display:false}, ticks:Object.assign({callback:function(v){return v+'%';}}, tick), title:axTitle('MoM')};
-    } else {
-      o.scales.y={grid:g, border:{display:false}, ticks:Object.assign({callback:function(v){return pct?v+'%':v;}}, tick)};
-    }
-    return o;
+      scales: exScales(srcOptions && srcOptions.scales, sc)
+    };
   }
   function exportPng(card, ch){
     var sc=2, W=1100*sc, H=500*sc;
@@ -138,7 +160,7 @@ window.EG = (function () {
     if(sub){ x.fillStyle=T.exMuted; x.font='italic '+(14*sc)+'px '+EXF; x.fillText(sub, padL, 80*sc); }
     var pw=W-padL-padR, ph=H-headerH-footerH;
     var pc=document.createElement('canvas'); pc.width=pw; pc.height=ph;
-    var ec=new Chart(pc, { type:ch.config.type, data:exportData(ch,sc), options:exOpts(ch.$y1, ch.$pct, sc) });
+    var ec=new Chart(pc, { type:ch.config.type, data:exportData(ch,sc), options:exOpts(ch.config.options, sc) });
     if(ec.draw) ec.draw();
     x.drawImage(pc, padL, headerH);
     ec.destroy();
