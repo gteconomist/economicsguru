@@ -2,171 +2,43 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Economics Guru &mdash; Live US Economic Data</title>
-<meta name="description" content="Live US economic data dashboards: inflation (CPI, PPI, PCE), labor market, housing, GDP, consumer (retail sales, sentiment), rates &amp; markets (Treasury yields, Fed Funds, credit spreads, equities, commodities), industry (industrial production, capacity utilization, factory orders), and more. Updated daily from BLS, FRED, BEA, Census, EIA, and ISM.">
+<title>Economics Guru — Live US Economic Data</title>
+<meta name="description" content="Live US economic data dashboards: inflation, labor, housing, GDP, consumer, rates &amp; markets, industry, and government. Updated nightly from BLS, FRED, BEA, Census, EIA, and ICE BofA.">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="/assets/styles.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-  /* Homepage-only: tighten gap between EIG ribbon and the H1 below */
-  main { padding-top: 4px; }
-  .hero { padding: 0 0 24px; }
-  .hero h1 { font-size: 40px; }
-  .hero p  { font-size: 17px; color: var(--ink-on-navy-soft); max-width: 720px; }
-  .topic-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 24px;
-  }
-  @media (max-width: 900px) { .topic-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 540px) { .topic-grid { grid-template-columns: 1fr; } }
-  .topic-card {
-    background: var(--panel-bg); border: 1px solid var(--border);
-    border-top: 4px solid var(--navy); padding: 18px;
-    text-decoration: none; color: var(--ink); display: block;
-  }
-  .topic-card:hover { border-color: var(--navy); text-decoration: none; }
-  .topic-card.coming { opacity: 0.55; cursor: not-allowed; }
-  .topic-card h3 {
-    margin: 0 0 6px; font-family: var(--font-display); color: var(--navy); font-size: 20px;
-  }
-  .topic-card p { margin: 0; color: var(--ink-soft); font-size: 14px; }
-  .topic-card .badge {
-    display: inline-block; margin-bottom: 8px;
-    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
-    text-transform: uppercase; color: var(--mustard);
-  }
-  .topic-card.coming .badge { color: var(--silver); }
-
-  /* Economic Impact Group ribbon (navy band beneath the header) */
-  .eig-ribbon { background: var(--page-bg); }
-  .eig-ribbon .wrap {
-    max-width: 1200px; margin: 0 auto;
-    padding: 18px 24px;
-    display: flex; align-items: center; gap: 22px;
-    flex-wrap: wrap;
-  }
-  .eig-ribbon .eig-mark { display: block; line-height: 0; }
-  .eig-ribbon .eig-mark img { height: 56px; width: auto; display: block; }
-  .eig-ribbon .eig-text { display: flex; flex-direction: column; gap: 2px; }
-  .eig-ribbon .eig-eyebrow {
-    font-size: 11px; font-weight: 700;
-    color: var(--ink-on-navy-soft);
-    text-transform: uppercase; letter-spacing: 0.14em;
-  }
-  .eig-ribbon .eig-title {
-    font-size: 19px; font-weight: 700;
-    color: var(--ink-on-navy);
-    letter-spacing: -0.005em; line-height: 1.2;
-  }
-  .eig-ribbon .eig-title a { color: var(--ink-on-navy); }
-  .eig-ribbon .eig-title a:hover { color: var(--mustard); text-decoration: none; }
-
-  /* Economic Impact Group footer block */
-  .footer-brand {
-    display: flex; flex-direction: column; align-items: center;
-    gap: 10px; margin: 0 auto 18px; text-align: center;
-  }
-  .footer-brand img { height: 48px; width: auto; display: block; }
-  .footer-brand .line { font-size: 13px; color: var(--ink-on-navy); letter-spacing: 0.02em; }
-  .footer-brand a { color: var(--mustard); }
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;900&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<link rel="stylesheet" href="/assets/css/home.css">
 </head>
 <body>
 
-<header class="site-header">
+<header class="hdr">
   <div class="wrap">
-    <div class="brand">Economics<span class="tag">Guru</span></div>
-    <nav>
-      <a href="/" class="active">Home</a>
-      <a href="/inflation/">Inflation</a>
-      <a href="/labor/">Labor</a>
-      <a href="/housing/">Housing</a>
-      <a href="/gdp/">GDP</a>
-      <a href="/consumer/">Consumer</a>
-      <a href="/rates/">Rates</a>
-      <a href="/industry/">Industry</a>
-      <a href="/government/">Government</a>
-      <a href="/about/">About</a>
-    </nav>
+    <a class="brand" href="/">Economics<span class="g">Guru</span></a>
+    <nav class="nav"><a href="/" class="active">Home</a><div class="item has-menu"><a href="/inflation/">Inflation</a><div class="menu"><a href="/inflation/"><div class="mt">Overview</div><div class="md">Three ways the U.S. measures inflation — consumer prices (CPI), producer prices (PPI), and the PCE deflator.</div></a><a href="/inflation/cpi/"><div class="mt">CPI</div><div class="md">Headline &amp; core CPI, monthly change, components, energy prices. Source: BLS.</div></a><a href="/inflation/ppi/"><div class="mt">PPI</div><div class="md">Final-demand prices producers receive — headline, core, goods, services. Source: BLS.</div></a><a href="/inflation/pce/"><div class="mt">PCE</div><div class="md">The Fed&#x27;s preferred gauge — headline, core, services, supercore. Source: BEA.</div></a></div></div><div class="item"><a href="/labor/">Labor</a></div><div class="item has-menu"><a href="/housing/">Housing</a><div class="menu"><a href="/housing/"><div class="mt">Overview</div><div class="md">Sales, permits &amp; starts, prices, mortgage activity.</div></a><a href="/housing/existing/"><div class="mt">Existing</div><div class="md">Existing home sales, median price, inventory, Case-Shiller HPI, mortgage rate. Source: FRED.</div></a><a href="/housing/new-homes/"><div class="mt">New Homes</div><div class="md">New home sales, median &amp; average price, inventory, regional sales, NAHB sentiment. Source: Census, FRED, NAHB.</div></a><a href="/housing/permits-starts/"><div class="mt">Permits &amp; Starts</div><div class="md">Permits &amp; starts — total, single-family, multi-family, MoM by type, permits-to-starts ratio. Source: Census/FRED.</div></a><a href="/housing/mortgage-activity/"><div class="mt">Mortgage Activity</div><div class="md">MBA applications, 30Y/15Y rates, spread, the golden handcuff, delinquency, debt, affordability. Source: MBA, Freddie Mac, Fed, BEA.</div></a></div></div><div class="item"><a href="/gdp/">GDP</a></div><div class="item has-menu"><a href="/consumer/">Consumer</a><div class="menu"><a href="/consumer/"><div class="mt">Overview</div><div class="md">Retail sales, income &amp; spending, sentiment &amp; confidence.</div></a><a href="/consumer/income-spending-debt/"><div class="mt">Income &amp; Spending</div><div class="md">Income &amp; consumption, saving rate, interest payments, consumer credit, revolving debt, delinquencies.</div></a><a href="/consumer/retail-confidence/"><div class="mt">Retail &amp; Confidence</div><div class="md">Retail sales (total/ex-MV/control), sector contributions, UMich sentiment, Conference Board confidence.</div></a></div></div><div class="item has-menu"><a href="/rates/">Rates</a><div class="menu"><a href="/rates/"><div class="mt">Overview</div><div class="md">Treasury yields, the curve, credit spreads, equities, commodities.</div></a><a href="/rates/treasuries/"><div class="mt">Treasuries</div><div class="md">Yield curve, 10Y, 2s10s, Fed funds vs 10Y, real yields &amp; breakevens, IG vs HY credit spreads.</div></a><a href="/rates/equities/"><div class="mt">Equities</div><div class="md">S&amp;P 500, major indices rebased, VIX, drawdown, the Wilshire/profits valuation gauge, Nasdaq vs Russell.</div></a><a href="/rates/commodities/"><div class="mt">Commodities</div><div class="md">Gold &amp; silver, gold/silver ratio, WTI vs Brent, natural gas, platinum, energy-vs-metals composite.</div></a></div></div><div class="item has-menu"><a href="/industry/">Industry</a><div class="menu"><a href="/industry/"><div class="mt">Overview</div><div class="md">Industrial production, factory orders, ISM PMIs.</div></a><a href="/industry/manufacturing/"><div class="mt">Manufacturing</div><div class="md">Industrial production, capacity utilization, factory orders, durable goods, capital-goods shipments, electricity. Source: Fed, Census, EIA.</div></a><a href="/industry/surveys/"><div class="mt">Surveys</div><div class="md">ISM Manufacturing &amp; Services PMIs, components, Cass Freight, NFIB optimism &amp; uncertainty. Source: ISM, Cass, NFIB.</div></a></div></div><div class="item"><a href="/government/">Gov&#x27;t</a></div></nav>
+    <div class="spacer"></div>
+    <label class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9fb1c2" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input placeholder="Search 40+ indicators…" aria-label="Search indicators">
+    </label>
   </div>
 </header>
 
-<section class="eig-ribbon">
-  <div class="wrap">
-    <a class="eig-mark" href="https://www.economicimpact.com" target="_blank" rel="noopener" aria-label="Economic Impact Group, LLC">
-      <img src="/assets/eig-logo.png" alt="Economic Impact Group, LLC">
-    </a>
-    <div class="eig-text">
-      <div class="eig-eyebrow">A Product of</div>
-      <div class="eig-title"><a href="https://www.economicimpact.com" target="_blank" rel="noopener">Economic Impact Group, LLC</a></div>
-    </div>
-  </div>
-</section>
-
-<main>
-  <section class="hero">
-    <h1 style="font-family:var(--font-display); color:var(--ink-on-navy); font-weight:800; margin:0 0 10px;">Live US economic data, updated daily.</h1>
-    <p>Charts, KPIs, and downloadable series for the indicators that matter most &mdash; sourced directly from BLS, FRED, BEA, the Census Bureau, EIA, and ICE BofA. Built as a companion to <a href="https://www.alfiemeek.com" target="_blank" rel="noopener">Alfie Meek&rsquo;s Weekly Economic Update</a>.</p>
-  </section>
-
-  <div class="topic-grid">
-    <a class="topic-card" href="/inflation/">
-      <div class="badge">Available</div>
-      <h3>Inflation</h3>
-      <p>Consumer prices (CPI), producer prices (PPI), and PCE deflator.</p>
-    </a>
-    <a class="topic-card" href="/labor/">
-      <div class="badge">Available</div>
-      <h3>Labor Market</h3>
-      <p>Payrolls, unemployment rate, JOLTS, wage growth, labor force participation.</p>
-    </a>
-    <a class="topic-card" href="/housing/">
-      <div class="badge">Available</div>
-      <h3>Housing Market</h3>
-      <p>Existing home sales, new home sales, building permits and starts, prices, mortgage rates.</p>
-    </a>
-    <a class="topic-card" href="/gdp/">
-      <div class="badge">Available</div>
-      <h3>Gross Domestic Product</h3>
-      <p>Real GDP, component contributions, corporate profits, productivity, and GDP vs GDI.</p>
-    </a>
-    <a class="topic-card" href="/consumer/">
-      <div class="badge">Available</div>
-      <h3>Consumer</h3>
-      <p>Retail sales (total / ex-MV / control), sector contributions, personal income &amp; consumption (nominal &amp; real), UMich sentiment, Conference Board confidence.</p>
-    </a>
-    <a class="topic-card" href="/rates/">
-      <div class="badge">Available</div>
-      <h3>Rates &amp; Markets</h3>
-      <p>Treasury yield curve, 10-year yield, 2s10s recession indicator, Fed Funds vs. 10-year, real yields &amp; breakeven inflation, IG vs. HY credit spreads. Equities, commodities, and FX/crypto coming next.</p>
-    </a>
-    <a class="topic-card" href="/industry/">
-      <div class="badge">Available</div>
-      <h3>Industry</h3>
-      <p>Industrial production, capacity utilization, factory orders, capital-goods shipments, electricity generation. ISM Manufacturing &amp; Services PMIs and Cass Freight coming next.</p>
-    </a>
-    <a class="topic-card" href="/government/">
-      <div class="badge">Available</div>
-      <h3>Government &amp; Fiscal Policy</h3>
-      <p>Federal debt outstanding (daily), federal/state/local employment, outlays vs receipts, M2 money supply, Federal Reserve balance sheet, tariff revenue, interest expense, and debt as % of GDP.</p>
-    </a>
-  </div>
+<main class="wrap">
+<section class="home-hero"><div class="eyebrow">A product of Economic Impact Group</div><h1>Live U.S. economic data,<br><span class="grad">tracked beautifully.</span></h1><p class="lede">Charts, KPIs, and downloadable series for the indicators that move markets &mdash; CPI, jobs, GDP, housing, rates, equities, commodities, and the federal balance sheet. Sourced straight from BLS, FRED, BEA, Census, EIA, and ICE BofA, and refreshed every night.</p><label class="home-search-xl"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#92a3b4" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input placeholder="Search 40+ indicators&hellip;" aria-label="Search indicators"></label></section><div class="ticker"><div class="live"><span class="dot"></span>Live</div><div class="mask"><div class="track" id="ticker-track"></div></div></div><div class="home-section-h"><h2>Explore the data</h2><p>Eight areas, 40+ indicators &mdash; each a live, exportable dashboard.</p></div><div class="home-cards"><a class="gcard" href="/inflation/" style="--accent:#B3A369"><h3>Inflation</h3><p>Three ways the U.S. measures inflation — consumer prices (CPI), producer prices (PPI), and the PCE deflator.</p><div class="gc-meta"><span>3 indicators</span><span class="gc-arrow">&rarr;</span></div></a><a class="gcard" href="/labor/" style="--accent:#64CCC9"><h3>Labor</h3><p>Payrolls, unemployment, JOLTS, wages, participation.</p><div class="gc-meta"><span>Overview</span><span class="gc-arrow">&rarr;</span></div></a><a class="gcard" href="/housing/" style="--accent:#E04F39"><h3>Housing</h3><p>Sales, permits &amp; starts, prices, mortgage activity.</p><div class="gc-meta"><span>4 indicators</span><span class="gc-arrow">&rarr;</span></div></a><a class="gcard" href="/gdp/" style="--accent:#3A5DAE"><h3>GDP</h3><p>Real GDP, contributions, profits, productivity, GDP vs GDI.</p><div class="gc-meta"><span>Overview</span><span class="gc-arrow">&rarr;</span></div></a><a class="gcard" href="/consumer/" style="--accent:#A4D233"><h3>Consumer</h3><p>Retail sales, income &amp; spending, sentiment &amp; confidence.</p><div class="gc-meta"><span>2 indicators</span><span class="gc-arrow">&rarr;</span></div></a><a class="gcard" href="/rates/" style="--accent:#5F249F"><h3>Rates</h3><p>Treasury yields, the curve, credit spreads, equities, commodities.</p><div class="gc-meta"><span>3 indicators</span><span class="gc-arrow">&rarr;</span></div></a><a class="gcard" href="/industry/" style="--accent:#FFCD00"><h3>Industry</h3><p>Industrial production, factory orders, ISM PMIs.</p><div class="gc-meta"><span>2 indicators</span><span class="gc-arrow">&rarr;</span></div></a><a class="gcard" href="/government/" style="--accent:#008C95"><h3>Government</h3><p>Federal debt, fiscal flows, money supply, the Fed balance sheet.</p><div class="gc-meta"><span>Overview</span><span class="gc-arrow">&rarr;</span></div></a></div>
 </main>
 
-<footer class="site-footer">
-  <div class="footer-brand">
-    <a href="https://www.economicimpact.com" target="_blank" rel="noopener">
-      <img src="/assets/eig-logo.png" alt="Economic Impact Group, LLC">
-    </a>
-    <div class="line">economicsguru.com is a product of <a href="https://www.economicimpact.com" target="_blank" rel="noopener">Economic Impact Group, LLC</a></div>
-  </div>
+<footer class="foot">
   <div class="wrap">
-    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, BEA, Census, EIA, UMich, Conference Board, and ICE BofA. <a href="/about/">Methodology</a></div>
-    <div>Data refreshes nightly.</div>
+    <div>© <span id="yr"></span> Economics Guru · Public data from BLS, FRED, BEA, Census, EIA, UMich, Conference Board, and ICE BofA. <a href="/about/">Methodology</a></div>
+    <div>A product of <a href="https://www.economicimpact.com" target="_blank" rel="noopener">Economic Impact Group, LLC</a> · Data refreshes nightly</div>
   </div>
 </footer>
 
 <script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+<script src="/assets/js/home.js"></script>
 </body>
 </html>

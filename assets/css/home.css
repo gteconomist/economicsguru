@@ -1,0 +1,85 @@
+/* economicsguru.com — home page (dark GT, made to pop) */
+
+/* Hero */
+.home-hero{ position:relative; text-align:center; padding:72px 20px 30px; overflow:hidden; }
+.home-hero::before{
+  content:""; position:absolute; inset:-40% 0 auto 0; height:520px; z-index:0;
+  background:
+    radial-gradient(60% 80% at 50% 0%, rgba(179,163,105,.20), rgba(179,163,105,0) 70%),
+    radial-gradient(45% 60% at 80% 10%, rgba(100,204,201,.12), rgba(100,204,201,0) 70%);
+  pointer-events:none;
+}
+.home-hero > *{ position:relative; z-index:1; }
+.home-hero .eyebrow{
+  font-size:12px; font-weight:700; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--gold); margin-bottom:14px;
+}
+.home-hero h1{
+  font-family:var(--serif); font-weight:700; letter-spacing:-.02em; line-height:1.04;
+  font-size:clamp(38px, 6vw, 68px); margin:0 auto 14px; max-width:14ch; color:#fff;
+}
+.home-hero h1 .grad{
+  background:linear-gradient(95deg, #B3A369 0%, #EAA000 45%, #64CCC9 110%);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:#B3A369;
+}
+.home-hero p.lede{
+  color:var(--muted); font-size:clamp(15px,1.6vw,18px); max-width:680px; margin:0 auto 26px; line-height:1.6;
+}
+.home-search-xl{
+  display:flex; align-items:center; gap:10px; max-width:560px; margin:0 auto;
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.16);
+  border-radius:999px; padding:14px 22px; transition:.18s;
+}
+.home-search-xl:focus-within{ border-color:var(--gold); box-shadow:0 0 0 4px rgba(179,163,105,.14); }
+.home-search-xl input{ background:none; border:0; outline:0; color:#fff; font:inherit; font-size:16px; width:100%; }
+.home-search-xl input::placeholder{ color:#92a3b4; }
+
+/* Live ticker tape */
+.ticker{
+  display:flex; align-items:stretch; margin:34px 0 8px;
+  border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0));
+  overflow:hidden; position:relative;
+}
+.ticker .live{
+  display:flex; align-items:center; gap:8px; flex:none; z-index:2;
+  padding:0 18px; background:var(--bg); border-right:1px solid var(--line);
+  font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--gold);
+}
+.ticker .live .dot{ width:8px; height:8px; border-radius:50%; background:var(--t-orange); box-shadow:0 0 0 0 rgba(224,79,57,.6); animation:pulse 1.8s infinite; }
+@keyframes pulse{ 0%{box-shadow:0 0 0 0 rgba(224,79,57,.55);} 70%{box-shadow:0 0 0 9px rgba(224,79,57,0);} 100%{box-shadow:0 0 0 0 rgba(224,79,57,0);} }
+.ticker .mask{ overflow:hidden; flex:1; }
+.ticker .track{ display:inline-flex; align-items:center; white-space:nowrap; animation:marquee 60s linear infinite; will-change:transform; }
+.ticker:hover .track{ animation-play-state:paused; }
+@keyframes marquee{ from{transform:translateX(0);} to{transform:translateX(-50%);} }
+.tick{ display:inline-flex; align-items:baseline; gap:8px; padding:13px 26px; border-right:1px solid var(--line); }
+.tick .tl{ font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); }
+.tick .tv{ font-family:var(--serif); font-weight:700; font-size:16px; color:#fff; }
+.tick .td{ font-size:12px; font-weight:700; }
+.tick .td.up{ color:#64CCC9; } .tick .td.down{ color:#ff8a6e; } .tick .td.flat{ color:var(--slate); }
+
+/* Group cards */
+.home-section-h{ text-align:center; margin:40px 0 4px; }
+.home-section-h h2{ font-family:var(--serif); font-weight:700; font-size:26px; color:#fff; margin:0; }
+.home-section-h p{ color:var(--muted); font-size:14px; margin:6px 0 0; }
+.home-cards{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin:24px 0 8px; }
+@media(max-width:1000px){ .home-cards{ grid-template-columns:repeat(2,1fr); } }
+@media(max-width:560px){ .home-cards{ grid-template-columns:1fr; } }
+.gcard{
+  position:relative; display:block; background:var(--card); border:1px solid var(--line);
+  border-radius:16px; padding:20px 18px 16px; overflow:hidden; box-shadow:var(--shadow);
+  transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.gcard::before{ content:""; position:absolute; top:0; left:0; right:0; height:4px; background:var(--accent); opacity:.9; }
+.gcard::after{
+  content:""; position:absolute; right:-40px; top:-40px; width:120px; height:120px; border-radius:50%;
+  background:radial-gradient(circle, var(--accent), transparent 70%); opacity:.10; transition:.16s;
+}
+.gcard:hover{ transform:translateY(-5px); border-color:var(--accent); box-shadow:0 14px 40px rgba(0,0,0,.45); }
+.gcard:hover::after{ opacity:.22; }
+.gcard h3{ font-family:var(--serif); font-weight:700; font-size:19px; color:#fff; margin:6px 0 6px; }
+.gcard p{ color:var(--muted); font-size:13.5px; line-height:1.45; margin:0 0 16px; }
+.gcard .gc-meta{ display:flex; align-items:center; justify-content:space-between; }
+.gcard .gc-meta span:first-child{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); }
+.gcard .gc-arrow{ font-size:18px; color:var(--muted); transition:transform .16s, color .16s; }
+.gcard:hover .gc-arrow{ transform:translateX(4px); color:#fff; }

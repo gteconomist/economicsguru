@@ -104,8 +104,12 @@
           "card": "ISM Manufacturing & Services PMIs, components, Cass Freight, NFIB optimism & uncertainty. Source: ISM, Cass, NFIB.",
           "data": "/data/industry_surveys.json", "module": "industry", "page": "surveys", "status": "new",
           "keywords": ["ism", "pmi", "manufacturing", "services", "diffusion index", "cass freight", "nfib", "small business optimism"] } ] },
-    { "slug": "government", "title": "Gov't", "status": "legacy",
+    { "slug": "government", "title": "Gov't", "status": "new",
       "blurb": "Federal debt, fiscal flows, money supply, the Fed balance sheet.",
-      "indicators": [ { "slug": "", "title": "Government & Fiscal Policy", "nav": "Overview", "status": "legacy" } ] }
+      "indicators": [ { "slug": "", "title": "Government & Fiscal Policy", "nav": "Overview",
+        "subtitle": "The federal balance sheet, who staffs government, the cash flowing in and out of Treasury, the money supply, and the Fed's footprint — sourced live from the U.S. Treasury (Fiscal Data), the Federal Reserve via FRED, and BLS.",
+        "card": "Federal debt, government employment, outlays vs receipts, M2, the Fed balance sheet, tariffs, interest expense, debt/GDP.",
+        "data": "/data/government.json", "module": "government", "page": "government", "status": "new",
+        "keywords": ["federal debt", "deficit", "outlays", "receipts", "m2", "money supply", "fed balance sheet", "tariffs", "interest expense", "debt to gdp"] } ] }
   ]
 }

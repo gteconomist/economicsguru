@@ -36,6 +36,48 @@ window.EG = (function () {
         });
       }
     });
+    // Vertical event lines at named dates (e.g. debt-trillion crossings, QE/QT).
+    // Per-chart config via options.plugins.verticalEventLines = {events, origDates}.
+    Chart.register({
+      id:'verticalEventLines', defaults:{events:[], origDates:[]},
+      afterDatasetsDraw:function(chart,_a,options){
+        var events=options&&options.events, dates=options&&options.origDates;
+        if(!events||!events.length||!dates||!dates.length) return;
+        var ctx=chart.ctx, area=chart.chartArea, xs=chart.scales&&chart.scales.x;
+        if(!area||!xs) return; ctx.save();
+        events.forEach(function(ev){
+          var idx=-1,i; for(i=0;i<dates.length;i++){ if(dates[i]>=ev.date){idx=i;break;} }
+          if(idx<0) return; var x=xs.getPixelForValue(idx);
+          if(x<area.left||x>area.right) return;
+          ctx.strokeStyle=ev.color||'#E04F39'; ctx.lineWidth=ev.lineWidth||1.25;
+          ctx.setLineDash(ev.dash||[]);
+          ctx.beginPath(); ctx.moveTo(x,area.top); ctx.lineTo(x,area.bottom); ctx.stroke();
+        });
+        ctx.restore();
+      }
+    });
+    // Shaded vertical regions (e.g. recessions, presidential terms).
+    // Per-chart config via options.plugins.politicalShading = {regions, origDates}.
+    Chart.register({
+      id:'politicalShading', defaults:{regions:[], origDates:[]},
+      beforeDatasetsDraw:function(chart,_a,options){
+        var regions=options&&options.regions, dates=options&&options.origDates;
+        if(!regions||!regions.length||!dates||!dates.length) return;
+        var ctx=chart.ctx, area=chart.chartArea, xs=chart.scales&&chart.scales.x;
+        if(!area||!xs) return; ctx.save();
+        regions.forEach(function(rg){
+          var i0=0; while(i0<dates.length&&dates[i0]<rg.start) i0++;
+          if(i0>=dates.length) return;
+          var i1; if(rg.end==null){ i1=dates.length-1; } else { i1=i0; while(i1<dates.length-1&&dates[i1+1]<=rg.end) i1++; }
+          var x0=xs.getPixelForValue(i0), x1=xs.getPixelForValue(i1);
+          var left=Math.max(area.left,Math.min(x0,x1)), right=Math.min(area.right,Math.max(x0,x1));
+          if(right<=left) return;
+          ctx.globalAlpha=rg.alpha!=null?rg.alpha:0.18; ctx.fillStyle=rg.color;
+          ctx.fillRect(left,area.top,right-left,area.bottom-area.top);
+        });
+        ctx.globalAlpha=1; ctx.restore();
+      }
+    });
   }
 
   // ---- formatting / data helpers ----
@@ -163,10 +205,12 @@ window.EG = (function () {
         dstr = Math.abs(dv).toFixed(ddec) + ' ' + (d.deltaUnit==null ? 'pp' : d.deltaUnit);
       }
       var cap = d.cap || 'vs. prior month';
-      if (d.capKey && o[d.capKey] != null) { var yv = o[d.capKey]; cap = (yv>=0?'+':'') + yv.toFixed(1) + '% y/y'; }
+      if (d.noDelta) cap = o.label ? ('as of ' + o.label) : (d.cap || '');
+      else if (d.capKey && o[d.capKey] != null) { var yv = o[d.capKey]; cap = (yv>=0?'+':'') + yv.toFixed(1) + '% y/y'; }
+      var ddHtml = d.noDelta ? '' : ('<div class="dd '+cls+'"><span class="arr">'+arr+'</span>'+dstr+'</div>');
       return '<div class="kpi"><div class="l">'+d.label+'</div>'+
         '<div class="v">'+vstr+(unit?'<span class="u">'+unit+'</span>':'')+'</div>'+
-        '<div class="dd '+cls+'"><span class="arr">'+arr+'</span>'+dstr+'</div>'+
+        ddHtml +
         '<div class="cap">'+cap+'</div></div>';
     }).join('');
   }
@@ -238,12 +282,16 @@ window.EG = (function () {
     return out;
   }
   function exOpts(srcOptions, sc, theme){
-    return {
+    var o = {
       responsive:false, animation:false, devicePixelRatio:1, maintainAspectRatio:false,
       layout:{padding:{top:6*sc, right:12*sc, bottom:2*sc, left:2*sc}},
       plugins:{ legend:{position:'bottom', labels:{color:theme.axis, usePointStyle:true, pointStyle:'circle', boxWidth:12*sc, padding:16*sc, font:{size:18*sc, weight:'700'}, generateLabels:gapLabels}}, tooltip:{enabled:false} },
       scales: exScales(srcOptions && srcOptions.scales, sc, theme.axis, theme.grid)
     };
+    var sp = srcOptions && srcOptions.plugins;   // preserve event lines / shading in exports
+    if(sp && sp.verticalEventLines) o.plugins.verticalEventLines = sp.verticalEventLines;
+    if(sp && sp.politicalShading)  o.plugins.politicalShading  = sp.politicalShading;
+    return o;
   }
   function exportImg(card, ch, theme){
     var sc=2, W=1100*sc, H=500*sc;

@@ -116,8 +116,43 @@ def build_leaf(g, ind):
     return render(relpath, "%s — Economics Guru" % ind["title"], ind.get("subtitle", ""),
                   content, scripts=scripts, active=g["slug"])
 
+def build_home():
+    accents = ['#B3A369', '#64CCC9', '#E04F39', '#3A5DAE', '#A4D233', '#5F249F', '#FFCD00', '#008C95']
+    cards = []
+    for i, g in enumerate(SITE["groups"]):
+        title = "Government" if g["title"] == "Gov't" else g["title"]
+        subs = real_inds(g)
+        meta = ("%d indicators" % len(subs)) if len(subs) > 1 else "Overview"
+        cards.append(
+            '<a class="gcard" href="/%s/" style="--accent:%s">'
+            '<h3>%s</h3><p>%s</p>'
+            '<div class="gc-meta"><span>%s</span><span class="gc-arrow">&rarr;</span></div></a>'
+            % (g["slug"], accents[i % len(accents)], esc(title), esc(g.get("blurb", "")), meta))
+    hero = (
+        '<section class="home-hero">'
+        '<div class="eyebrow">A product of Economic Impact Group</div>'
+        '<h1>Live U.S. economic data,<br><span class="grad">tracked beautifully.</span></h1>'
+        '<p class="lede">Charts, KPIs, and downloadable series for the indicators that move markets &mdash; '
+        'CPI, jobs, GDP, housing, rates, equities, commodities, and the federal balance sheet. '
+        'Sourced straight from BLS, FRED, BEA, Census, EIA, and ICE BofA, and refreshed every night.</p>'
+        '<label class="home-search-xl">'
+        '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#92a3b4" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>'
+        '<input placeholder="Search 40+ indicators&hellip;" aria-label="Search indicators"></label>'
+        '</section>'
+    )
+    ticker = ('<div class="ticker"><div class="live"><span class="dot"></span>Live</div>'
+              '<div class="mask"><div class="track" id="ticker-track"></div></div></div>')
+    section = ('<div class="home-section-h"><h2>Explore the data</h2>'
+               '<p>Eight areas, 40+ indicators &mdash; each a live, exportable dashboard.</p></div>')
+    content = hero + ticker + section + '<div class="home-cards">' + "".join(cards) + "</div>"
+    return render("index.html",
+                  "Economics Guru — Live US Economic Data",
+                  "Live US economic data dashboards: inflation, labor, housing, GDP, consumer, rates & markets, industry, and government. Updated nightly from BLS, FRED, BEA, Census, EIA, and ICE BofA.",
+                  content, scripts='<script src="/assets/js/home.js"></script>',
+                  active="home", head_extra='<link rel="stylesheet" href="/assets/css/home.css">')
+
 def main():
-    written = []
+    written = [build_home()]
     for g in SITE["groups"]:
         if g.get("status") != "new":
             continue
