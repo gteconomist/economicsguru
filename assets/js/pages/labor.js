@@ -66,10 +66,10 @@ window.EG_PAGES.labor = function (data, EG) {
       { label:'Household employment', data:EG.val(hh), backgroundColor:C[1], borderRadius:3, barPercentage:.95, categoryPercentage:.72 }
     ]}, options:EG.baseOpts(false) });
 
-    // 4. Payrolls 3-month moving average (line)
+    // 4. Payrolls 3-month moving average (bars)
     var m3 = EG.tail(mma(data.payroll_mom || [], 3), n);
-    EG.newChart('cPay3mma', { type:'line', data:{ labels:m3.map(function(p){return EG.lab(p[0]);}), datasets:[
-      EG.line(EG.val(m3), C[0], { label:'3-mo avg' })
+    EG.newChart('cPay3mma', { type:'bar', data:{ labels:m3.map(function(p){return EG.lab(p[0]);}), datasets:[
+      { label:'3-mo avg', data:EG.val(m3), backgroundColor:C[0], borderRadius:3, barPercentage:.95, categoryPercentage:.8 }
     ]}, options:EG.baseOpts(false) });
 
     // 5. Wages (AHE YoY %, left) + avg weekly hours (right)
