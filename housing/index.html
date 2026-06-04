@@ -2,94 +2,43 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Housing Market &mdash; Economics Guru</title>
-<meta name="description" content="US housing market indicators: existing home sales, new home sales, permits and starts, and mortgage activity. Sourced live from FRED, Census, BEA, and the Mortgage Bankers Association.">
+<title>Housing — Economics Guru</title>
+<meta name="description" content="Sales, permits &amp; starts, prices, mortgage activity.">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="/assets/styles.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-  .hub-hero { padding: 24px 0 12px; }
-  .hub-hero h1 { font-family: var(--font-display); color: var(--ink-on-navy); font-weight: 800; font-size: 32px; letter-spacing: -0.01em; margin: 0 0 6px; }
-  .hub-hero p { font-size: 15px; color: var(--ink-on-navy-soft); max-width: 760px; margin: 0; }
-  .topic-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 22px; }
-  @media (max-width: 1100px) { .topic-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 800px) { .topic-grid { grid-template-columns: 1fr; } }
-  .topic-card {
-    background: var(--panel-bg); border: 1px solid var(--border);
-    border-top: 4px solid var(--navy); padding: 18px;
-    text-decoration: none; color: var(--ink); display: block;
-  }
-  .topic-card:hover { border-color: var(--navy); text-decoration: none; }
-  .topic-card.coming { opacity: 0.55; cursor: not-allowed; }
-  .topic-card h3 { margin: 0 0 6px; font-family: var(--font-display); color: var(--navy); font-size: 19px; }
-  .topic-card p { margin: 0; color: var(--ink-soft); font-size: 14px; }
-  .topic-card .badge {
-    display: inline-block; margin-bottom: 8px;
-    font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
-    text-transform: uppercase; color: var(--mustard);
-  }
-  .topic-card.coming .badge { color: var(--silver); }
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;900&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+
 </head>
 <body>
 
-<header class="site-header">
+<header class="hdr">
   <div class="wrap">
-    <div class="brand">Economics<span class="tag">Guru</span></div>
-    <nav>
-      <a href="/">Home</a>
-      <a href="/inflation/">Inflation</a>
-      <a href="/labor/">Labor</a>
-      <a href="/housing/" class="active">Housing</a>
-      <a href="/gdp/">GDP</a>
-      <a href="/consumer/">Consumer</a>
-      <a href="/rates/">Rates</a>
-      <a href="/industry/">Industry</a>
-<a href="/government/">Government</a>
-      <a href="/about/">About</a>
-    </nav>
+    <a class="brand" href="/">Economics<span class="g">Guru</span></a>
+    <nav class="nav"><a href="/">Home</a><div class="item has-menu"><a href="/inflation/">Inflation</a><div class="menu"><a href="/inflation/"><div class="mt">Overview</div><div class="md">Three ways the U.S. measures inflation — consumer prices (CPI), producer prices (PPI), and the PCE deflator.</div></a><a href="/inflation/cpi/"><div class="mt">CPI</div><div class="md">Headline &amp; core CPI, monthly change, components, energy prices. Source: BLS.</div></a><a href="/inflation/ppi/"><div class="mt">PPI</div><div class="md">Final-demand prices producers receive — headline, core, goods, services. Source: BLS.</div></a><a href="/inflation/pce/"><div class="mt">PCE</div><div class="md">The Fed&#x27;s preferred gauge — headline, core, services, supercore. Source: BEA.</div></a></div></div><div class="item"><a href="/labor/">Labor</a></div><div class="item has-menu active"><a href="/housing/">Housing</a><div class="menu"><a href="/housing/"><div class="mt">Overview</div><div class="md">Sales, permits &amp; starts, prices, mortgage activity.</div></a><a href="/housing/existing/"><div class="mt">Existing</div><div class="md">Existing home sales, median price, inventory, Case-Shiller HPI, mortgage rate. Source: FRED.</div></a><a href="/housing/new-homes/"><div class="mt">New Homes</div><div class="md"></div></a><a href="/housing/permits-starts/"><div class="mt">Permits &amp; Starts</div><div class="md"></div></a><a href="/housing/mortgage-activity/"><div class="mt">Mortgage Activity</div><div class="md"></div></a></div></div><div class="item"><a href="/gdp/">GDP</a></div><div class="item has-menu"><a href="/consumer/">Consumer</a><div class="menu"><a href="/consumer/"><div class="mt">Overview</div><div class="md">Retail sales, income &amp; spending, sentiment &amp; confidence.</div></a><a href="/consumer/income-spending-debt/"><div class="mt">Income &amp; Spending</div><div class="md"></div></a><a href="/consumer/retail-confidence/"><div class="mt">Retail &amp; Confidence</div><div class="md"></div></a></div></div><div class="item has-menu"><a href="/rates/">Rates</a><div class="menu"><a href="/rates/"><div class="mt">Overview</div><div class="md">Treasury yields, the curve, credit spreads, equities, commodities.</div></a><a href="/rates/treasuries/"><div class="mt">Treasuries</div><div class="md"></div></a><a href="/rates/equities/"><div class="mt">Equities</div><div class="md"></div></a><a href="/rates/commodities/"><div class="mt">Commodities</div><div class="md"></div></a></div></div><div class="item has-menu"><a href="/industry/">Industry</a><div class="menu"><a href="/industry/"><div class="mt">Overview</div><div class="md">Industrial production, factory orders, ISM PMIs.</div></a><a href="/industry/manufacturing/"><div class="mt">Manufacturing</div><div class="md"></div></a><a href="/industry/surveys/"><div class="mt">Surveys</div><div class="md"></div></a></div></div><div class="item"><a href="/government/">Gov&#x27;t</a></div></nav>
+    <div class="spacer"></div>
+    <label class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9fb1c2" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input placeholder="Search 40+ indicators…" aria-label="Search indicators">
+    </label>
   </div>
 </header>
 
-<main>
-  <section class="hub-hero">
-    <h1>Housing Market</h1>
-    <p>Four windows on US housing activity: the existing-home market (resales make up most home turnover), the new-construction market (the part that adds to housing supply), the leading indicators &mdash; permits and starts &mdash; that signal what builders plan to bring online next, and mortgage activity &mdash; application volume, rates, spreads, and the &ldquo;golden handcuff&rdquo; effective rate locking homeowners in place.</p>
-  </section>
-
-  <div class="topic-grid">
-    <a class="topic-card" href="/housing/existing/">
-      <div class="badge">Available</div>
-      <h3>Existing Homes</h3>
-      <p>Existing home sales, median price, inventory, Case-Shiller HPI, and 30-year mortgage rate. Source: FRED.</p>
-    </a>
-    <a class="topic-card" href="/housing/new-homes/">
-      <div class="badge">Available</div>
-      <h3>New Homes</h3>
-      <p>New home sales, median &amp; average price, inventory by stage of construction, months supply, regional sales, and the NAHB Housing Market Index. Sources: Census, FRED, NAHB.</p>
-    </a>
-    <a class="topic-card" href="/housing/permits-starts/">
-      <div class="badge">Available</div>
-      <h3>Permits &amp; Starts</h3>
-      <p>Building permits issued and housing starts &mdash; total, single-family, and multi-family (with 2-4 unit and 5+ unit detail), the permits-vs-starts spread, and the permits-to-starts ratio. Source: U.S. Census Bureau via FRED.</p>
-    </a>
-    <a class="topic-card" href="/housing/mortgage-activity/">
-      <div class="badge">Available</div>
-      <h3>Mortgage Activity</h3>
-      <p>MBA Weekly Applications (Purchase + Refinance), 30Y and 15Y mortgage rates, the 30Y &minus; 10Y Treasury spread, the &ldquo;golden handcuff&rdquo; effective rate, delinquencies, mortgage debt, and affordability. Sources: MBA, Freddie Mac, BEA, Federal Reserve, NAR.</p>
-    </a>
-  </div>
+<main class="wrap">
+<div class="crumb"><a href="/">Home</a><span class="sep">/</span>Housing</div><div class="pagehead"><div><h1>Housing</h1><p class="sub">Sales, permits &amp; starts, prices, mortgage activity.</p></div></div><div class="hub-grid"><a class="hub-card" href="/housing/existing/"><div class="badge">Available</div><h3>US Existing Home Market</h3><p>Existing home sales, median price, inventory, Case-Shiller HPI, mortgage rate. Source: FRED.</p></a><a class="hub-card" href="/housing/new-homes/"><div class="badge">Available</div><h3>New Home Sales</h3><p></p></a><a class="hub-card" href="/housing/permits-starts/"><div class="badge">Available</div><h3>Permits &amp; Starts</h3><p></p></a><a class="hub-card" href="/housing/mortgage-activity/"><div class="badge">Available</div><h3>Mortgage Activity</h3><p></p></a></div>
 </main>
 
-<footer class="site-footer">
+<footer class="foot">
   <div class="wrap">
-    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, BEA, and Census. <a href="/about/">Methodology</a></div>
-    <div>Data refreshes nightly.</div>
+    <div>© <span id="yr"></span> Economics Guru · Public data from BLS, FRED, BEA, Census, EIA, UMich, Conference Board, and ICE BofA. <a href="/about/">Methodology</a></div>
+    <div>A product of <a href="https://www.economicimpact.com" target="_blank" rel="noopener">Economic Impact Group, LLC</a> · Data refreshes nightly</div>
   </div>
 </footer>
 
 <script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+
 </body>
 </html>

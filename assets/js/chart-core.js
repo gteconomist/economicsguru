@@ -76,6 +76,41 @@ window.EG = (function () {
       borderWidth:2.2, pointRadius:0, pointHoverRadius:4, tension:.25, fill:false }, o||{});
   }
 
+  // ---- value formatters + non-% / dual-axis option builders ----
+  function fmtBig(v){ if(v==null) return 'n/a'; var a=Math.abs(v); if(a>=1e6) return (v/1e6).toFixed(2)+'M'; if(a>=1e3) return Math.round(v/1e3)+'k'; return ''+v; }
+  function fmtUsd(v){ return v==null?'n/a':'$'+fmtBig(v); }
+  function fmtPct1(v){ return v==null?'n/a':v.toFixed(1)+'%'; }
+  function fmtPct1s(v){ return v==null?'n/a':(v>=0?'+':'')+v.toFixed(1)+'%'; }
+  function fmtPct2(v){ return v==null?'n/a':v.toFixed(2)+'%'; }
+  function fmtIdx(v){ return v==null?'n/a':v.toFixed(1); }
+  function fmtMonths(v){ return v==null?'n/a':v.toFixed(1)+' mo'; }
+  function fmtMillions(v){ return v==null?'n/a':(v/1000).toFixed(1)+'M'; }   // input in thousands -> millions
+  function tipLabel(fmt){ return function(c){ return ' '+c.dataset.label+': '+(c.parsed.y==null?'n/a':fmt(c.parsed.y)); }; }
+  // single non-% y axis with a custom formatter
+  function singleOpts(yFmt){
+    var o = baseOpts(false);
+    o.scales.y.ticks.callback = function(v){ return yFmt(v); };
+    o.plugins.tooltip.callbacks.label = tipLabel(yFmt);
+    return o;
+  }
+  // dual y axes (left=y, right=y1) each with its own formatter + title
+  function dualOpts(yFmt, yTitle, y1Fmt, y1Title){
+    var o = baseOpts(false);
+    o.scales = Object.assign(baseScales(false), {
+      y:  { position:'left',  grid:grid, border:{display:false},
+            ticks:{ font:{size:11}, callback:function(v){ return yFmt(v); } },
+            title:{ display:true, text:yTitle, font:{size:10} } },
+      y1: { position:'right', grid:{display:false}, border:{display:false},
+            ticks:{ font:{size:11}, callback:function(v){ return y1Fmt(v); } },
+            title:{ display:true, text:y1Title, font:{size:10} } }
+    });
+    o.plugins.tooltip.callbacks.label = function(c){
+      var f = (c.dataset.yAxisID === 'y1') ? y1Fmt : yFmt;
+      return ' '+c.dataset.label+': '+(c.parsed.y==null?'n/a':f(c.parsed.y));
+    };
+    return o;
+  }
+
   // ---- KPI cards ----
   // def: { key, label, unit='%', decimals=2, deltaUnit='pp', deltaDecimals=2,
   //        scale=1, signed=false, goodDir='down' (lower is better), cap }
@@ -93,7 +128,8 @@ window.EG = (function () {
       var good = !flat && ((dv > 0 && d.goodDir === 'up') || (dv < 0 && d.goodDir !== 'up'));
       var cls = flat ? 'flat' : (good ? 'down' : 'up');   // down=green, up=red
       var arr = flat ? '' : (dv > 0 ? '▲' : '▼');
-      var vstr = (d.signed && v > 0 ? '+' : '') + v.toFixed(dec);
+      var vstr = (d.prefix||'') + (d.signed && v > 0 ? '+' : '') + v.toFixed(dec);
+      if (d.neutral) cls = 'flat';
       return '<div class="kpi"><div class="l">'+d.label+'</div>'+
         '<div class="v">'+vstr+'<span class="u">'+unit+'</span></div>'+
         '<div class="dd '+cls+'"><span class="arr">'+arr+'</span>'+Math.abs(dv).toFixed(ddec)+' '+dunit+'</div>'+
@@ -252,6 +288,8 @@ window.EG = (function () {
 
   var EG = { T:T, lab:lab, tail:tail, val:val, months:months, rebase:rebase,
     reset:reset, newChart:newChart, baseOpts:baseOpts, baseScales:baseScales, grid:grid, line:line,
+    fmtBig:fmtBig, fmtUsd:fmtUsd, fmtPct1:fmtPct1, fmtPct1s:fmtPct1s, fmtPct2:fmtPct2, fmtIdx:fmtIdx, fmtMonths:fmtMonths, fmtMillions:fmtMillions,
+    singleOpts:singleOpts, dualOpts:dualOpts,
     renderKpis:renderKpis, boot:boot };
   return EG;
 })();

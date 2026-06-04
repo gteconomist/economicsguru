@@ -1,0 +1,53 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">Existing Home Sales</div><div class="cs">Seasonally adjusted annual rate, units</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEhSales"></canvas></div>
+    <div class="src">Source: NAR via FRED — EXHOSLUSM495S.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Existing Home Sales &amp; Median Price</div><div class="cs">Sales SAAR (left); median sales price USD (right)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEhMedianPrice"></canvas></div>
+    <div class="src">Sources: NAR via FRED — EXHOSLUSM495S (sales); HOSMEDUSM052N (NSA price); SA price computed in-house.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Case-Shiller US National HPI</div><div class="cs">Index level; Jan 2000 = 100, NSA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEhCsLevel"></canvas></div>
+    <div class="src">Source: S&amp;P Cotality Case-Shiller via FRED — CSUSHPINSA.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Inventory &amp; Months Supply</div><div class="cs">Active listings (left) and months of supply (right), NSA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEhInventory"></canvas></div>
+    <div class="src">Source: NAR via FRED — HOSINVUSM495N, HOSSUPUSM673N.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Case-Shiller HPI — YoY % Change</div><div class="cs">U.S. National HPI and 20-City Composite, SA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEhCsYoy"></canvas></div>
+    <div class="src">Source: S&amp;P Cotality Case-Shiller via FRED — CSUSHPISA (National, SA), SPCS20RSA (20-City, SA).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">30-Year Fixed Mortgage Rate</div><div class="cs">Freddie Mac PMMS, monthly average of weekly surveys</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEhMortgage"></canvas></div>
+    <div class="src">Source: Freddie Mac via FRED — MORTGAGE30US.</div>
+  </div>
+  <div class="card span2">
+    <div class="top"><div><div class="ct">Case-Shiller HPI — YoY % Change by Metro</div><div class="cs">Selected U.S. metro markets; SA; year-over-year percent change</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEhCsMetrosYoy"></canvas></div>
+    <div class="src">Source: S&amp;P Cotality Case-Shiller via FRED — individual metros (*XRSA series, SA). Click any legend label to hide that metro.</div>
+  </div>
+</div>

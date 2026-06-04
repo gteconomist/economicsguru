@@ -99,7 +99,7 @@ window.EG_PAGES.labor = function (data, EG) {
       EG.line(EG.val(op), C[0], { label:'Openings' }),
       EG.line(EG.val(st('jolts_hires', n)), C[1], { label:'Hires' }),
       EG.line(EG.val(st('jolts_quits', n)), C[2], { label:'Quits' })
-    ]}, options:EG.baseOpts(false) });
+    ]}, options:EG.singleOpts(EG.fmtMillions) });
   }
 
   return draw;
