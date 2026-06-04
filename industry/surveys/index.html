@@ -2,217 +2,104 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Industry Surveys &mdash; ISM Manufacturing, ISM Services, Cass Freight, NFIB &mdash; Economics Guru</title>
-<meta name="description" content="Live US industry survey dashboard: ISM Manufacturing PMI (with Employment / New Orders / Backlog / Prices components), ISM Services PMI (with Employment / New Orders / Prices), the Cass Freight Index of volume shipments, and the NFIB Small Business Optimism + Uncertainty Indices with the latest single-most-important-problem snapshot. Survey data via ISM, Cass Information Systems, and NFIB. Refreshed monthly.">
+<title>Industry Surveys — ISM, Cass &amp; NFIB — Economics Guru</title>
+<meta name="description" content="The forward-looking layer on top of the hard data: ISM Manufacturing &amp; Services PMIs and sub-indices, the Cass Freight Index, and NFIB small-business optimism &amp; uncertainty. PMIs above 50 = expansion.">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="/assets/styles.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<style>
-  .interactivity-hint { margin: 10px 0 16px; font-size: 12.5px; font-style: italic; color: var(--ink-on-navy-soft); }
-  .chart-card .source { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; }
-  .chart-card .csv-link { font-size: 11px; font-weight: 700; color: var(--mustard); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; text-decoration: none; }
-  .chart-card .csv-link::before { content: '\2193  '; }
-  .chart-card .csv-link:hover { text-decoration: underline; }
-  .controls { display: flex; gap: 12px; align-items: center; margin: 4px 0 0; flex-wrap: wrap; }
-  .controls .label-text { font-size: 12px; color: var(--ink-on-navy-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;900&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
 
-  /* Diffusion-index KPI: up = good for everything except prices.
-     Delta is in index points, e.g. "+0.6 pts vs prior month". */
-  .kpi .delta-pct {
-    display: block; margin-top: 2px;
-    font-size: 11.5px; font-weight: 600;
-    color: var(--ink-soft); letter-spacing: 0.02em;
-  }
-  .kpi .delta-pct.up   { color: #5a7a30; }
-  .kpi .delta-pct.down { color: #b94a3a; }
-  .kpi .delta-pct.flat { color: var(--ink-soft); }
-
-  .subnav {
-    display: flex; gap: 0; align-items: stretch; flex-wrap: wrap;
-    margin: 8px 0 18px;
-    border-bottom: 1px solid rgba(255,255,255,0.15);
-  }
-  .subnav a, .subnav span {
-    padding: 8px 14px; font-size: 12.5px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.06em;
-    color: #f3ecd0; text-decoration: none;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -1px;
-    opacity: 0.7;
-  }
-  .subnav a:hover { opacity: 1; text-decoration: none; }
-  .subnav a.active { color: var(--mustard); border-bottom-color: var(--mustard); opacity: 1; }
-  .subnav .disabled { color: #9ba3ab; cursor: not-allowed; opacity: 0.7; }
-</style>
 </head>
 <body>
 
-<header class="site-header">
+<header class="hdr">
   <div class="wrap">
-    <div class="brand">Economics<span class="tag">Guru</span></div>
-    <nav>
-      <a href="/">Home</a>
-      <a href="/inflation/">Inflation</a>
-      <a href="/labor/">Labor</a>
-      <a href="/housing/">Housing</a>
-      <a href="/gdp/">GDP</a>
-      <a href="/consumer/">Consumer</a>
-      <a href="/rates/">Rates</a>
-      <a href="/industry/" class="active">Industry</a>
-<a href="/government/">Government</a>
-      <a href="/about/">About</a>
-    </nav>
+    <a class="brand" href="/">Economics<span class="g">Guru</span></a>
+    <nav class="nav"><a href="/">Home</a><div class="item has-menu"><a href="/inflation/">Inflation</a><div class="menu"><a href="/inflation/"><div class="mt">Overview</div><div class="md">Three ways the U.S. measures inflation — consumer prices (CPI), producer prices (PPI), and the PCE deflator.</div></a><a href="/inflation/cpi/"><div class="mt">CPI</div><div class="md">Headline &amp; core CPI, monthly change, components, energy prices. Source: BLS.</div></a><a href="/inflation/ppi/"><div class="mt">PPI</div><div class="md">Final-demand prices producers receive — headline, core, goods, services. Source: BLS.</div></a><a href="/inflation/pce/"><div class="mt">PCE</div><div class="md">The Fed&#x27;s preferred gauge — headline, core, services, supercore. Source: BEA.</div></a></div></div><div class="item"><a href="/labor/">Labor</a></div><div class="item has-menu"><a href="/housing/">Housing</a><div class="menu"><a href="/housing/"><div class="mt">Overview</div><div class="md">Sales, permits &amp; starts, prices, mortgage activity.</div></a><a href="/housing/existing/"><div class="mt">Existing</div><div class="md">Existing home sales, median price, inventory, Case-Shiller HPI, mortgage rate. Source: FRED.</div></a><a href="/housing/new-homes/"><div class="mt">New Homes</div><div class="md">New home sales, median &amp; average price, inventory, regional sales, NAHB sentiment. Source: Census, FRED, NAHB.</div></a><a href="/housing/permits-starts/"><div class="mt">Permits &amp; Starts</div><div class="md">Permits &amp; starts — total, single-family, multi-family, MoM by type, permits-to-starts ratio. Source: Census/FRED.</div></a><a href="/housing/mortgage-activity/"><div class="mt">Mortgage Activity</div><div class="md">MBA applications, 30Y/15Y rates, spread, the golden handcuff, delinquency, debt, affordability. Source: MBA, Freddie Mac, Fed, BEA.</div></a></div></div><div class="item"><a href="/gdp/">GDP</a></div><div class="item has-menu"><a href="/consumer/">Consumer</a><div class="menu"><a href="/consumer/"><div class="mt">Overview</div><div class="md">Retail sales, income &amp; spending, sentiment &amp; confidence.</div></a><a href="/consumer/income-spending-debt/"><div class="mt">Income &amp; Spending</div><div class="md"></div></a><a href="/consumer/retail-confidence/"><div class="mt">Retail &amp; Confidence</div><div class="md"></div></a></div></div><div class="item has-menu"><a href="/rates/">Rates</a><div class="menu"><a href="/rates/"><div class="mt">Overview</div><div class="md">Treasury yields, the curve, credit spreads, equities, commodities.</div></a><a href="/rates/treasuries/"><div class="mt">Treasuries</div><div class="md"></div></a><a href="/rates/equities/"><div class="mt">Equities</div><div class="md"></div></a><a href="/rates/commodities/"><div class="mt">Commodities</div><div class="md"></div></a></div></div><div class="item has-menu active"><a href="/industry/">Industry</a><div class="menu"><a href="/industry/"><div class="mt">Overview</div><div class="md">Industrial production, factory orders, ISM PMIs.</div></a><a href="/industry/manufacturing/"><div class="mt">Manufacturing</div><div class="md">Industrial production, capacity utilization, factory orders, durable goods, capital-goods shipments, electricity. Source: Fed, Census, EIA.</div></a><a href="/industry/surveys/"><div class="mt">Surveys</div><div class="md">ISM Manufacturing &amp; Services PMIs, components, Cass Freight, NFIB optimism &amp; uncertainty. Source: ISM, Cass, NFIB.</div></a></div></div><div class="item"><a href="/government/">Gov&#x27;t</a></div></nav>
+    <div class="spacer"></div>
+    <label class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9fb1c2" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input placeholder="Search 40+ indicators…" aria-label="Search indicators">
+    </label>
   </div>
 </header>
 
-<main>
-  <nav class="subnav">
-    <a href="/industry/manufacturing/">Manufacturing &amp; Production</a>
-    <a href="/industry/surveys/" class="active">Surveys (ISM, Cass)</a>
-  </nav>
-  <div class="page-header">
-    <h1>Industry Surveys &mdash; ISM, Cass &amp; NFIB</h1>
-    <div class="subtitle">The forward-looking layer on top of the hard manufacturing data: monthly diffusion indices from the Institute for Supply Management (Manufacturing and Services PMIs and their sub-indices), the Cass Freight Index from Cass Information Systems &mdash; a volume gauge built from billions of dollars of payments processed each month &mdash; and the NFIB Small Business Optimism and Uncertainty Indices, which capture how main-street America is feeling. PMIs above 50 = expansion; below 50 = contraction. NFIB Optimism above 98 (the 52-year average) = small business confidence above trend.</div>
-    <div class="latest">Latest data: <strong id="latest-month">&hellip;</strong></div>
+<main class="wrap">
+<div class="crumb"><a href="/">Home</a><span class="sep">/</span><a href="/industry/">Industry</a><span class="sep">/</span>Surveys</div><div class="pagehead"><div><h1>Industry Surveys — ISM, Cass &amp; NFIB</h1><p class="sub">The forward-looking layer on top of the hard data: ISM Manufacturing &amp; Services PMIs and sub-indices, the Cass Freight Index, and NFIB small-business optimism &amp; uncertainty. PMIs above 50 = expansion.</p></div><div class="latest">Latest data &nbsp;<b id="latest">…</b></div></div><nav class="pills"><a href="/industry/manufacturing/">Manufacturing</a><a href="/industry/surveys/" class="active">Surveys</a></nav><div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
   </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
 
-  <div class="notice" id="notice" style="display:none">
-    <strong>Data note:</strong> <span id="notice-text"></span>
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">ISM Manufacturing Index</div><div class="cs">Diffusion index, SA; 50 = expansion / contraction threshold + sub-indices</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndSurveysIsmMfg"></canvas></div>
+    <div class="src">Source: Institute for Supply Management — Manufacturing Report on Business.</div>
   </div>
-
-  <div id="kpis" class="kpi-grid"></div>
-
-  <div class="controls">
-    <span class="label-text">Time range:</span>
-    <div class="range-toggle">
-      <button data-range="12m" class="active">12 mo</button>
-      <button data-range="5y">5 yr</button>
-      <button data-range="10y">10 yr</button>
-      <button data-range="20y">20 yr</button>
-      <button data-range="max">Max</button>
-    </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">ISM Manufacturing — Major Components</div><div class="cs">Bars represent distance from 50; SA — total / employment / new orders / backlog / prices</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndSurveysIsmMfgComponents"></canvas></div>
+    <div class="src">Source: Institute for Supply Management — Manufacturing Report on Business.</div>
   </div>
-
-  <div class="interactivity-hint">
-    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post. The time range applies to all line charts at once (the &ldquo;Single Most Important Problem&rdquo; doughnut is always the latest survey). The Cass Index publishes with a one-month lag (Mar reading appears mid-April); NFIB releases on the second Tuesday of each month covering the prior month&rsquo;s survey.
+  <div class="card">
+    <div class="top"><div><div class="ct">ISM Services Index</div><div class="cs">Diffusion index, SA — composite + employment / new orders / prices</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndSurveysIsmSvc"></canvas></div>
+    <div class="src">Source: Institute for Supply Management — Services Report on Business.</div>
   </div>
-
-  <div class="chart-grid">
-    <div class="chart-card">
-      <div class="title">ISM Manufacturing Index</div>
-      <div class="subtitle">(Diffusion Index, Seasonally Adjusted; 50 = Expansion / Contraction Threshold; Long-Run History from 1948)</div>
-      <div class="chart-wrap"><canvas id="chartIndSurveysIsmMfg"></canvas></div>
-      <div class="source">
-        <span>Source: Institute for Supply Management (ISM) &mdash; Manufacturing PMI. Long-run average ~52; recessions push the index into the low-40s or below.</span>
-        <a href="#" class="csv-link" data-chart="chartIndSurveysIsmMfg">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">ISM Manufacturing Index &mdash; Major Components</div>
-      <div class="subtitle">(Diffusion Indices; Bars Represent Distance From 50; SA &mdash; Total / Employment / New Orders / Backlog / Commodity Prices)</div>
-      <div class="chart-wrap"><canvas id="chartIndSurveysIsmMfgComponents"></canvas></div>
-      <div class="source">
-        <span>Source: Institute for Supply Management (ISM). Backlog of Orders begins 1993, Commodity Prices begins 2003 (Macrobond series start).</span>
-        <a href="#" class="csv-link" data-chart="chartIndSurveysIsmMfgComponents">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">ISM Services Index</div>
-      <div class="subtitle">(Diffusion Index, Seasonally Adjusted &mdash; Composite + Employment / New Orders / Prices Sub-Indices)</div>
-      <div class="chart-wrap"><canvas id="chartIndSurveysIsmSvc"></canvas></div>
-      <div class="source">
-        <span>Source: Institute for Supply Management (ISM) &mdash; Services Report on Business. Composite begins July 1997.</span>
-        <a href="#" class="csv-link" data-chart="chartIndSurveysIsmSvc">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Composite PMI &mdash; Manufacturing vs. Services</div>
-      <div class="subtitle">(ISM Manufacturing Total + ISM Services Composite on One Chart, with the 50 Threshold; Quick Read on Whether the Whole Economy Is Expanding)</div>
-      <div class="chart-wrap"><canvas id="chartIndSurveysPmiComposite"></canvas></div>
-      <div class="source">
-        <span>Source: Institute for Supply Management (ISM) &mdash; Manufacturing and Services PMIs. Services dominates US output (~80% of GDP) but Manufacturing tends to lead at cycle turning points.</span>
-        <a href="#" class="csv-link" data-chart="chartIndSurveysPmiComposite">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Cass Freight Shipments &mdash; Year-Over-Year %</div>
-      <div class="subtitle">(Volume Index, % Change vs. Same Month a Year Ago; Cycle View &mdash; Negative for Most of the Post-2022 Freight Recession)</div>
-      <div class="chart-wrap"><canvas id="chartIndSurveysCassYoy"></canvas></div>
-      <div class="source">
-        <span>Source: Computed in-house from Cass Information Systems Volume Index. Negative bars (coral) = freight contracting vs. last year; positive (navy) = freight expanding.</span>
-        <a href="#" class="csv-link" data-chart="chartIndSurveysCassYoy">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">NFIB Small Business Optimism Index</div>
-      <div class="subtitle">(Diffusion-Style Index, Seasonally Adjusted; 1986 = 100; Long-Run History from Late 1974, with the 52-Year ~98 Average Shown as a Dashed Reference Line)</div>
-      <div class="chart-wrap"><canvas id="chartIndSurveysNfibOptimism"></canvas></div>
-      <div class="source">
-        <span>Source: National Federation of Independent Business (NFIB) Research Foundation &mdash; Small Business Economic Trends (SBET). Released the second Tuesday of each month based on a survey of NFIB member firms.</span>
-        <a href="#" class="csv-link" data-chart="chartIndSurveysNfibOptimism">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">NFIB Small Business Uncertainty Index</div>
-      <div class="subtitle">(Net %, Seasonally Adjusted; Higher = More Uncertain; Historical Average ~68 Shown as a Dashed Reference Line; Series Begins 1986)</div>
-      <div class="chart-wrap"><canvas id="chartIndSurveysNfibUncertainty"></canvas></div>
-      <div class="source">
-        <span>Source: National Federation of Independent Business (NFIB) Research Foundation &mdash; Small Business Economic Trends. Built from owners' net responses to six forward-looking SBET questions.</span>
-        <a href="#" class="csv-link" data-chart="chartIndSurveysNfibUncertainty">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">NFIB &mdash; Single Most Important Problem (Latest Survey)</div>
-      <div class="subtitle">(Share of Small Business Owners Citing Each Issue as Their Top Problem; NSA; Snapshot Updates Monthly with Each SBET Release)</div>
-      <div class="chart-wrap" style="max-width:680px; margin:0 auto;"><canvas id="chartIndSurveysNfibProblems"></canvas></div>
-      <div class="source">
-        <span>Source: National Federation of Independent Business (NFIB) Research Foundation &mdash; SBET. The nine published categories rarely sum to 100% &mdash; the residual is shown as &ldquo;Other / none&rdquo;.</span>
-        <a href="#" class="csv-link" data-chart="chartIndSurveysNfibProblems">Download CSV</a>
-      </div>
-    </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Composite PMI — Manufacturing vs. Services</div><div class="cs">ISM Manufacturing total + ISM Services composite, with the 50 threshold</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndSurveysPmiComposite"></canvas></div>
+    <div class="src">Source: Institute for Supply Management — Manufacturing & Services Reports on Business.</div>
   </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Cass Freight Shipments — Year-over-Year %</div><div class="cs">Volume index, % change vs. same month a year ago — negative = freight recession</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndSurveysCassYoy"></canvas></div>
+    <div class="src">Source: Cass Information Systems — Cass Freight Index (shipments).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">NFIB Small Business Optimism Index</div><div class="cs">Diffusion-style index, SA; 1986 = 100; ~98 long-run average shown dashed</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndSurveysNfibOptimism"></canvas></div>
+    <div class="src">Source: National Federation of Independent Business — Small Business Economic Trends (SBET).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">NFIB Small Business Uncertainty Index</div><div class="cs">Net %, SA; higher = more uncertain; ~68 historical average shown dashed</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndSurveysNfibUncertainty"></canvas></div>
+    <div class="src">Source: National Federation of Independent Business — SBET.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">NFIB — Single Most Important Problem (latest survey)</div><div class="cs">Share of owners citing each issue as their top problem; NSA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndSurveysNfibProblems"></canvas></div>
+    <div class="src">Source: National Federation of Independent Business — SBET, single most important problem.</div>
+  </div>
+</div>
+
 </main>
 
-<footer class="site-footer">
+<footer class="foot">
   <div class="wrap">
-    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public and licensed data from BLS, FRED, BEA, Census, EIA, ICE BofA, Yahoo Finance, MetalPriceAPI, ISM, Cass Information Systems, and NFIB. <a href="/about/">Methodology</a></div>
-    <div>Data refreshes nightly. Last successful build: <span id="build-time">&hellip;</span></div>
+    <div>© <span id="yr"></span> Economics Guru · Public data from BLS, FRED, BEA, Census, EIA, UMich, Conference Board, and ICE BofA. <a href="/about/">Methodology</a></div>
+    <div>A product of <a href="https://www.economicimpact.com" target="_blank" rel="noopener">Economic Impact Group, LLC</a> · Data refreshes nightly</div>
   </div>
 </footer>
 
-<script src="/assets/charts.js"></script>
-<script>
-document.getElementById('yr').textContent = new Date().getFullYear();
-
-fetch('/data/industry_surveys.json', { cache: 'no-cache' })
-  .then(r => r.json())
-  .then(data => {
-    EG.renderIndustrySurveys(data);
-    if (data.notice) {
-      document.getElementById('notice').style.display = '';
-      document.getElementById('notice-text').textContent = data.notice;
-    }
-    if (data.build_time) {
-      document.getElementById('build-time').textContent =
-        new Date(data.build_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
-    }
-  })
-  .catch(err => {
-    console.error(err);
-    document.querySelector('main').insertAdjacentHTML('afterbegin',
-      '<div class="notice"><strong>Could not load data.</strong> Try refreshing in a moment.</div>');
-  });
-</script>
-
+<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/assets/js/chart-core.js"></script>
+<script src="/assets/js/pages/industry.js"></script>
+<script>EG.boot("/data/industry_surveys.json", "surveys");</script>
 </body>
 </html>

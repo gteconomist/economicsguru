@@ -1,0 +1,53 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">U.S. Industrial Production — Monthly</div><div class="cs">Index 2017=100, SA — MoM % bars + Total YoY % line</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndMfgIpMom"></canvas></div>
+    <div class="src">Source: Federal Reserve G.17 — industrial production, total / manufacturing / mfg ex. motor vehicles.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Industrial Production — Long Run</div><div class="cs">YoY % line (left); MoM % bars (right)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndMfgIpLong"></canvas></div>
+    <div class="src">Source: Federal Reserve G.17 — total industrial production index.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Capacity Utilization</div><div class="cs">Percent of potential output in use, SA — lower = more slack</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndMfgCapUtil"></canvas></div>
+    <div class="src">Source: Federal Reserve G.17 — TCU (total) and MCUMFN (manufacturing).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">U.S. Factory Orders — Monthly % Change</div><div class="cs">Manufacturers' new orders, SA — total / core / durable / core durable / nondurable / core capex</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndMfgFactoryOrders"></canvas></div>
+    <div class="src">Source: U.S. Census Bureau M3 via FRED.</div>
+  </div>
+  <div class="card span2">
+    <div class="top"><div><div class="ct">Advance Durable Goods — New Orders</div><div class="cs">Census M3 advance report, SA, MoM % — Defense on right axis at a fixed 3:1 scale</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndMfgAdvanceDurable"></canvas></div>
+    <div class="src">Source: U.S. Census Bureau, Advance Report on Durable Goods (M3). DGORDER / ADXTNO / ADXDNO / NEWORDER / ANXAVS, Defense (ADEFNO) on a 3:1 right axis.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Value of Shipments — Capital Goods</div><div class="cs">Manufacturers' value of shipments, SA, MoM % — nondef. ex aircraft = "core capex"</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndMfgShipments"></canvas></div>
+    <div class="src">Source: U.S. Census Bureau M3 via FRED.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Total Electricity Net Generation</div><div class="cs">Electric power sector; 12-month moving average; CPI electricity index (right)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndMfgElectricity"></canvas></div>
+    <div class="src">Sources: EIA Monthly Energy Review (net generation); BLS CPI — electricity.</div>
+  </div>
+</div>

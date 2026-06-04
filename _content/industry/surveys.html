@@ -1,0 +1,58 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">ISM Manufacturing Index</div><div class="cs">Diffusion index, SA; 50 = expansion / contraction threshold + sub-indices</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndSurveysIsmMfg"></canvas></div>
+    <div class="src">Source: Institute for Supply Management — Manufacturing Report on Business.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">ISM Manufacturing — Major Components</div><div class="cs">Bars represent distance from 50; SA — total / employment / new orders / backlog / prices</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndSurveysIsmMfgComponents"></canvas></div>
+    <div class="src">Source: Institute for Supply Management — Manufacturing Report on Business.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">ISM Services Index</div><div class="cs">Diffusion index, SA — composite + employment / new orders / prices</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndSurveysIsmSvc"></canvas></div>
+    <div class="src">Source: Institute for Supply Management — Services Report on Business.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Composite PMI — Manufacturing vs. Services</div><div class="cs">ISM Manufacturing total + ISM Services composite, with the 50 threshold</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndSurveysPmiComposite"></canvas></div>
+    <div class="src">Source: Institute for Supply Management — Manufacturing & Services Reports on Business.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Cass Freight Shipments — Year-over-Year %</div><div class="cs">Volume index, % change vs. same month a year ago — negative = freight recession</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndSurveysCassYoy"></canvas></div>
+    <div class="src">Source: Cass Information Systems — Cass Freight Index (shipments).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">NFIB Small Business Optimism Index</div><div class="cs">Diffusion-style index, SA; 1986 = 100; ~98 long-run average shown dashed</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndSurveysNfibOptimism"></canvas></div>
+    <div class="src">Source: National Federation of Independent Business — Small Business Economic Trends (SBET).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">NFIB Small Business Uncertainty Index</div><div class="cs">Net %, SA; higher = more uncertain; ~68 historical average shown dashed</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndSurveysNfibUncertainty"></canvas></div>
+    <div class="src">Source: National Federation of Independent Business — SBET.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">NFIB — Single Most Important Problem (latest survey)</div><div class="cs">Share of owners citing each issue as their top problem; NSA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIndSurveysNfibProblems"></canvas></div>
+    <div class="src">Source: National Federation of Independent Business — SBET, single most important problem.</div>
+  </div>
+</div>

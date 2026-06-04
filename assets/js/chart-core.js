@@ -211,6 +211,8 @@ window.EG = (function () {
         ticks: Object.assign({}, s.ticks, tick)
       };
       if(isX){ ns.ticks.maxRotation = 0; ns.ticks.autoSkip = true; ns.ticks.maxTicksLimit = 13; }
+      if(s.min != null) ns.min = s.min;        // preserve fixed axis bounds (e.g. 3:1 locked axes)
+      if(s.max != null) ns.max = s.max;
       if(s.title && s.title.text){ ns.title = {display:true, text:s.title.text, color:axis, font:{size:12.5*sc, weight:'700'}}; }
       out[k] = ns;
     });
