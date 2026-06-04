@@ -1,0 +1,38 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">Retail Sales — Monthly Change</div><div class="cs">MoM % bars (total / ex-MV / control); Total YoY line on the right axis</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCsRetailMom"></canvas></div>
+    <div class="src">Source: U.S. Census Bureau, Advance Monthly Retail Trade — total, ex-motor-vehicles, and control group.</div>
+  </div>
+  <div class="card span2">
+    <div class="top"><div><div class="ct">Retail Sales — Contribution by Sector</div><div class="cs">Stacked bars sum to total MoM %; each segment is a sector's contribution in pp</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCsRetailSectors"></canvas></div>
+    <div class="src">Source: U.S. Census Bureau — 12 NAICS retail categories, contribution to total retail MoM.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">UMich Consumer Sentiment</div><div class="cs">Index, 1966 Q1 = 100; total + Expectations and Current Conditions</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCsUmich"></canvas></div>
+    <div class="src">Source: University of Michigan — Surveys of Consumers.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Conference Board Consumer Confidence</div><div class="cs">Index, 1985 = 100; CCI + Expectations and Present Situation</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCsConfBoard"></canvas></div>
+    <div class="src">Source: The Conference Board — Consumer Confidence Index.</div>
+  </div>
+</div>

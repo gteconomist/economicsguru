@@ -1,0 +1,42 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+<div id="kpis" class="kpis"></div>
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button><button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button><button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button><button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">Yield Curve — Today vs. One Year Ago</div><div class="cs">Treasury constant-maturity yields, %</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cTrCurve"></canvas></div>
+    <div class="src">Source: Federal Reserve via FRED — constant-maturity yields (3M / 2Y / 5Y / 10Y / 30Y).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">10-Year Treasury Yield</div><div class="cs">Constant-maturity yield, %</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cTr10y"></canvas></div>
+    <div class="src">Source: Federal Reserve via FRED — DGS10.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">10-Year Minus 2-Year Spread</div><div class="cs">Recession indicator — below zero = inverted curve</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cTrSpread"></canvas></div>
+    <div class="src">Source: Federal Reserve via FRED — T10Y2Y.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Fed Funds vs. 10-Year Treasury</div><div class="cs">Policy rate vs. long-term market yield</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cTrFfrVs10y"></canvas></div>
+    <div class="src">Source: Federal Reserve via FRED — DGS10, DFF.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Real 10-Year Yield &amp; Inflation Expectations</div><div class="cs">Nominal 10Y = real yield (TIPS) + 10Y breakeven; available 2003-</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cTrReal"></canvas></div>
+    <div class="src">Source: Federal Reserve via FRED — DGS10, DFII10, T10YIE.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Corporate Credit Spreads (IG vs. HY)</div><div class="cs">Option-adjusted spread to Treasuries, % — dual axis</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cTrCredit"></canvas></div>
+    <div class="src">Source: ICE BofA via FRED — BAMLC0A0CM (IG OAS), BAMLH0A0HYM2 (HY OAS).</div>
+  </div>
+</div>

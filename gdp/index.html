@@ -2,155 +2,89 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Gross Domestic Product &mdash; Economics Guru</title>
-<meta name="description" content="Live US GDP dashboard: real GDP growth, GDP component contributions, real corporate profits, productivity, and GDP vs GDI. Updated each release from BEA, BLS, and FRED.">
+<title>Gross Domestic Product — Economics Guru</title>
+<meta name="description" content="Real GDP, component contributions, corporate profits, productivity, and GDP vs GDI — sourced live from the U.S. Bureau of Economic Analysis, BLS, and FRED.">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="/assets/styles.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<style>
-  .interactivity-hint { margin: 10px 0 16px; font-size: 12.5px; font-style: italic; color: var(--ink-on-navy-soft); }
-  .chart-card .source { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; }
-  .chart-card .csv-link { font-size: 11px; font-weight: 700; color: var(--mustard); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; text-decoration: none; }
-  .chart-card .csv-link::before { content: '\2193  '; }
-  .chart-card .csv-link:hover { text-decoration: underline; }
-  .controls { display: flex; gap: 12px; align-items: center; margin: 4px 0 0; flex-wrap: wrap; }
-  .controls .label-text { font-size: 12px; color: var(--ink-on-navy-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;900&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+
 </head>
 <body>
 
-<header class="site-header">
+<header class="hdr">
   <div class="wrap">
-    <div class="brand">Economics<span class="tag">Guru</span></div>
-    <nav>
-      <a href="/" >Home</a>
-      <a href="/inflation/">Inflation</a>
-      <a href="/labor/">Labor</a>
-      <a href="/housing/">Housing</a>
-      <a href="/gdp/" class="active">GDP</a>
-      <a href="/consumer/">Consumer</a>
-      <a href="/rates/">Rates</a>
-      <a href="/industry/">Industry</a>
-<a href="/government/">Government</a>
-      <a href="/about/">About</a>
-    </nav>
+    <a class="brand" href="/">Economics<span class="g">Guru</span></a>
+    <nav class="nav"><a href="/">Home</a><div class="item has-menu"><a href="/inflation/">Inflation</a><div class="menu"><a href="/inflation/"><div class="mt">Overview</div><div class="md">Three ways the U.S. measures inflation — consumer prices (CPI), producer prices (PPI), and the PCE deflator.</div></a><a href="/inflation/cpi/"><div class="mt">CPI</div><div class="md">Headline &amp; core CPI, monthly change, components, energy prices. Source: BLS.</div></a><a href="/inflation/ppi/"><div class="mt">PPI</div><div class="md">Final-demand prices producers receive — headline, core, goods, services. Source: BLS.</div></a><a href="/inflation/pce/"><div class="mt">PCE</div><div class="md">The Fed&#x27;s preferred gauge — headline, core, services, supercore. Source: BEA.</div></a></div></div><div class="item"><a href="/labor/">Labor</a></div><div class="item has-menu"><a href="/housing/">Housing</a><div class="menu"><a href="/housing/"><div class="mt">Overview</div><div class="md">Sales, permits &amp; starts, prices, mortgage activity.</div></a><a href="/housing/existing/"><div class="mt">Existing</div><div class="md">Existing home sales, median price, inventory, Case-Shiller HPI, mortgage rate. Source: FRED.</div></a><a href="/housing/new-homes/"><div class="mt">New Homes</div><div class="md">New home sales, median &amp; average price, inventory, regional sales, NAHB sentiment. Source: Census, FRED, NAHB.</div></a><a href="/housing/permits-starts/"><div class="mt">Permits &amp; Starts</div><div class="md">Permits &amp; starts — total, single-family, multi-family, MoM by type, permits-to-starts ratio. Source: Census/FRED.</div></a><a href="/housing/mortgage-activity/"><div class="mt">Mortgage Activity</div><div class="md">MBA applications, 30Y/15Y rates, spread, the golden handcuff, delinquency, debt, affordability. Source: MBA, Freddie Mac, Fed, BEA.</div></a></div></div><div class="item active"><a href="/gdp/">GDP</a></div><div class="item has-menu"><a href="/consumer/">Consumer</a><div class="menu"><a href="/consumer/"><div class="mt">Overview</div><div class="md">Retail sales, income &amp; spending, sentiment &amp; confidence.</div></a><a href="/consumer/income-spending-debt/"><div class="mt">Income &amp; Spending</div><div class="md">Income &amp; consumption, saving rate, interest payments, consumer credit, revolving debt, delinquencies.</div></a><a href="/consumer/retail-confidence/"><div class="mt">Retail &amp; Confidence</div><div class="md">Retail sales (total/ex-MV/control), sector contributions, UMich sentiment, Conference Board confidence.</div></a></div></div><div class="item has-menu"><a href="/rates/">Rates</a><div class="menu"><a href="/rates/"><div class="mt">Overview</div><div class="md">Treasury yields, the curve, credit spreads, equities, commodities.</div></a><a href="/rates/treasuries/"><div class="mt">Treasuries</div><div class="md">Yield curve, 10Y, 2s10s, Fed funds vs 10Y, real yields &amp; breakevens, IG vs HY credit spreads.</div></a><a href="/rates/equities/"><div class="mt">Equities</div><div class="md">S&amp;P 500, major indices rebased, VIX, drawdown, the Wilshire/profits valuation gauge, Nasdaq vs Russell.</div></a><a href="/rates/commodities/"><div class="mt">Commodities</div><div class="md">Gold &amp; silver, gold/silver ratio, WTI vs Brent, natural gas, platinum, energy-vs-metals composite.</div></a></div></div><div class="item has-menu"><a href="/industry/">Industry</a><div class="menu"><a href="/industry/"><div class="mt">Overview</div><div class="md">Industrial production, factory orders, ISM PMIs.</div></a><a href="/industry/manufacturing/"><div class="mt">Manufacturing</div><div class="md">Industrial production, capacity utilization, factory orders, durable goods, capital-goods shipments, electricity. Source: Fed, Census, EIA.</div></a><a href="/industry/surveys/"><div class="mt">Surveys</div><div class="md">ISM Manufacturing &amp; Services PMIs, components, Cass Freight, NFIB optimism &amp; uncertainty. Source: ISM, Cass, NFIB.</div></a></div></div><div class="item"><a href="/government/">Gov&#x27;t</a></div></nav>
+    <div class="spacer"></div>
+    <label class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9fb1c2" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input placeholder="Search 40+ indicators…" aria-label="Search indicators">
+    </label>
   </div>
 </header>
 
-<main>
-  <div class="page-header">
-    <h1>Gross Domestic Product</h1>
-    <div class="subtitle">Real GDP, component contributions, corporate profits, productivity, and GDP vs GDI &mdash; sourced live from the U.S. Bureau of Economic Analysis, U.S. Bureau of Labor Statistics, and FRED.</div>
-    <div class="latest">Latest GDP release: <strong id="latest-month">&hellip;</strong></div>
+<main class="wrap">
+<div class="crumb"><a href="/">Home</a><span class="sep">/</span>GDP</div><div class="pagehead"><div><h1>Gross Domestic Product</h1><p class="sub">Real GDP, component contributions, corporate profits, productivity, and GDP vs GDI — sourced live from the U.S. Bureau of Economic Analysis, BLS, and FRED.</p></div><div class="latest">Latest data &nbsp;<b id="latest">…</b></div></div><div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
   </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
 
-  <div class="notice" id="notice" style="display:none">
-    <strong>Data note:</strong> <span id="notice-text"></span>
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">Real GDP — Quarter-over-Quarter Growth</div><div class="cs">% change from preceding quarter, SAAR</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cGdpHeadline"></canvas></div>
+    <div class="src">Source: U.S. Bureau of Economic Analysis — real GDP, % change at annual rate.</div>
   </div>
-
-  <div id="kpis" class="kpi-grid"></div>
-
-  <div class="controls">
-    <span class="label-text">Time range:</span>
-    <div class="range-toggle">
-      <button data-range="12m">12 mo</button>
-      <button data-range="5y" class="active">5 yr</button>
-      <button data-range="10y">10 yr</button>
-      <button data-range="20y">20 yr</button>
-      <button data-range="max">Max</button>
-    </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Real Corporate Profits — QoQ Growth</div><div class="cs">With IVA &amp; CCAdj, deflated by GDP price index; % change at annual rate</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cGdpProfits"></canvas></div>
+    <div class="src">Source: U.S. Bureau of Economic Analysis — corporate profits with IVA & CCAdj, deflated.</div>
   </div>
-
-  <div class="interactivity-hint">
-    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post. GDI, corporate profits, and productivity typically lag headline GDP by one quarter (released later in the cycle).
+  <div class="card span2">
+    <div class="top"><div><div class="ct">Components of GDP — Contributions to % Change</div><div class="cs">Stacked bars sum to headline GDP growth; line shows total</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cGdpComponents"></canvas></div>
+    <div class="src">Source: U.S. Bureau of Economic Analysis — contributions of PCE, investment, net exports, government to real GDP growth.</div>
   </div>
-
-  <div class="chart-grid">
-    <div class="chart-card">
-      <div class="title">Real GDP &mdash; Quarter-over-Quarter Growth</div>
-      <div class="subtitle">(% change from preceding quarter, seasonally adjusted at annual rate)</div>
-      <div class="chart-wrap"><canvas id="chartGdpHeadline"></canvas></div>
-      <div class="source">
-        <span>Source: BEA NIPA Table 1.1.1 &mdash; A191RL.</span>
-        <a href="#" class="csv-link" data-chart="chartGdpHeadline">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Components of GDP &mdash; Contributions to % Change</div>
-      <div class="subtitle">(Stacked bars sum to headline GDP growth; line shows total)</div>
-      <div class="chart-wrap"><canvas id="chartGdpComponents"></canvas></div>
-      <div class="source">
-        <span>Source: BEA NIPA Table 1.1.2 &mdash; PCE, Investment, Net Exports, Government.</span>
-        <a href="#" class="csv-link" data-chart="chartGdpComponents">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Real Corporate Profits &mdash; Quarter-over-Quarter Growth</div>
-      <div class="subtitle">(With IVA &amp; CCAdj, deflated by GDP price index; % change at annual rate)</div>
-      <div class="chart-wrap"><canvas id="chartGdpProfits"></canvas></div>
-      <div class="source">
-        <span>Source: BEA NIPA Table 1.12 &mdash; A051RC, deflated by FRED GDPDEF.</span>
-        <a href="#" class="csv-link" data-chart="chartGdpProfits">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Productivity &mdash; Output per Hour</div>
-      <div class="subtitle">(Non-farm business and Manufacturing; % change at annual rate)</div>
-      <div class="chart-wrap"><canvas id="chartGdpProductivity"></canvas></div>
-      <div class="source">
-        <span>Source: BLS &mdash; PRS85006092 (NF business), PRS30006092 (Manufacturing).</span>
-        <a href="#" class="csv-link" data-chart="chartGdpProductivity">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">GDP vs GDI &mdash; Year-over-Year % Change</div>
-      <div class="subtitle">(Real Gross Domestic Product vs Real Gross Domestic Income; gap is the statistical discrepancy)</div>
-      <div class="chart-wrap"><canvas id="chartGdpVsGdi"></canvas></div>
-      <div class="source">
-        <span>Source: FRED &mdash; GDPC1 (Real GDP), A261RX1Q020SBEA (Real GDI).</span>
-        <a href="#" class="csv-link" data-chart="chartGdpVsGdi">Download CSV</a>
-      </div>
-    </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Productivity — Output per Hour</div><div class="cs">Non-farm business and manufacturing; % change at annual rate</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cGdpProductivity"></canvas></div>
+    <div class="src">Source: U.S. Bureau of Labor Statistics — labor productivity (output per hour).</div>
   </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">GDP vs GDI — Year-over-Year % Change</div><div class="cs">Real GDP vs real GDI; gap is the statistical discrepancy</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cGdpVsGdi"></canvas></div>
+    <div class="src">Source: U.S. Bureau of Economic Analysis — real GDP and real GDI.</div>
+  </div>
+</div>
+
 </main>
 
-<footer class="site-footer">
+<footer class="foot">
   <div class="wrap">
-    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BEA, BLS, and FRED. <a href="/about/">Methodology</a></div>
-    <div>Data refreshes nightly. Last successful build: <span id="build-time">&hellip;</span></div>
+    <div>© <span id="yr"></span> Economics Guru · Public data from BLS, FRED, BEA, Census, EIA, UMich, Conference Board, and ICE BofA. <a href="/about/">Methodology</a></div>
+    <div>A product of <a href="https://www.economicimpact.com" target="_blank" rel="noopener">Economic Impact Group, LLC</a> · Data refreshes nightly</div>
   </div>
 </footer>
 
-<script src="/assets/charts.js"></script>
-<script>
-document.getElementById('yr').textContent = new Date().getFullYear();
-
-fetch('/data/gdp.json', { cache: 'no-cache' })
-  .then(r => r.json())
-  .then(data => {
-    EG.renderGdp(data);
-    if (data.notice) {
-      document.getElementById('notice').style.display = '';
-      document.getElementById('notice-text').textContent = data.notice;
-    }
-    if (data.build_time) {
-      document.getElementById('build-time').textContent =
-        new Date(data.build_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
-    }
-  })
-  .catch(err => {
-    console.error(err);
-    document.querySelector('main').insertAdjacentHTML('afterbegin',
-      '<div class="notice"><strong>Could not load data.</strong> Try refreshing in a moment.</div>');
-  });
-</script>
-
+<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/assets/js/chart-core.js"></script>
+<script src="/assets/js/pages/gdp.js"></script>
+<script>EG.boot("/data/gdp.json", "gdp");</script>
 </body>
 </html>

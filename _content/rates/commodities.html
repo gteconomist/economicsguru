@@ -1,0 +1,42 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+<div id="kpis" class="kpis"></div>
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button><button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button><button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button><button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">Gold &amp; Silver</div><div class="cs">Spot prices, $/oz — gold left axis, silver right (different scales)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCmGoldSilver"></canvas></div>
+    <div class="src">Source: London Fix via Kitco (history) + MetalPriceAPI (daily spot).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Gold-to-Silver Ratio</div><div class="cs">Ounces of silver per ounce of gold; &lt;~60 silver-strong, &gt;~80 risk-off</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCmGsRatio"></canvas></div>
+    <div class="src">Source: derived from gold and silver spot prices.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Crude Oil — WTI vs. Brent</div><div class="cs">Spot prices, $/barrel — US vs. international benchmark</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCmCrude"></canvas></div>
+    <div class="src">Source: EIA via FRED — DCOILWTICO (WTI), DCOILBRENTEU (Brent).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Henry Hub Natural Gas</div><div class="cs">US spot price, $/MMBtu — weather-driven, domestic-supply sensitive</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCmNatgas"></canvas></div>
+    <div class="src">Source: EIA via FRED — DHHNGSP.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Platinum</div><div class="cs">Spot price, $/oz — heavy industrial demand makes it more cyclical than gold</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCmPlatinum"></canvas></div>
+    <div class="src">Source: London PM Fix via Kitco + MetalPriceAPI (daily spot).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Energy vs. Metals (Rebased to 100)</div><div class="cs">Each indexed to 100 at the start of the window — relative performance</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCmComposite"></canvas></div>
+    <div class="src">Source: energy = WTI/Brent avg; precious metals = blended gold/silver/platinum.</div>
+  </div>
+</div>

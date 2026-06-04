@@ -1,0 +1,43 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">Real GDP — Quarter-over-Quarter Growth</div><div class="cs">% change from preceding quarter, SAAR</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cGdpHeadline"></canvas></div>
+    <div class="src">Source: U.S. Bureau of Economic Analysis — real GDP, % change at annual rate.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Real Corporate Profits — QoQ Growth</div><div class="cs">With IVA &amp; CCAdj, deflated by GDP price index; % change at annual rate</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cGdpProfits"></canvas></div>
+    <div class="src">Source: U.S. Bureau of Economic Analysis — corporate profits with IVA & CCAdj, deflated.</div>
+  </div>
+  <div class="card span2">
+    <div class="top"><div><div class="ct">Components of GDP — Contributions to % Change</div><div class="cs">Stacked bars sum to headline GDP growth; line shows total</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cGdpComponents"></canvas></div>
+    <div class="src">Source: U.S. Bureau of Economic Analysis — contributions of PCE, investment, net exports, government to real GDP growth.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Productivity — Output per Hour</div><div class="cs">Non-farm business and manufacturing; % change at annual rate</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cGdpProductivity"></canvas></div>
+    <div class="src">Source: U.S. Bureau of Labor Statistics — labor productivity (output per hour).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">GDP vs GDI — Year-over-Year % Change</div><div class="cs">Real GDP vs real GDI; gap is the statistical discrepancy</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cGdpVsGdi"></canvas></div>
+    <div class="src">Source: U.S. Bureau of Economic Analysis — real GDP and real GDI.</div>
+  </div>
+</div>

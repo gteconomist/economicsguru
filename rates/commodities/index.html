@@ -2,198 +2,88 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Commodities &mdash; Gold, Silver, Oil &amp; Copper &mdash; Economics Guru</title>
-<meta name="description" content="Live commodities dashboard: gold and silver on one chart, the gold/silver ratio, WTI vs Brent crude, Henry Hub natural gas, copper, and an energy-vs-metals composite. Updated daily from FRED, Stooq, and MetalPriceAPI.">
+<title>Commodities — Metals &amp; Energy — Economics Guru</title>
+<meta name="description" content="Gold and silver, the gold/silver ratio, WTI vs Brent crude, Henry Hub natural gas, platinum, and an energy-vs-metals composite. Daily spot via Kitco/MetalPriceAPI and FRED.">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="stylesheet" href="/assets/styles.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<style>
-  .interactivity-hint { margin: 10px 0 16px; font-size: 12.5px; font-style: italic; color: var(--ink-on-navy-soft); }
-  .chart-card .source { display: flex; flex-wrap: wrap; gap: 10px; align-items: baseline; justify-content: space-between; }
-  .chart-card .csv-link { font-size: 11px; font-weight: 700; color: var(--mustard); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; text-decoration: none; }
-  .chart-card .csv-link::before { content: '\2193  '; }
-  .chart-card .csv-link:hover { text-decoration: underline; }
-  .controls { display: flex; gap: 12px; align-items: center; margin: 4px 0 0; flex-wrap: wrap; }
-  .controls .label-text { font-size: 12px; color: var(--ink-on-navy-soft); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;900&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
 
-  /* commodities KPI: latest level + 1-day delta in % (markets quote moves in %) */
-  .kpi .delta-pct {
-    display: block; margin-top: 2px;
-    font-size: 11.5px; font-weight: 600;
-    color: var(--ink-soft); letter-spacing: 0.02em;
-  }
-  .kpi .delta-pct.up   { color: #5a7a30; }   /* commodity rising = neutral, but green for clarity */
-  .kpi .delta-pct.down { color: #b94a3a; }
-  .kpi .delta-pct.flat { color: var(--ink-soft); }
-
-  .subnav {
-    display: flex; gap: 0; align-items: stretch; flex-wrap: wrap;
-    margin: 8px 0 18px;
-    border-bottom: 1px solid rgba(255,255,255,0.15);
-  }
-  .subnav a, .subnav span {
-    padding: 8px 14px; font-size: 12.5px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.06em;
-    color: #f3ecd0; text-decoration: none;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -1px;
-    opacity: 0.7;
-  }
-  .subnav a:hover { opacity: 1; text-decoration: none; }
-  .subnav a.active { color: var(--mustard); border-bottom-color: var(--mustard); opacity: 1; }
-  .subnav .disabled { color: #9ba3ab; cursor: not-allowed; opacity: 0.7; }
-</style>
 </head>
 <body>
 
-<header class="site-header">
+<header class="hdr">
   <div class="wrap">
-    <div class="brand">Economics<span class="tag">Guru</span></div>
-    <nav>
-      <a href="/">Home</a>
-      <a href="/inflation/">Inflation</a>
-      <a href="/labor/">Labor</a>
-      <a href="/housing/">Housing</a>
-      <a href="/gdp/">GDP</a>
-      <a href="/consumer/">Consumer</a>
-      <a href="/rates/" class="active">Rates</a>
-      <a href="/industry/">Industry</a>
-<a href="/government/">Government</a>
-      <a href="/about/">About</a>
-    </nav>
+    <a class="brand" href="/">Economics<span class="g">Guru</span></a>
+    <nav class="nav"><a href="/">Home</a><div class="item has-menu"><a href="/inflation/">Inflation</a><div class="menu"><a href="/inflation/"><div class="mt">Overview</div><div class="md">Three ways the U.S. measures inflation — consumer prices (CPI), producer prices (PPI), and the PCE deflator.</div></a><a href="/inflation/cpi/"><div class="mt">CPI</div><div class="md">Headline &amp; core CPI, monthly change, components, energy prices. Source: BLS.</div></a><a href="/inflation/ppi/"><div class="mt">PPI</div><div class="md">Final-demand prices producers receive — headline, core, goods, services. Source: BLS.</div></a><a href="/inflation/pce/"><div class="mt">PCE</div><div class="md">The Fed&#x27;s preferred gauge — headline, core, services, supercore. Source: BEA.</div></a></div></div><div class="item"><a href="/labor/">Labor</a></div><div class="item has-menu"><a href="/housing/">Housing</a><div class="menu"><a href="/housing/"><div class="mt">Overview</div><div class="md">Sales, permits &amp; starts, prices, mortgage activity.</div></a><a href="/housing/existing/"><div class="mt">Existing</div><div class="md">Existing home sales, median price, inventory, Case-Shiller HPI, mortgage rate. Source: FRED.</div></a><a href="/housing/new-homes/"><div class="mt">New Homes</div><div class="md">New home sales, median &amp; average price, inventory, regional sales, NAHB sentiment. Source: Census, FRED, NAHB.</div></a><a href="/housing/permits-starts/"><div class="mt">Permits &amp; Starts</div><div class="md">Permits &amp; starts — total, single-family, multi-family, MoM by type, permits-to-starts ratio. Source: Census/FRED.</div></a><a href="/housing/mortgage-activity/"><div class="mt">Mortgage Activity</div><div class="md">MBA applications, 30Y/15Y rates, spread, the golden handcuff, delinquency, debt, affordability. Source: MBA, Freddie Mac, Fed, BEA.</div></a></div></div><div class="item"><a href="/gdp/">GDP</a></div><div class="item has-menu"><a href="/consumer/">Consumer</a><div class="menu"><a href="/consumer/"><div class="mt">Overview</div><div class="md">Retail sales, income &amp; spending, sentiment &amp; confidence.</div></a><a href="/consumer/income-spending-debt/"><div class="mt">Income &amp; Spending</div><div class="md">Income &amp; consumption, saving rate, interest payments, consumer credit, revolving debt, delinquencies.</div></a><a href="/consumer/retail-confidence/"><div class="mt">Retail &amp; Confidence</div><div class="md">Retail sales (total/ex-MV/control), sector contributions, UMich sentiment, Conference Board confidence.</div></a></div></div><div class="item has-menu active"><a href="/rates/">Rates</a><div class="menu"><a href="/rates/"><div class="mt">Overview</div><div class="md">Treasury yields, the curve, credit spreads, equities, commodities.</div></a><a href="/rates/treasuries/"><div class="mt">Treasuries</div><div class="md">Yield curve, 10Y, 2s10s, Fed funds vs 10Y, real yields &amp; breakevens, IG vs HY credit spreads.</div></a><a href="/rates/equities/"><div class="mt">Equities</div><div class="md">S&amp;P 500, major indices rebased, VIX, drawdown, the Wilshire/profits valuation gauge, Nasdaq vs Russell.</div></a><a href="/rates/commodities/"><div class="mt">Commodities</div><div class="md">Gold &amp; silver, gold/silver ratio, WTI vs Brent, natural gas, platinum, energy-vs-metals composite.</div></a></div></div><div class="item has-menu"><a href="/industry/">Industry</a><div class="menu"><a href="/industry/"><div class="mt">Overview</div><div class="md">Industrial production, factory orders, ISM PMIs.</div></a><a href="/industry/manufacturing/"><div class="mt">Manufacturing</div><div class="md">Industrial production, capacity utilization, factory orders, durable goods, capital-goods shipments, electricity. Source: Fed, Census, EIA.</div></a><a href="/industry/surveys/"><div class="mt">Surveys</div><div class="md">ISM Manufacturing &amp; Services PMIs, components, Cass Freight, NFIB optimism &amp; uncertainty. Source: ISM, Cass, NFIB.</div></a></div></div><div class="item"><a href="/government/">Gov&#x27;t</a></div></nav>
+    <div class="spacer"></div>
+    <label class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9fb1c2" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input placeholder="Search 40+ indicators…" aria-label="Search indicators">
+    </label>
   </div>
 </header>
 
-<main>
-  <nav class="subnav">
-    <a href="/rates/treasuries/">Treasuries</a>
-    <a href="/rates/equities/">Equities</a>
-    <a href="/rates/commodities/" class="active">Commodities</a>
-    <span class="disabled">FX &amp; Crypto</span>
-  </nav>
-  <div class="page-header">
-    <h1>Commodities &mdash; Metals &amp; Energy</h1>
-    <div class="subtitle">Gold and silver on one chart (the precious-metals lens on inflation hedging and monetary policy), the gold/silver ratio (relative-value gauge), WTI vs. Brent (the energy benchmarks), Henry Hub natural gas, platinum (the cyclical precious metal), and an energy-vs-metals composite. London-Fix history via Kitco (CSV baseline) + MetalPriceAPI live for daily gold/silver/platinum spot; FRED for energy.</div>
-    <div class="latest">Latest data: <strong id="latest-month">&hellip;</strong></div>
+<main class="wrap">
+<div class="crumb"><a href="/">Home</a><span class="sep">/</span><a href="/rates/">Rates</a><span class="sep">/</span>Commodities</div><div class="pagehead"><div><h1>Commodities — Metals &amp; Energy</h1><p class="sub">Gold and silver, the gold/silver ratio, WTI vs Brent crude, Henry Hub natural gas, platinum, and an energy-vs-metals composite. Daily spot via Kitco/MetalPriceAPI and FRED.</p></div><div class="latest">Latest data &nbsp;<b id="latest">…</b></div></div><nav class="pills"><a href="/rates/treasuries/">Treasuries</a><a href="/rates/equities/">Equities</a><a href="/rates/commodities/" class="active">Commodities</a></nav><div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+<div id="kpis" class="kpis"></div>
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button><button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button><button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button><button data-r="max">Max</button>
   </div>
-
-  <div class="notice" id="notice" style="display:none">
-    <strong>Data note:</strong> <span id="notice-text"></span>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">Gold &amp; Silver</div><div class="cs">Spot prices, $/oz — gold left axis, silver right (different scales)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCmGoldSilver"></canvas></div>
+    <div class="src">Source: London Fix via Kitco (history) + MetalPriceAPI (daily spot).</div>
   </div>
-
-  <div id="kpis" class="kpi-grid"></div>
-
-  <div class="controls">
-    <span class="label-text">Time range:</span>
-    <div class="range-toggle">
-      <button data-range="12m" class="active">12 mo</button>
-      <button data-range="5y">5 yr</button>
-      <button data-range="10y">10 yr</button>
-      <button data-range="20y">20 yr</button>
-      <button data-range="max">Max</button>
-    </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Gold-to-Silver Ratio</div><div class="cs">Ounces of silver per ounce of gold; &lt;~60 silver-strong, &gt;~80 risk-off</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCmGsRatio"></canvas></div>
+    <div class="src">Source: derived from gold and silver spot prices.</div>
   </div>
-
-  <div class="interactivity-hint">
-    Tip: click any legend label below a chart to hide or show that series. Each chart can be downloaded as a CSV or embedded into a blog post. The time range applies to all six charts at once.
+  <div class="card">
+    <div class="top"><div><div class="ct">Crude Oil — WTI vs. Brent</div><div class="cs">Spot prices, $/barrel — US vs. international benchmark</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCmCrude"></canvas></div>
+    <div class="src">Source: EIA via FRED — DCOILWTICO (WTI), DCOILBRENTEU (Brent).</div>
   </div>
-
-  <div class="chart-grid">
-    <div class="chart-card">
-      <div class="title">Gold &amp; Silver</div>
-      <div class="subtitle">(Spot Prices, $/oz &mdash; Gold on Left Axis, Silver on Right; Different Scales Because Gold Trades ~50&times; Silver)</div>
-      <div class="chart-wrap"><canvas id="chartCmGoldSilver"></canvas></div>
-      <div class="source">
-        <span>Source: Stooq (xauusd, xagusd) with MetalPriceAPI live-spot fallback.</span>
-        <a href="#" class="csv-link" data-chart="chartCmGoldSilver">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Gold-to-Silver Ratio</div>
-      <div class="subtitle">(Ounces of Silver per Ounce of Gold; Below ~60 = Silver Strong, Above ~80 = Risk-Off / Recession Fear)</div>
-      <div class="chart-wrap"><canvas id="chartCmGsRatio"></canvas></div>
-      <div class="source">
-        <span>Source: Computed in-house from gold and silver spot prices (date-aligned).</span>
-        <a href="#" class="csv-link" data-chart="chartCmGsRatio">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Crude Oil &mdash; WTI vs. Brent</div>
-      <div class="subtitle">(Spot Prices, $/Barrel &mdash; WTI is U.S. Benchmark, Brent is the International One; the Spread Reflects Pipeline / Refining Constraints)</div>
-      <div class="chart-wrap"><canvas id="chartCmCrude"></canvas></div>
-      <div class="source">
-        <span>Source: U.S. EIA via FRED &mdash; DCOILWTICO (Cushing OK), DCOILBRENTEU (Europe).</span>
-        <a href="#" class="csv-link" data-chart="chartCmCrude">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Henry Hub Natural Gas</div>
-      <div class="subtitle">(U.S. Spot Price, $/MMBtu &mdash; Weather-Driven, Domestic Supply Sensitive)</div>
-      <div class="chart-wrap"><canvas id="chartCmNatgas"></canvas></div>
-      <div class="source">
-        <span>Source: U.S. EIA via FRED &mdash; DHHNGSP.</span>
-        <a href="#" class="csv-link" data-chart="chartCmNatgas">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Platinum</div>
-      <div class="subtitle">(Spot Price, $/oz &mdash; The Third Major Precious Metal; Heavy Industrial Demand from Catalytic Converters Makes It More Cyclical Than Gold)</div>
-      <div class="chart-wrap"><canvas id="chartCmPlatinum"></canvas></div>
-      <div class="source">
-        <span>Source: London PM Fix via Kitco (CSV baseline) + MetalPriceAPI live spot.</span>
-        <a href="#" class="csv-link" data-chart="chartCmPlatinum">Download CSV</a>
-      </div>
-    </div>
-
-    <div class="chart-card">
-      <div class="title">Energy vs. Metals (Rebased to 100)</div>
-      <div class="subtitle">(Each Series Indexed to 100 at the Start of the Selected Window; Diverging Lines Show Relative Performance)</div>
-      <div class="chart-wrap"><canvas id="chartCmComposite"></canvas></div>
-      <div class="source">
-        <span>Source: Computed in-house &mdash; Energy = (WTI + Brent) / 2; Precious Metals = (Gold + 50&times;Silver + 2&times;Platinum) / 3 (silver and platinum scaled to gold&rsquo;s order of magnitude).</span>
-        <a href="#" class="csv-link" data-chart="chartCmComposite">Download CSV</a>
-      </div>
-    </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Henry Hub Natural Gas</div><div class="cs">US spot price, $/MMBtu — weather-driven, domestic-supply sensitive</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCmNatgas"></canvas></div>
+    <div class="src">Source: EIA via FRED — DHHNGSP.</div>
   </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Platinum</div><div class="cs">Spot price, $/oz — heavy industrial demand makes it more cyclical than gold</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCmPlatinum"></canvas></div>
+    <div class="src">Source: London PM Fix via Kitco + MetalPriceAPI (daily spot).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Energy vs. Metals (Rebased to 100)</div><div class="cs">Each indexed to 100 at the start of the window — relative performance</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCmComposite"></canvas></div>
+    <div class="src">Source: energy = WTI/Brent avg; precious metals = blended gold/silver/platinum.</div>
+  </div>
+</div>
+
 </main>
 
-<footer class="site-footer">
+<footer class="foot">
   <div class="wrap">
-    <div>&copy; <span id="yr"></span> Economics Guru &middot; Built with public data from BLS, FRED, BEA, Census, UMich, Conference Board, ICE BofA, Kitco/London Fix, and MetalPriceAPI. <a href="/about/">Methodology</a></div>
-    <div>Data refreshes nightly. Last successful build: <span id="build-time">&hellip;</span></div>
+    <div>© <span id="yr"></span> Economics Guru · Public data from BLS, FRED, BEA, Census, EIA, UMich, Conference Board, and ICE BofA. <a href="/about/">Methodology</a></div>
+    <div>A product of <a href="https://www.economicimpact.com" target="_blank" rel="noopener">Economic Impact Group, LLC</a> · Data refreshes nightly</div>
   </div>
 </footer>
 
-<script src="/assets/charts.js"></script>
-<script>
-document.getElementById('yr').textContent = new Date().getFullYear();
-
-fetch('/data/commodities.json', { cache: 'no-cache' })
-  .then(r => r.json())
-  .then(data => {
-    EG.renderCommodities(data);
-    if (data.notice) {
-      document.getElementById('notice').style.display = '';
-      document.getElementById('notice-text').textContent = data.notice;
-    }
-    if (data.build_time) {
-      document.getElementById('build-time').textContent =
-        new Date(data.build_time).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
-    }
-  })
-  .catch(err => {
-    console.error(err);
-    document.querySelector('main').insertAdjacentHTML('afterbegin',
-      '<div class="notice"><strong>Could not load data.</strong> Try refreshing in a moment.</div>');
-  });
-</script>
-
+<script>document.getElementById('yr').textContent = new Date().getFullYear();</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/assets/js/chart-core.js"></script>
+<script src="/assets/js/pages/rates.js"></script>
+<script>EG.boot("/data/commodities.json", "commodities");</script>
 </body>
 </html>

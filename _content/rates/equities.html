@@ -1,0 +1,42 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+<div id="kpis" class="kpis"></div>
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button><button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button><button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button><button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">S&amp;P 500</div><div class="cs">Daily close, index level</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEqSpx"></canvas></div>
+    <div class="src">Source: Yahoo Finance — S&amp;P 500 daily close.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Major Indices — Rebased to 100</div><div class="cs">S&amp;P 500, Nasdaq, Dow &amp; Russell 2000, each = 100 at start of window</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEqRebased"></canvas></div>
+    <div class="src">Source: Yahoo Finance — S&amp;P 500, Nasdaq Composite, Dow Jones, Russell 2000.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">VIX — Volatility Index</div><div class="cs">CBOE 30-day implied volatility; below 20 = calm, above 30 = stress</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEqVix"></canvas></div>
+    <div class="src">Source: CBOE via FRED — VIXCLS.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">S&amp;P 500 — Drawdown From All-Time High</div><div class="cs">Percent below the running peak; reference lines at -10% and -20%</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEqDrawdown"></canvas></div>
+    <div class="src">Source: Yahoo Finance — derived from S&amp;P 500 daily close.</div>
+  </div>
+  <div class="card span2">
+    <div class="top"><div><div class="ct">Wilshire 5000 / After-Tax Corporate Profits</div><div class="cs">Economy-wide "P/E"; long-run average ~12; bands: cheap &lt;9, fair 9-15, over-valued 15-18, frothy &gt;18</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEqWilshirePE"></canvas></div>
+    <div class="src">Source: Yahoo Finance (Wilshire 5000) ÷ BEA NIPA after-tax corporate profits with IVA &amp; CCAdj (CPATAX) via FRED.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Nasdaq vs. Russell 2000 — Rebased to 100</div><div class="cs">Tech-heavy large caps vs. small caps</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEqNdqRut"></canvas></div>
+    <div class="src">Source: Yahoo Finance — Nasdaq Composite, Russell 2000.</div>
+  </div>
+</div>

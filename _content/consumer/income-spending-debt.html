@@ -1,0 +1,53 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">Personal Income &amp; Consumption — Nominal MoM</div><div class="cs">% change MoM; income, disposable income, consumption — current dollars</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCsIncomeNominal"></canvas></div>
+    <div class="src">Source: U.S. Bureau of Economic Analysis via FRED — personal income, DPI, PCE (nominal).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Personal Income &amp; Consumption — Real MoM</div><div class="cs">% change MoM; chained 2017 dollars — deflated by the PCE price index</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCsIncomeReal"></canvas></div>
+    <div class="src">Source: U.S. Bureau of Economic Analysis via FRED — real personal income, DPI, PCE.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Personal Saving Rate</div><div class="cs">Personal saving as a % of disposable personal income, monthly, SA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCsSavingRate"></canvas></div>
+    <div class="src">Source: U.S. Bureau of Economic Analysis via FRED — personal saving rate.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Personal Interest Payments</div><div class="cs">Personal interest payments, $ billions, SAAR</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCsInterestPayments"></canvas></div>
+    <div class="src">Source: U.S. Bureau of Economic Analysis via FRED — personal interest payments (B069RC1).</div>
+  </div>
+  <div class="card span2">
+    <div class="top"><div><div class="ct">Consumer Credit — Household Debt Less Mortgage</div><div class="cs">Stacked area, $ trillions: credit card, home equity, auto, student, other — total line over the stack</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCsConsumerCredit"></canvas></div>
+    <div class="src">Source: Federal Reserve Bank of New York — Quarterly Report on Household Debt and Credit (non-mortgage components).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Revolving Consumer Credit — Total &amp; YoY %</div><div class="cs">Dual axis — left: total revolving credit ($T, SA); right: YoY % change</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCsRevolving"></canvas></div>
+    <div class="src">Source: Federal Reserve G.19 via FRED — revolving consumer credit (REVOLSL).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Percent of Balances 90+ Days Delinquent</div><div class="cs">Credit card, mortgage, auto, student — % of category balance, quarterly</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCsDelinquency"></canvas></div>
+    <div class="src">Source: Federal Reserve Bank of New York — Quarterly Report on Household Debt and Credit, 90+ day delinquency.</div>
+  </div>
+</div>

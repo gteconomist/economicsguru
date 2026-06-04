@@ -22,7 +22,21 @@ window.EG = (function () {
     exAxis:'#ffffff', exGrid:'rgba(255,255,255,.18)', exTitle:'#ffffff'
   };
   var FONT = "'Source Sans Pro', sans-serif";
-  if (window.Chart) { Chart.defaults.font.family = FONT; Chart.defaults.color = T.tick; }
+  if (window.Chart) {
+    Chart.defaults.font.family = FONT; Chart.defaults.color = T.tick;
+    // Draw line datasets in front of bars (so a line over bars is never hidden).
+    Chart.register({
+      id: 'lineOnTop',
+      beforeUpdate: function(chart){
+        if (!chart || !chart.data || !chart.data.datasets) return;
+        chart.data.datasets.forEach(function(ds){
+          if (ds.order !== undefined) return;
+          var t = ds.type || (chart.config && chart.config.type);
+          ds.order = (t === 'line') ? 0 : 1;   // lower order draws on top
+        });
+      }
+    });
+  }
 
   // ---- formatting / data helpers ----
   function lab(s){ var p=String(s).split('-'); return new Date(p[0], (p[1]||1)-1).toLocaleString('en-US',{month:'short',year:'2-digit'}); }
@@ -204,7 +218,7 @@ window.EG = (function () {
   // titles and axis positions (so % / counts / dual-axis all render correctly),
   // only overriding fonts/colors to the export style (theme-driven).
   function exScales(src, sc, axis, grid){
-    var tick = { color:axis, font:{size:15*sc, weight:'700'} };
+    var tick = { color:axis, font:{size:19*sc, weight:'700'} };
     var out = {};
     Object.keys(src || {}).forEach(function(k){
       var s = src[k] || {}; var isX = (k === 'x');
@@ -214,20 +228,20 @@ window.EG = (function () {
         border: {display:false, color:grid},
         ticks: Object.assign({}, s.ticks, tick)
       };
-      if(isX){ ns.ticks.maxRotation = 0; ns.ticks.autoSkip = true; ns.ticks.maxTicksLimit = 13; }
+      if(isX){ ns.ticks.maxRotation = 0; ns.ticks.autoSkip = true; ns.ticks.maxTicksLimit = 9; }
       if(s.min != null) ns.min = s.min;        // preserve fixed axis bounds (e.g. 3:1 locked axes)
       if(s.max != null) ns.max = s.max;
-      if(s.title && s.title.text){ ns.title = {display:true, text:s.title.text, color:axis, font:{size:12.5*sc, weight:'700'}}; }
+      if(s.title && s.title.text){ ns.title = {display:true, text:s.title.text, color:axis, font:{size:15*sc, weight:'700'}}; }
       out[k] = ns;
     });
-    if(!out.x){ out.x = { grid:{display:false}, ticks:Object.assign({maxRotation:0, autoSkip:true, maxTicksLimit:13}, tick) }; }
+    if(!out.x){ out.x = { grid:{display:false}, ticks:Object.assign({maxRotation:0, autoSkip:true, maxTicksLimit:9}, tick) }; }
     return out;
   }
   function exOpts(srcOptions, sc, theme){
     return {
       responsive:false, animation:false, devicePixelRatio:1, maintainAspectRatio:false,
-      layout:{padding:{top:6*sc, right:10*sc, bottom:2*sc, left:2*sc}},
-      plugins:{ legend:{position:'bottom', labels:{color:theme.axis, usePointStyle:true, pointStyle:'circle', boxWidth:9*sc, padding:15*sc, font:{size:14.5*sc, weight:'700'}, generateLabels:gapLabels}}, tooltip:{enabled:false} },
+      layout:{padding:{top:6*sc, right:12*sc, bottom:2*sc, left:2*sc}},
+      plugins:{ legend:{position:'bottom', labels:{color:theme.axis, usePointStyle:true, pointStyle:'circle', boxWidth:12*sc, padding:16*sc, font:{size:18*sc, weight:'700'}, generateLabels:gapLabels}}, tooltip:{enabled:false} },
       scales: exScales(srcOptions && srcOptions.scales, sc, theme.axis, theme.grid)
     };
   }
