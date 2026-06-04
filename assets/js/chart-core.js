@@ -305,7 +305,7 @@ window.EG = (function () {
     x.textAlign='left'; x.textBaseline='alphabetic';
     x.fillStyle=theme.ink; x.font='700 '+(26*sc)+'px "Source Serif 4", Georgia, serif';
     x.fillText(title, padL, 57*sc);
-    if(sub){ x.fillStyle=theme.muted; x.font='italic '+(14*sc)+'px '+EXF; x.fillText(sub, padL, 80*sc); }
+    if(sub){ x.fillStyle=theme.muted; x.font='italic '+(17*sc)+'px '+EXF; x.fillText(sub, padL, 81*sc); }
     var pw=W-padL-padR, ph=H-headerH-footerH;
     var pc=document.createElement('canvas'); pc.width=pw; pc.height=ph;
     var ec=new Chart(pc, { type:ch.config.type, data:exportData(ch,sc,theme), options:exOpts(ch.config.options, sc, theme) });
