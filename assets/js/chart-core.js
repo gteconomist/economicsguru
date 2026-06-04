@@ -109,66 +109,92 @@ window.EG = (function () {
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(a.href);},1500);
   }
   function chartInCard(card){ for(var i=0;i<charts.length;i++){ if(card.contains(charts[i].canvas)) return charts[i]; } return null; }
-  function exportData(ch, sc){
+  // Two export themes. Dark = on-site navy look. Light = white background for
+  // email/print; remaps the dark series colors to darker GT tones that read on white.
+  var LIGHT_MAP = {
+    '#B3A369':'#857437',  // Tech Gold  -> Tech Dark Gold
+    '#FFCD00':'#C8901A',  // RAT Cap    -> amber
+    '#64CCC9':'#008C95',  // Electric   -> Olympic Teal
+    '#A4D233':'#5F8A3A',  // Canopy Lime-> darker green
+    '#E04F39':'#C5402B',  // New Horizon-> deeper orange-red
+    '#3A5DAE':'#33509A',  // Bold Blue  -> slightly deeper
+    '#5F249F':'#5F249F',  // Impact Purple (ok on white)
+    '#008C95':'#006D74'   // Olympic Teal -> deeper
+  };
+  var EXPORT_DARK  = { bg:T.exBg, ink:T.exTitle, muted:T.exMuted, brand:T.exBrand, axis:T.exAxis, grid:T.exGrid, map:null, barFill:null, suffix:'' };
+  var EXPORT_LIGHT = { bg:'#ffffff', ink:'#10233a', muted:'#5d6f82', brand:'#857437', axis:'#10233a', grid:'rgba(16,32,52,.12)', map:LIGHT_MAP, barFill:'rgba(84,88,90,.32)', suffix:'-light' };
+
+  function exportData(ch, sc, theme){
+    var map = theme && theme.map;
+    function remap(c){
+      if(typeof c !== 'string') return c;
+      var up = c.toUpperCase();
+      if(map && map[up]) return map[up];
+      if(theme && theme.barFill && c.indexOf('255,255,255') > -1) return theme.barFill;  // translucent white bars -> gray on light
+      return c;
+    }
     return { labels: ch.data.labels, datasets: ch.data.datasets.map(function(d){
       var nd = Object.assign({}, d); nd.pointRadius=0; nd.pointHoverRadius=0;
       if((nd.type||ch.config.type)==='line'){ nd.borderWidth=2.6*sc; if(d.borderDash) nd.borderDash=d.borderDash.map(function(v){return v*sc;}); nd.fill=false; }
+      if(map || (theme && theme.barFill)){ nd.borderColor = remap(d.borderColor); nd.backgroundColor = remap(d.backgroundColor); }
       return nd;
     })};
   }
   // Rebuild the source chart's scales at export scale: reuse its tick callbacks,
   // titles and axis positions (so % / counts / dual-axis all render correctly),
-  // only overriding fonts/colors to the big-white export style.
-  function exScales(src, sc){
-    var tick = { color:T.exAxis, font:{size:15*sc, weight:'700'} };
+  // only overriding fonts/colors to the export style (theme-driven).
+  function exScales(src, sc, axis, grid){
+    var tick = { color:axis, font:{size:15*sc, weight:'700'} };
     var out = {};
     Object.keys(src || {}).forEach(function(k){
       var s = src[k] || {}; var isX = (k === 'x');
       var ns = {
         position: s.position,
-        grid: isX ? {display:false} : ((s.grid && s.grid.display === false) ? {display:false} : {color:T.exGrid, drawTicks:false}),
-        border: {display:false, color:T.exGrid},
+        grid: isX ? {display:false} : ((s.grid && s.grid.display === false) ? {display:false} : {color:grid, drawTicks:false}),
+        border: {display:false, color:grid},
         ticks: Object.assign({}, s.ticks, tick)
       };
       if(isX){ ns.ticks.maxRotation = 0; ns.ticks.autoSkip = true; ns.ticks.maxTicksLimit = 13; }
-      if(s.title && s.title.text){ ns.title = {display:true, text:s.title.text, color:T.exAxis, font:{size:12.5*sc, weight:'700'}}; }
+      if(s.title && s.title.text){ ns.title = {display:true, text:s.title.text, color:axis, font:{size:12.5*sc, weight:'700'}}; }
       out[k] = ns;
     });
     if(!out.x){ out.x = { grid:{display:false}, ticks:Object.assign({maxRotation:0, autoSkip:true, maxTicksLimit:13}, tick) }; }
     return out;
   }
-  function exOpts(srcOptions, sc){
+  function exOpts(srcOptions, sc, theme){
     return {
       responsive:false, animation:false, devicePixelRatio:1, maintainAspectRatio:false,
       layout:{padding:{top:6*sc, right:10*sc, bottom:2*sc, left:2*sc}},
-      plugins:{ legend:{position:'bottom', labels:{color:T.exAxis, usePointStyle:true, pointStyle:'circle', boxWidth:9*sc, padding:15*sc, font:{size:14.5*sc, weight:'700'}, generateLabels:gapLabels}}, tooltip:{enabled:false} },
-      scales: exScales(srcOptions && srcOptions.scales, sc)
+      plugins:{ legend:{position:'bottom', labels:{color:theme.axis, usePointStyle:true, pointStyle:'circle', boxWidth:9*sc, padding:15*sc, font:{size:14.5*sc, weight:'700'}, generateLabels:gapLabels}}, tooltip:{enabled:false} },
+      scales: exScales(srcOptions && srcOptions.scales, sc, theme.axis, theme.grid)
     };
   }
-  function exportPng(card, ch){
+  function exportImg(card, ch, theme){
     var sc=2, W=1100*sc, H=500*sc;
     var padL=44*sc, padR=44*sc, headerH=96*sc, footerH=48*sc;
     var q=function(s){ var e=card.querySelector(s); return e?e.textContent.replace(/\s+/g,' ').trim():''; };
     var title=q('.ct'), sub=q('.cs'), src=q('.src');
     var out=document.createElement('canvas'); out.width=W; out.height=H;
     var x=out.getContext('2d');
-    x.fillStyle=T.exBg; x.fillRect(0,0,W,H);
-    x.fillStyle=T.exBrand; x.fillRect(padL, 22*sc, 40*sc, 4*sc);
+    x.fillStyle=theme.bg; x.fillRect(0,0,W,H);
+    x.fillStyle=theme.brand; x.fillRect(padL, 22*sc, 40*sc, 4*sc);
     x.textAlign='left'; x.textBaseline='alphabetic';
-    x.fillStyle=T.exTitle; x.font='700 '+(26*sc)+'px "Source Serif 4", Georgia, serif';
+    x.fillStyle=theme.ink; x.font='700 '+(26*sc)+'px "Source Serif 4", Georgia, serif';
     x.fillText(title, padL, 57*sc);
-    if(sub){ x.fillStyle=T.exMuted; x.font='italic '+(14*sc)+'px '+EXF; x.fillText(sub, padL, 80*sc); }
+    if(sub){ x.fillStyle=theme.muted; x.font='italic '+(14*sc)+'px '+EXF; x.fillText(sub, padL, 80*sc); }
     var pw=W-padL-padR, ph=H-headerH-footerH;
     var pc=document.createElement('canvas'); pc.width=pw; pc.height=ph;
-    var ec=new Chart(pc, { type:ch.config.type, data:exportData(ch,sc), options:exOpts(ch.config.options, sc) });
+    var ec=new Chart(pc, { type:ch.config.type, data:exportData(ch,sc,theme), options:exOpts(ch.config.options, sc, theme) });
     if(ec.draw) ec.draw();
     x.drawImage(pc, padL, headerH);
     ec.destroy();
     var fy=H-19*sc;
-    x.textAlign='left'; x.fillStyle=T.exMuted; x.font=(12*sc)+'px '+EXF; x.fillText(src, padL, fy);
-    x.textAlign='right'; x.fillStyle=T.exBrand; x.font='700 '+(13*sc)+'px '+EXF; x.fillText('economicsguru.com', W-padR, fy);
-    out.toBlob(function(b){ saveBlob(slug(title)+'.png', b); }, 'image/png');
+    x.textAlign='left'; x.fillStyle=theme.muted; x.font=(12*sc)+'px '+EXF; x.fillText(src, padL, fy);
+    x.textAlign='right'; x.fillStyle=theme.brand; x.font='700 '+(13*sc)+'px '+EXF; x.fillText('economicsguru.com', W-padR, fy);
+    out.toBlob(function(b){ saveBlob(slug(title)+theme.suffix+'.png', b); }, 'image/png');
   }
+  function exportPng(card, ch){ exportImg(card, ch, EXPORT_DARK); }
+  function exportPngLight(card, ch){ exportImg(card, ch, EXPORT_LIGHT); }
   function exportCsv(card, ch){
     var title=(card.querySelector('.ct')||{textContent:'chart'}).textContent.trim();
     var L=ch.data.labels, ds=ch.data.datasets;
@@ -178,11 +204,24 @@ window.EG = (function () {
     saveBlob(slug(title)+'.csv', new Blob([csv],{type:'text/csv'}));
   }
   function wireDownloads(){
+    // Inject a light/email PNG link next to each chart's dark PNG link (site-wide, no markup edits).
+    document.querySelectorAll('.dls').forEach(function(dls){
+      var png = dls.querySelector('a[data-act="png"]');
+      if(png && !dls.querySelector('a[data-act="png-light"]')){
+        var a=document.createElement('a'); a.className='dl ex'; a.href='#';
+        a.setAttribute('data-act','png-light'); a.textContent='↓ PNG (light)';
+        png.parentNode.insertBefore(a, png.nextSibling);
+      }
+    });
     document.querySelectorAll('a.ex').forEach(function(a){
+      if(a._wired) return; a._wired=true;
       a.addEventListener('click', function(e){
         e.preventDefault();
         var card=a.closest('.card,.hero-card'); var ch=chartInCard(card); if(!ch) return;
-        (a.dataset.act==='png') ? exportPng(card, ch) : exportCsv(card, ch);
+        var act=a.dataset.act;
+        if(act==='png') exportPng(card, ch);
+        else if(act==='png-light') exportPngLight(card, ch);
+        else exportCsv(card, ch);
       });
     });
   }
