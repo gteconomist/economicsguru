@@ -19,7 +19,7 @@ FRED API for the bulk of the dashboard:
   ATCGVS        Manufacturers' Value of Shipments: Capital Goods 1992-
   ANDEVS        Value of Shipments: Nondefense Capital Goods    1992-
   ANXAVS        Value of Shipments: Nondef. Cap. Goods Ex Aircr 1992-
-  CUUR0000SEHF01  CPI: Electricity, Urban Consumers, NSA        1952-
+  CUSR0000SEHF01  CPI: Electricity, Urban Consumers, NSA        1952-
 
 EIA Monthly Energy Review (API v2) for electricity net generation in million
 kWh. FRED only carries indexed series for IP utilities (2017 = 100), not the
@@ -271,7 +271,7 @@ def main():
         ("ATCGVS",    "Shipments: Total Capital Goods"),
         ("ANDEVS",    "Shipments: Nondefense Capital Goods"),
         ("ANXAVS",    "Shipments: Nondef Cap Goods ex Aircraft"),
-        ("CUUR0000SEHF01", "CPI: Electricity"),
+        ("CUSR0000SEHF01", "CPI: Electricity"),
     ]
     fred_data = {}
     for sid, friendly in fred_calls:
@@ -342,7 +342,7 @@ def main():
 
     # ----- Electricity 12-month MA + CPI Electricity -----
     eia_12mma = trailing_12mma(eia_gen)
-    cpi_elec  = fred_data.get("CUUR0000SEHF01", [])
+    cpi_elec  = fred_data.get("CUSR0000SEHF01", [])
     # cap CPI electricity to 2005+ to align visually with EIA history
     cpi_elec_aligned = [p for p in cpi_elec if p[0] >= "2005-01-01"]
 
