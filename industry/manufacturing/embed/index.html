@@ -13,29 +13,32 @@
 <link rel="stylesheet" href="/assets/css/components.css">
 <!--
   Single-chart embed for the deck control panel + rebuild pipeline.
-  Ported to the new engine (chart-core.js + pages/industry.js) so the chart
-  and its branded PNG export are pixel-identical to the live site.
+  Ported to the new engine (chart-core.js + pages/industry.js); chart metadata
+  now comes from the shared registry (assets/js/chart-registry.js) so the embed
+  and the /deck/ panel stay in sync from one source.
 
   URL params:
-    chart   one of CHARTS keys below (default: electricity)
+    chart   a registry chart key (default: electricity)
     range   6m | 12m | 5y | 10y | 20y | max          (default: max)
     theme   light | dark                             (default: dark)
     series  csv of this chart's series keys (subset) (default: all)
 
-  The page renders ONE chart and exposes the site's own download links
-  (↓ PNG = dark, ↓ PNG (light) = white/print). A headless renderer waits
-  for  body[data-chart-ready="1"]  then clicks the link for the wanted theme
-  and captures the download — that file is the branded PNG baked into slides.
+  Exposes the site's own download links (↓ PNG = dark, ↓ PNG (light) = white).
+  A headless renderer waits for body[data-chart-ready="1"], clicks the link for
+  the wanted theme, and captures the download — that PNG is baked into slides.
 -->
 <style>
   html,body{margin:0;height:100%;background:var(--bg,#04263f);}
-  body.theme-light{background:#ffffff;}
-  /* strip page chrome — embed shows only the card, full-bleed */
   #mount{height:100vh;padding:10px 14px;box-sizing:border-box;}
   #mount .card{height:100%;margin:0;display:flex;flex-direction:column;}
   #mount .card .plot{flex:1 1 auto;min-height:0;}
-  /* the hidden range control feeds EG.currentRange(); never shown */
   #range{position:absolute;left:-9999px;top:-9999px;}
+  /* light-theme preview: match the white/print export look on screen */
+  body.theme-light{background:#ffffff;}
+  body.theme-light .card{background:#ffffff;border-color:#e7e2d2;box-shadow:none;}
+  body.theme-light .ct{color:#10233a;}
+  body.theme-light .cs,body.theme-light .src{color:#5d6f82;}
+  body.theme-light .dl{color:#857437;}
 </style>
 </head>
 <body>
@@ -52,82 +55,26 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/assets/js/chart-registry.js"></script>
 <script src="/assets/js/chart-core.js"></script>
 <script src="/assets/js/pages/industry.js"></script>
 <script>
 (function () {
-  // ---- per-chart registry (canvas id + header text + selectable series) ----
-  // `series` lists the user-selectable datasets IN DATASET ORDER; any trailing
-  // reference datasets (0% lines) are not listed and stay visible.
-  var CHARTS = {
-    'ip': {
-      canvas:'cIndMfgIpMom',
-      title:'U.S. Industrial Production — Monthly',
-      subtitle:'Index 2017=100, SA — MoM % bars + Total YoY % line',
-      source:'Source: Federal Reserve G.17 — industrial production, total / manufacturing / mfg ex. motor vehicles.',
-      series:['ip_total_mom','ip_mfg_mom','ip_mfg_ex_mv_mom','ip_total_yoy']
-    },
-    'ip-long': {
-      canvas:'cIndMfgIpLong',
-      title:'Industrial Production — Long Run',
-      subtitle:'YoY % line (left); MoM % bars (right)',
-      source:'Source: Federal Reserve G.17 — total industrial production index.',
-      series:['ip_total_yoy','ip_total_mom']
-    },
-    'cap-util': {
-      canvas:'cIndMfgCapUtil',
-      title:'Capacity Utilization',
-      subtitle:'Percent of potential output in use, SA — lower = more slack',
-      source:'Source: Federal Reserve G.17 — TCU (total) and MCUMFN (manufacturing).',
-      series:['cap_util_total','cap_util_mfg']
-    },
-    'factory-orders': {
-      canvas:'cIndMfgFactoryOrders',
-      title:'U.S. Factory Orders — Monthly % Change',
-      subtitle:"Manufacturers' new orders, SA — total / core / durable / core durable / nondurable / core capex",
-      source:'Source: U.S. Census Bureau M3 via FRED.',
-      series:['fo_total','fo_core','fo_durable','fo_core_durable','fo_nondurable','fo_core_capex']
-    },
-    'advance-durable': {
-      canvas:'cIndMfgAdvanceDurable',
-      title:'Advance Durable Goods — New Orders',
-      subtitle:'Census M3 advance report, SA, MoM % — Defense on right axis at a fixed 3:1 scale',
-      source:'Source: U.S. Census Bureau, Advance Report on Durable Goods (M3). DGORDER / ADXTNO / ADXDNO / NEWORDER / ANXAVS, Defense (ADEFNO) on a 3:1 right axis.',
-      series:['ad_total','ad_ex_transportation','ad_ex_defense','ad_nondef_ex_air','ad_core_shipments','ad_defense']
-    },
-    'shipments': {
-      canvas:'cIndMfgShipments',
-      title:'Value of Shipments — Capital Goods',
-      subtitle:"Manufacturers' value of shipments, SA, MoM % — nondef. ex aircraft = \"core capex\"",
-      source:'Source: U.S. Census Bureau M3 via FRED.',
-      series:['sh_total','sh_nondef','sh_core_capex']
-    },
-    'electricity': {
-      canvas:'cIndMfgElectricity',
-      title:'Total Electricity Net Generation',
-      subtitle:'Electric power sector; 12-month moving average; CPI electricity index (right)',
-      source:'Sources: EIA Monthly Energy Review (net generation); BLS CPI — electricity.',
-      series:['net_generation_12mma','cpi_electricity']
-    }
-  };
-
-  var DATA_URL = '/data/industry_manufacturing.json';
-  var PAGE_KEY = 'manufacturing';
-  var RANGES = {'6m':1,'12m':1,'5y':1,'10y':1,'20y':1,'max':1};
-
   function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; }
+  var REG = window.EG_CHART_REGISTRY;
+  var RANGES = {}; (REG.ranges||[]).forEach(function(r){ RANGES[r]=1; });
+
   var p = new URLSearchParams(location.search);
   var chartKey = (p.get('chart') || 'electricity').toLowerCase();
-  var reg = CHARTS[chartKey] || CHARTS['electricity'];
+  var hit = REG.findChart(chartKey) || REG.findChart('electricity');
+  var grp = hit.group, reg = hit.chart;
   var range = (p.get('range') || 'max').toLowerCase(); if (!RANGES[range]) range = '12m';
   var theme = (p.get('theme') || 'dark').toLowerCase(); if (theme !== 'light') theme = 'dark';
   var wantSeries = (p.get('series') || '').split(',').map(function(s){return s.trim();}).filter(Boolean);
 
   if (theme === 'light') document.body.classList.add('theme-light');
-  window.__egTheme = theme;            // dark -> click "png"; light -> click "png-light"
   window.__egExportAct = (theme === 'light') ? 'png-light' : 'png';
 
-  // build the single card with the correct canvas id + header text
   document.getElementById('mount').innerHTML =
     '<div class="card">' +
       '<div class="top"><div>' +
@@ -141,31 +88,27 @@
       '<div class="src">' + esc(reg.source) + '</div>' +
     '</div>';
 
-  // set the hidden range control's active button so EG.currentRange() returns it
   var rb = document.querySelector('#range button[data-r="' + range + '"]') ||
            document.querySelector('#range button[data-r="12m"]');
   if (rb) rb.classList.add('active');
 
-  // EG.boot fetches data, renders the one chart whose canvas exists (the other
-  // builders no-op on missing canvases), wires the range + download links.
-  EG.boot(DATA_URL, PAGE_KEY);
+  // EG.boot renders the one chart whose canvas exists; others no-op.
+  EG.boot(grp.data, grp.module);
 
-  // once the chart instance exists, apply series selection and flag readiness.
+  var seriesKeys = (reg.series || []).map(function(s){ return s.key; });
   var tries = 0;
   var poll = setInterval(function () {
     var ch = window.Chart && Chart.getChart(reg.canvas);
-    tries++;
     if (ch) {
       clearInterval(poll);
       if (wantSeries.length) {
-        reg.series.forEach(function (key, i) {
+        seriesKeys.forEach(function (key, i) {
           if (i < ch.data.datasets.length) ch.setDatasetVisibility(i, wantSeries.indexOf(key) !== -1);
         });
         ch.update('none');
       }
-      // give Chart.js a tick to settle, then mark ready for headless capture
       setTimeout(function(){ document.body.setAttribute('data-chart-ready','1'); }, 350);
-    } else if (tries > 200) {            // ~20s safety timeout
+    } else if (++tries > 200) {
       clearInterval(poll);
       document.body.setAttribute('data-chart-ready','error');
     }
