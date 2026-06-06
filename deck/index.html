@@ -73,7 +73,8 @@
     <div class="toolbar">
       <span class="hint" id="count"></span>
       <button class="btn ghost" id="resetBtn">Reset</button>
-      <button class="btn" id="dlBtn">Download deck_charts.yaml</button>
+      <button class="btn ghost" id="dlBtn">Download .yaml</button>
+      <button class="btn" id="fsBtn">⬇&nbsp; Export to PowerPoint</button>
     </div>
   </div>
 </header>
@@ -248,6 +249,55 @@
     setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1500);
     toast(out.wired ? ('Exported — ' + out.wired + ' slide(s) wired') : 'Exported (no slides assigned yet)');
   });
+
+  // ---- Export to PowerPoint: write deck_charts.yaml straight into the
+  //      Deck Builder folder (Chrome File System Access). The folder is
+  //      remembered across visits; the auto-build helper does the rest. ----
+  function idb(){ return new Promise(function(res,rej){ var r=indexedDB.open('eg-deck',1);
+    r.onupgradeneeded=function(){ r.result.createObjectStore('kv'); };
+    r.onsuccess=function(){res(r.result);}; r.onerror=function(){rej(r.error);}; }); }
+  function idbGet(k){ return idb().then(function(db){ return new Promise(function(res,rej){
+    var t=db.transaction('kv','readonly').objectStore('kv').get(k);
+    t.onsuccess=function(){res(t.result);}; t.onerror=function(){rej(t.error);}; }); }); }
+  function idbSet(k,v){ return idb().then(function(db){ return new Promise(function(res,rej){
+    var s=db.transaction('kv','readwrite').objectStore('kv'); s.put(v,k);
+    s.transaction.oncomplete=function(){res();}; s.transaction.onerror=function(){rej(s.transaction.error);}; }); }); }
+
+  async function ensureDir(forcePick){
+    var h = forcePick ? null : await idbGet('dir');
+    if (h){
+      var p = await h.queryPermission({mode:'readwrite'});
+      if (p !== 'granted') p = await h.requestPermission({mode:'readwrite'});
+      if (p === 'granted') return h;
+    }
+    h = await window.showDirectoryPicker({mode:'readwrite', id:'eg-deck-builder'});
+    await idbSet('dir', h);
+    return h;
+  }
+
+  async function exportToPpt(){
+    var out = buildYaml();
+    if (!window.showDirectoryPicker){            // Safari / Firefox fallback
+      document.getElementById('dlBtn').click();
+      toast('Saved to Downloads (this browser can’t write to folders — use Chrome for one-click).');
+      return;
+    }
+    try {
+      var dir = await ensureDir(false);
+      var fh  = await dir.getFileHandle('deck_charts.yaml', { create:true });
+      var w   = await fh.createWritable();
+      await w.write(out.text); await w.close();
+      toast(out.wired
+        ? ('Sent to Deck Builder — ' + out.wired + ' slide(s). It’ll rebuild if auto-build is on.')
+        : 'Sent — but no Slide # is set yet, so nothing will build.');
+    } catch (e){
+      if (e && e.name === 'AbortError') return;  // user closed the picker
+      try { await ensureDir(true); toast('Folder re-linked — click Export again.'); }
+      catch(_){ toast('Couldn’t write to the folder.'); }
+    }
+  }
+  document.getElementById('fsBtn').addEventListener('click', exportToPpt);
+
   document.getElementById('resetBtn').addEventListener('click', function(){
     if (!confirm('Reset all chart settings in this browser?')) return;
     state = {}; save(); location.reload();
