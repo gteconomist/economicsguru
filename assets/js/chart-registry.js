@@ -109,8 +109,72 @@ window.EG_CHART_REGISTRY = {
           ]
         }
       ]
+    },
+    {
+      topic: 'inflation-cpi',
+      label: 'Inflation · CPI',
+      embed: '/inflation/cpi/embed/',
+      data:  '/data/inflation.json',
+      module:'cpi',
+      charts: [
+        {
+          key:'hero', canvas:'cHero',
+          title:'Consumer Price Index',
+          subtitle:'Year-over-year (lines) & monthly (bars) — seasonally adjusted',
+          source:'Source: BLS — CUUR0000SA0 (headline YoY), CUUR0000SA0L1E (core YoY), CUSR0000SA0 (headline MoM).',
+          series:[
+            {key:'headline_mom', label:'Headline MoM'},
+            {key:'headline_yoy', label:'Headline YoY'},
+            {key:'core_yoy',     label:'Core YoY'},
+            {key:'target',       label:'Fed 2% target'}
+          ]
+        },
+        {
+          key:'yoy', canvas:'cYoy',
+          title:'Headline · Core · Supercore',
+          subtitle:'Year-over-year percent change',
+          source:'Source: BLS — services less rent of shelter = "supercore".',
+          series:[
+            {key:'headline_yoy',  label:'Headline'},
+            {key:'core_yoy',      label:'Core'},
+            {key:'supercore_yoy', label:'Supercore'}
+          ]
+        },
+        {
+          key:'mom', canvas:'cMom',
+          title:'Monthly Inflation',
+          subtitle:'Month-over-month, seasonally adjusted',
+          source:'Source: BLS — CUSR0000SA0, CUSR0000SA0L1E.',
+          series:[
+            {key:'headline_mom', label:'Headline'},
+            {key:'core_mom',     label:'Core'}
+          ]
+        },
+        {
+          key:'components', canvas:'cComp',
+          title:'CPI Components',
+          subtitle:'Year-over-year percent change',
+          source:'Source: BLS — food, energy, shelter, services.',
+          series:[
+            {key:'food_yoy',     label:'Food'},
+            {key:'energy_yoy',   label:'Energy'},
+            {key:'shelter_yoy',  label:'Shelter'},
+            {key:'services_yoy', label:'Services'}
+          ]
+        },
+        {
+          key:'energy', canvas:'cEnergy',
+          title:'Energy Prices, Indexed',
+          subtitle:'Start of selected range = 100',
+          source:'Source: BLS — gasoline (SETB01), energy (SA0E).',
+          series:[
+            {key:'gas',        label:'Gasoline'},
+            {key:'energy_all', label:'Energy (all)'}
+          ]
+        }
+      ]
     }
-    // Add more groups here as their embed pages ship (inflation, housing, …).
+    // Add more groups here as their embed pages ship (housing, labor, …).
   ],
 
   // ---- helpers shared by the embed page + control panel ----
