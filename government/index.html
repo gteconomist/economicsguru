@@ -32,8 +32,8 @@
 <div id="kpis" class="kpis"></div>
 <div class="controls">
   <div class="seg" id="range">
-    <button data-r="6m">6 mo</button><button data-r="12m" class="active">12 mo</button>
-    <button data-r="5y">5 yr</button><button data-r="10y">10 yr</button>
+    <button data-r="6m">6 mo</button><button data-r="12m">12 mo</button>
+    <button data-r="5y" class="active">5 yr</button><button data-r="10y">10 yr</button>
     <button data-r="20y">20 yr</button><button data-r="max">Max</button>
   </div>
   <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
@@ -55,7 +55,7 @@
     <div class="src">Source: U.S. Treasury — Monthly Treasury Statement (outlays, receipts).</div>
   </div>
   <div class="card">
-    <div class="top"><div><div class="ct">M2 Money Supply</div><div class="cs">Level ($T, left) and YoY % change (right)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="top"><div><div class="ct">M2 Money Supply</div><div class="cs">Level ($T, left); YoY and annualized monthly growth, % (right)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
     <div class="plot"><canvas id="cGovM2"></canvas></div>
     <div class="src">Source: Federal Reserve via FRED — M2SL.</div>
   </div>

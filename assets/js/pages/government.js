@@ -53,12 +53,22 @@ window.EG_PAGES.government = function (data, EG) {
       EG.line(align(out, data.receipts_12m), LIME, { label:'Receipts (trailing 12 mo, $B)', borderWidth:2.4, tension:.1, spanGaps:true })
     ]}, options:EG.singleOpts(govB) });
 
-    // 4. M2 money supply — level $T (left) + YoY % (right), dual axis
+    // 4. M2 money supply — level $T (left) + YoY %, plus 3-mo & 1-mo annualized
+    //    monthly growth (all on right % axis, annual-rate terms), dual axis.
     var m2=rd('m2_level'); var lm=m2.map(function(x){return EG.lab(x[0]);});
+    // Annualized growth rates derived from the FULL monthly level series (so the
+    // first visible months still have a prior-period base), then date-aligned to view.
+    var m2full=data.m2_level||[];
+    var m2ann=function(k,exp){ return m2full.map(function(r,i){
+      var p=i>=k?m2full[i-k][1]:null;
+      return [r[0], (r[1]==null||p==null||p<=0)?null:(Math.pow(r[1]/p,exp)-1)*100]; }); };
+    var ann3=m2ann(3,4), ann1=m2ann(1,12);
     EG.newChart('cGovM2', { type:'line', data:{ labels:lm, datasets:[
       EG.line(m2.map(function(x){return x[1]==null?null:x[1]/1000;}), GOLD, { label:'M2 level ($T, left)', borderWidth:2.4, tension:.15 }),
-      EG.line(align(m2, data.m2_yoy), YELLOW, { label:'M2 YoY % (right)', borderWidth:2.0, tension:.15, spanGaps:true, yAxisID:'y1' })
-    ]}, options:EG.dualOpts(govT, '$T', EG.fmtPct1s, 'YoY %') });
+      EG.line(align(m2, data.m2_yoy), YELLOW, { label:'YoY % (right)', borderWidth:2.0, tension:.15, spanGaps:true, yAxisID:'y1' }),
+      EG.line(align(m2, ann3), ELEC, { label:'Monthly growth, 3-mo annualized (right)', borderWidth:1.8, tension:.15, spanGaps:true, yAxisID:'y1' }),
+      EG.line(align(m2, ann1), ORANGE, { label:'Monthly growth, 1-mo annualized (right)', borderWidth:1.3, tension:.15, spanGaps:true, yAxisID:'y1', borderDash:[5,3], hidden:true })
+    ]}, options:EG.dualOpts(govT, '$T', EG.fmtPct1s, '% (annual rate)') });
 
     // 5. Fed balance sheet — stacked composition + total line + QE/QT lines
     var bs=rd('fed_bs_total'); var lb=bs.map(function(x){return EG.lab(x[0]);}); var bDates=bs.map(function(x){return x[0];});
