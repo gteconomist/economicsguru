@@ -11,81 +11,108 @@
 <link rel="stylesheet" href="/assets/css/tokens.css">
 <link rel="stylesheet" href="/assets/css/base.css">
 <!--
-  Deck Chart Studio  (/deck/)
-  A control surface for the PowerPoint auto-update pipeline. Reads the shared
-  registry (assets/js/chart-registry.js) and renders one card per chart: a live
-  preview plus range / theme / variable controls. Add a chart to the registry
-  and it appears here automatically. Choices persist (localStorage) and export
-  to deck_charts.yaml for rebuild_deck.py.
+  Deck Chart Studio (/deck/) — library + deck, two panes.
+  LEFT  : searchable, collapsible, grouped checklist of every chart in the
+          shared registry (assets/js/chart-registry.js). Check = add to deck.
+  RIGHT : one card per checked chart (live preview + range/theme/variables +
+          Slide #), auto-sorted by Slide #. Export writes deck_charts.yaml.
+  Add a chart to the registry and it appears in the library automatically.
 -->
 <style>
-  :root{ --pad:18px; }
+  :root{ --side:300px; }
+  *{box-sizing:border-box;}
   body{ margin:0; font-family:"Source Sans Pro",sans-serif; color:var(--ink,#e8eef4); background:var(--bg,#04263f); }
-  .wrap{ max-width:1180px; margin:0 auto; padding:0 var(--pad) 60px; }
-  header.studio{ padding:26px var(--pad) 18px; border-bottom:1px solid rgba(255,255,255,.10); position:sticky; top:0; z-index:5;
-    background:var(--bg,#04263f); }
-  header.studio .wrap{ padding:0; display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; }
-  h1{ font-family:"Source Serif 4",Georgia,serif; font-size:26px; margin:0 0 4px; color:#fff; }
+
+  header.studio{ padding:16px 22px; border-bottom:1px solid rgba(255,255,255,.10);
+    display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+    position:sticky; top:0; z-index:20; background:var(--bg,#04263f); }
+  h1{ font-family:"Source Serif 4",Georgia,serif; font-size:22px; margin:0; color:#fff; }
   h1 .g{ color:var(--brand,#B3A369); }
-  .lede{ margin:0; color:#9fb1c2; font-size:14px; max-width:640px; }
-  .toolbar{ display:flex; gap:10px; align-items:center; }
+  .lede{ margin:2px 0 0; color:#9fb1c2; font-size:13px; }
+  .toolbar{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
   .btn{ font:inherit; font-weight:700; font-size:13px; cursor:pointer; border-radius:8px; padding:9px 14px;
     border:1px solid var(--brand,#B3A369); background:var(--brand,#B3A369); color:#04263f; }
   .btn.ghost{ background:transparent; color:var(--brand,#B3A369); }
   .btn:active{ transform:translateY(1px); }
-  .hint{ color:#7f93a6; font-size:12.5px; }
+  .pill{ color:#cdd8e2; font-size:12.5px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+    padding:5px 10px; border-radius:999px; }
 
-  .grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(520px,1fr)); gap:18px; margin-top:20px; }
-  @media (max-width:600px){ .grid{ grid-template-columns:1fr; } }
+  .layout{ display:flex; align-items:flex-start; }
+  /* ---------- left: library ---------- */
+  aside{ width:var(--side); flex:0 0 var(--side); position:sticky; top:71px; align-self:flex-start;
+    height:calc(100vh - 71px); overflow:auto; border-right:1px solid rgba(255,255,255,.10); padding:14px 12px 40px; }
+  .search{ width:100%; display:flex; align-items:center; gap:8px; background:#062f4f; border:1px solid rgba(255,255,255,.18);
+    border-radius:8px; padding:7px 10px; margin-bottom:12px; }
+  .search input{ flex:1; background:transparent; border:0; color:#e8eef4; font:inherit; font-size:13px; outline:none; }
+  .lib-group{ margin-bottom:6px; }
+  .lib-ghdr{ display:flex; align-items:center; gap:7px; cursor:pointer; user-select:none;
+    font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#9fb1c2; padding:7px 4px; }
+  .lib-ghdr .car{ width:10px; display:inline-block; color:#7f93a6; transition:transform .12s; }
+  .lib-ghdr.col .car{ transform:rotate(-90deg); }
+  .lib-ghdr .gc{ margin-left:auto; color:#6f859b; font-weight:600; }
+  .lib-rows{ }
+  .lib-row{ display:flex; align-items:flex-start; gap:9px; padding:6px 6px; border-radius:7px; cursor:pointer; }
+  .lib-row:hover{ background:rgba(255,255,255,.04); }
+  .lib-row input{ margin-top:2px; accent-color:var(--brand,#B3A369); width:15px; height:15px; cursor:pointer; }
+  .lib-row .t{ font-size:13px; color:#dbe5ee; line-height:1.25; }
+  .lib-row.on .t{ color:#fff; font-weight:600; }
+
+  /* ---------- right: deck ---------- */
+  main{ flex:1 1 auto; padding:16px 20px 60px; min-width:0; }
+  .empty{ color:#8aa0b2; font-size:14px; border:1px dashed rgba(255,255,255,.16); border-radius:12px;
+    padding:42px 24px; text-align:center; margin-top:10px; }
+  .deckgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(460px,1fr)); gap:16px; }
+  @media (max-width:760px){ aside{display:none;} .deckgrid{grid-template-columns:1fr;} }
   .ccard{ border:1px solid rgba(255,255,255,.12); border-radius:12px; overflow:hidden; background:rgba(255,255,255,.025); display:flex; flex-direction:column; }
-  .ccard .hd{ padding:12px 14px 0; }
-  .ccard .ttl{ font-weight:700; font-size:15px; color:#fff; }
-  .ccard .tp{ font-size:12px; color:#7f93a6; text-transform:uppercase; letter-spacing:.05em; margin-top:2px; }
-  .frame{ width:100%; aspect-ratio:1100/500; border:0; display:block; background:#04263f; margin-top:10px; border-top:1px solid rgba(255,255,255,.08); border-bottom:1px solid rgba(255,255,255,.08); }
-  .ctrls{ padding:12px 14px 14px; display:flex; flex-direction:column; gap:10px; }
-  .row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-  .row > label.l{ font-size:12px; color:#9fb1c2; min-width:48px; }
+  .ccard .hd{ padding:11px 13px 0; display:flex; justify-content:space-between; gap:10px; align-items:flex-start; }
+  .ccard .ttl{ font-weight:700; font-size:14.5px; color:#fff; }
+  .ccard .tp{ font-size:11px; color:#7f93a6; text-transform:uppercase; letter-spacing:.05em; margin-top:2px; }
+  .rm{ background:transparent; border:0; color:#7f93a6; font-size:18px; line-height:1; cursor:pointer; padding:2px 4px; }
+  .rm:hover{ color:#e04f39; }
+  .frame{ width:100%; aspect-ratio:1100/500; border:0; display:block; background:#04263f; margin-top:9px; border-top:1px solid rgba(255,255,255,.08); border-bottom:1px solid rgba(255,255,255,.08); }
+  .ctrls{ padding:11px 13px 13px; display:flex; flex-direction:column; gap:9px; }
+  .row{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; }
+  .row > label.l{ font-size:12px; color:#9fb1c2; }
   select, input[type=number]{ font:inherit; font-size:13px; background:#062f4f; color:#e8eef4; border:1px solid rgba(255,255,255,.18); border-radius:7px; padding:6px 8px; }
-  input[type=number]{ width:64px; }
+  input[type=number]{ width:62px; }
+  .slidebox{ margin-left:auto; display:flex; align-items:center; gap:7px; }
+  .slidebox.unset input{ border-color:#c9a23a; }
   .seg2{ display:inline-flex; border:1px solid rgba(255,255,255,.18); border-radius:7px; overflow:hidden; }
-  .seg2 button{ font:inherit; font-size:12.5px; font-weight:700; padding:6px 12px; background:transparent; color:#9fb1c2; border:0; cursor:pointer; }
+  .seg2 button{ font:inherit; font-size:12.5px; font-weight:700; padding:6px 11px; background:transparent; color:#9fb1c2; border:0; cursor:pointer; }
   .seg2 button.on{ background:var(--brand,#B3A369); color:#04263f; }
-  .series{ display:flex; flex-wrap:wrap; gap:6px 14px; }
+  .series{ display:flex; flex-wrap:wrap; gap:5px 13px; }
   .series label{ font-size:12.5px; color:#cdd8e2; display:flex; align-items:center; gap:6px; cursor:pointer; }
   .series input{ accent-color:var(--brand,#B3A369); }
-  .cardfoot{ display:flex; align-items:center; gap:10px; justify-content:space-between; flex-wrap:wrap; }
-  .url{ font-size:11.5px; word-break:break-all; flex:1 1 240px; color:#6f859b; }
-  .mini{ font:inherit; font-size:12px; font-weight:700; cursor:pointer; border-radius:6px; padding:5px 10px; border:1px solid rgba(255,255,255,.22); background:transparent; color:#cdd8e2; }
-  .toast{ position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:#0a3357; color:#fff; border:1px solid var(--brand,#B3A369); padding:10px 16px; border-radius:8px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .2s; z-index:30; }
+  .toast{ position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:#0a3357; color:#fff; border:1px solid var(--brand,#B3A369); padding:10px 16px; border-radius:8px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .2s; z-index:40; }
   .toast.show{ opacity:1; }
-  details.help{ margin-top:18px; border:1px solid rgba(255,255,255,.12); border-radius:10px; padding:10px 14px; color:#bcccd8; font-size:13px; }
-  details.help summary{ cursor:pointer; font-weight:700; color:#fff; }
-  details.help code{ background:rgba(255,255,255,.08); padding:1px 5px; border-radius:4px; }
 </style>
 </head>
 <body>
 <header class="studio">
-  <div class="wrap">
-    <div>
-      <h1>Deck Chart <span class="g">Studio</span></h1>
-      <p class="lede">Set the time range, theme, and variables for each chart, preview it live, then export the config that auto-updates your PowerPoint.</p>
-    </div>
-    <div class="toolbar">
-      <span class="hint" id="count"></span>
-      <button class="btn ghost" id="resetBtn">Reset</button>
-      <button class="btn ghost" id="dlBtn">Download .yaml</button>
-      <button class="btn" id="fsBtn">⬇&nbsp; Export to PowerPoint</button>
-    </div>
+  <div>
+    <h1>Deck Chart <span class="g">Studio</span></h1>
+    <p class="lede">Check charts on the left to add them to your deck, then customize each on the right.</p>
+  </div>
+  <div class="toolbar">
+    <span class="pill" id="count">0 in deck</span>
+    <button class="btn ghost" id="resetBtn">Reset</button>
+    <button class="btn ghost" id="dlBtn">Download .yaml</button>
+    <button class="btn" id="fsBtn">⬇&nbsp; Export to PowerPoint</button>
   </div>
 </header>
 
-<div class="wrap">
-  <div class="grid" id="grid"></div>
-
-  <details class="help">
-    <summary>How this works</summary>
-    <p>Each card is one chart from the shared registry (<code>assets/js/chart-registry.js</code>) — add a chart there and it shows up here automatically. Your choices are saved in this browser. Set an optional <b>Slide #</b> to map a chart to a slide in your deck, then <b>Download deck_charts.yaml</b> and run <code>rebuild_deck.py --renderer browser</code> to bake the current charts into the standalone deck.</p>
-  </details>
+<div class="layout">
+  <aside>
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9fb1c2" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="search" placeholder="Search charts…" autocomplete="off">
+    </div>
+    <div id="library"></div>
+  </aside>
+  <main>
+    <div id="deck" class="deckgrid"></div>
+    <div id="empty" class="empty">Your deck is empty. Check charts in the library on the left to add them here.</div>
+  </main>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -95,213 +122,175 @@
 (function () {
   var REG = window.EG_CHART_REGISTRY;
   var ORIGIN = location.origin;
-  var LS_KEY = 'eg-deck-studio-v1';
-  var state = load();
+  var LS_KEY = 'eg-deck-studio-v2';
+  var LS_COL = 'eg-deck-collapsed-v2';
+  var state = load(LS_KEY), collapsed = load(LS_COL);
 
-  function load(){ try { return JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch(e){ return {}; } }
+  function load(k){ try { return JSON.parse(localStorage.getItem(k)) || {}; } catch(e){ return {}; } }
   function save(){ try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e){} }
+  function saveCol(){ try { localStorage.setItem(LS_COL, JSON.stringify(collapsed)); } catch(e){} }
   function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; }
+  function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(function(){t.classList.remove('show');},1700); }
 
-  function defaults(chart){
-    return { range:'max', theme:'dark', slide:'', series: chart.series.map(function(s){return s.key;}) };
-  }
+  function defaults(chart){ return { inDeck:false, range:'max', theme:'dark', slide:'', series:chart.series.map(function(s){return s.key;}) }; }
   function st(chart){
-    if (!state[chart.key]) state[chart.key] = defaults(chart);
-    // heal missing fields
-    var d = defaults(chart), s = state[chart.key];
-    if (!s.range) s.range = d.range; if (!s.theme) s.theme = d.theme;
-    if (!Array.isArray(s.series)) s.series = d.series; if (s.slide == null) s.slide = '';
+    var d=defaults(chart), s=state[chart.key]||(state[chart.key]=d);
+    if(s.range==null)s.range=d.range; if(s.theme==null)s.theme=d.theme;
+    if(!Array.isArray(s.series))s.series=d.series; if(s.slide==null)s.slide=''; if(s.inDeck==null)s.inDeck=false;
     return s;
   }
-
-  function embedUrl(group, chart, s, abs){
-    var base = (abs ? ORIGIN : '') + group.embed.replace(/\/$/, '') + '/';
-    var qs = ['chart=' + chart.key, 'range=' + s.range, 'theme=' + s.theme];
-    // only add series if a strict subset is selected
-    if (s.series.length && s.series.length < chart.series.length) qs.push('series=' + s.series.join(','));
-    return base + '?' + qs.join('&');
+  function embedUrl(group,chart,s,abs){
+    var base=(abs?ORIGIN:'')+group.embed.replace(/\/$/,'')+'/';
+    var qs=['chart='+chart.key,'range='+s.range,'theme='+s.theme];
+    if(s.series.length && s.series.length<chart.series.length) qs.push('series='+s.series.join(','));
+    return base+'?'+qs.join('&');
   }
 
-  function toast(msg){
-    var t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
-    clearTimeout(t._h); t._h = setTimeout(function(){ t.classList.remove('show'); }, 1600);
-  }
+  // index every chart for lookup
+  var byKey={}; REG.groups.forEach(function(g){ g.charts.forEach(function(c){ byKey[c.key]={group:g,chart:c}; }); });
 
-  var grid = document.getElementById('grid');
-  var nCharts = 0;
-
+  // ---------------- LEFT: library ----------------
+  var library=document.getElementById('library');
   REG.groups.forEach(function(group){
-    group.charts.forEach(function(chart){
-      nCharts++;
-      var s = st(chart);
-      var card = document.createElement('div'); card.className = 'ccard';
+    var sec=document.createElement('div'); sec.className='lib-group';
+    var isCol=!!collapsed[group.topic];
+    var rows=group.charts.map(function(chart){
+      var on=st(chart).inDeck;
+      return '<label class="lib-row'+(on?' on':'')+'" data-key="'+chart.key+'" data-text="'+esc((chart.title+' '+group.label).toLowerCase())+'">'+
+        '<input type="checkbox" data-cb="'+chart.key+'"'+(on?' checked':'')+'><span class="t">'+esc(chart.title)+'</span></label>';
+    }).join('');
+    sec.innerHTML='<div class="lib-ghdr'+(isCol?' col':'')+'" data-topic="'+esc(group.topic)+'"><span class="car">▾</span>'+esc(group.label)+'<span class="gc">'+group.charts.length+'</span></div>'+
+                  '<div class="lib-rows"'+(isCol?' style="display:none"':'')+'>'+rows+'</div>';
+    library.appendChild(sec);
+  });
+  // collapse groups
+  library.addEventListener('click', function(e){
+    var h=e.target.closest('.lib-ghdr'); if(!h) return;
+    var rows=h.nextElementSibling, now=rows.style.display==='none';
+    rows.style.display=now?'':'none'; h.classList.toggle('col',!now);
+    collapsed[h.dataset.topic]=!now; saveCol();
+  });
+  // check / uncheck
+  library.addEventListener('change', function(e){
+    var cb=e.target.closest('input[data-cb]'); if(!cb) return;
+    var key=cb.dataset.cb, s=st(byKey[key].chart);
+    s.inDeck=cb.checked; save();
+    cb.closest('.lib-row').classList.toggle('on',cb.checked);
+    if(cb.checked) addCard(key); else removeCard(key);
+    renderCount();
+  });
 
-      var seriesHtml = chart.series.map(function(ser){
-        var on = s.series.indexOf(ser.key) !== -1;
-        return '<label><input type="checkbox" data-series="' + ser.key + '"' + (on?' checked':'') + '>' + esc(ser.label) + '</label>';
-      }).join('');
-
-      var rangeOpts = REG.ranges.map(function(r){
-        return '<option value="' + r + '"' + (r===s.range?' selected':'') + '>' + r + '</option>';
-      }).join('');
-
-      card.innerHTML =
-        '<div class="hd"><div class="ttl">' + esc(chart.title) + '</div>' +
-          '<div class="tp">' + esc(group.label) + ' · ' + esc(chart.key) + '</div></div>' +
-        '<iframe class="frame" loading="lazy"></iframe>' +
-        '<div class="ctrls">' +
-          '<div class="row">' +
-            '<label class="l">Range</label><select data-ctl="range">' + rangeOpts + '</select>' +
-            '<span class="seg2" data-ctl="theme">' +
-              '<button data-theme="dark"'  + (s.theme==='dark'?' class="on"':'')  + '>Dark</button>' +
-              '<button data-theme="light"' + (s.theme==='light'?' class="on"':'') + '>Light</button>' +
-            '</span>' +
-            '<label class="l" style="min-width:auto">Slide #</label>' +
-            '<input type="number" min="1" data-ctl="slide" value="' + esc(s.slide) + '" placeholder="—">' +
-          '</div>' +
-          '<div class="series">' + seriesHtml + '</div>' +
-          '<div class="cardfoot">' +
-            '<span class="url" data-url></span>' +
-            '<button class="mini" data-copy>Copy embed URL</button>' +
-          '</div>' +
-        '</div>';
-
-      var iframe = card.querySelector('iframe');
-      var urlEl  = card.querySelector('[data-url]');
-      function refresh(reload){
-        var url = embedUrl(group, chart, s, false);
-        urlEl.textContent = url;
-        if (reload) iframe.src = embedUrl(group, chart, s, false);
-        save();
-      }
-      // initial
-      iframe.src = embedUrl(group, chart, s, false);
-      urlEl.textContent = embedUrl(group, chart, s, false);
-
-      card.querySelector('[data-ctl="range"]').addEventListener('change', function(e){
-        s.range = e.target.value; refresh(true);
+  // search
+  document.getElementById('search').addEventListener('input', function(e){
+    var q=e.target.value.trim().toLowerCase();
+    document.querySelectorAll('.lib-group').forEach(function(sec){
+      var any=false;
+      sec.querySelectorAll('.lib-row').forEach(function(r){
+        var hit=!q || r.dataset.text.indexOf(q)>-1; r.style.display=hit?'':'none'; if(hit)any=true;
       });
-      card.querySelectorAll('[data-ctl="theme"] button').forEach(function(b){
-        b.addEventListener('click', function(){
-          s.theme = b.dataset.theme;
-          card.querySelectorAll('[data-ctl="theme"] button').forEach(function(x){ x.classList.toggle('on', x===b); });
-          refresh(true);
-        });
-      });
-      card.querySelector('[data-ctl="slide"]').addEventListener('input', function(e){
-        s.slide = e.target.value.replace(/[^0-9]/g,''); save();
-      });
-      card.querySelectorAll('input[data-series]').forEach(function(cb){
-        cb.addEventListener('change', function(){
-          s.series = Array.prototype.map.call(card.querySelectorAll('input[data-series]:checked'), function(x){ return x.dataset.series; });
-          if (!s.series.length){ cb.checked = true; s.series = [cb.dataset.series]; toast('At least one variable must stay on.'); }
-          refresh(true);
-        });
-      });
-      card.querySelector('[data-copy]').addEventListener('click', function(){
-        var abs = embedUrl(group, chart, s, true);
-        navigator.clipboard && navigator.clipboard.writeText(abs);
-        toast('Embed URL copied');
-      });
-
-      grid.appendChild(card);
+      sec.style.display=any?'':'none';
     });
   });
 
-  document.getElementById('count').textContent = nCharts + ' charts';
+  // ---------------- RIGHT: deck ----------------
+  var deck=document.getElementById('deck'), emptyEl=document.getElementById('empty'), cardEls={};
 
-  // ---- export deck_charts.yaml ----
-  function yamlStr(s){ return '"' + String(s).replace(/"/g,'\\"') + '"'; }
+  function slideNum(key){ var s=state[key]; var v=s&&s.slide!==''?parseInt(s.slide,10):NaN; return isNaN(v)?Infinity:v; }
+  function positionFor(key){
+    var n=slideNum(key), kids=deck.children;
+    for(var i=0;i<kids.length;i++){ if(slideNum(kids[i].dataset.key)>n) return kids[i]; }
+    return null;
+  }
+  function reposition(key){ var el=cardEls[key]; if(!el)return; deck.insertBefore(el, positionFor(key)); }
+
+  function buildCard(key){
+    var g=byKey[key].group, chart=byKey[key].chart, s=st(chart);
+    var card=document.createElement('div'); card.className='ccard'; card.dataset.key=key;
+    var seriesHtml=chart.series.map(function(ser){
+      var on=s.series.indexOf(ser.key)!==-1;
+      return '<label><input type="checkbox" data-series="'+ser.key+'"'+(on?' checked':'')+'>'+esc(ser.label)+'</label>';
+    }).join('');
+    var rangeOpts=REG.ranges.map(function(r){ return '<option'+(r===s.range?' selected':'')+'>'+r+'</option>'; }).join('');
+    card.innerHTML=
+      '<div class="hd"><div><div class="ttl">'+esc(chart.title)+'</div><div class="tp">'+esc(g.label)+'</div></div>'+
+        '<button class="rm" title="Remove from deck">✕</button></div>'+
+      '<iframe class="frame" loading="lazy"></iframe>'+
+      '<div class="ctrls">'+
+        '<div class="row"><label class="l">Range</label><select data-ctl="range">'+rangeOpts+'</select>'+
+          '<span class="seg2" data-ctl="theme"><button data-theme="dark"'+(s.theme==='dark'?' class="on"':'')+'>Dark</button><button data-theme="light"'+(s.theme==='light'?' class="on"':'')+'>Light</button></span>'+
+          '<span class="slidebox'+(s.slide===''?' unset':'')+'"><label class="l">Slide #</label><input type="number" min="1" data-ctl="slide" value="'+esc(s.slide)+'" placeholder="—"></span>'+
+        '</div>'+
+        '<div class="series">'+seriesHtml+'</div>'+
+      '</div>';
+    var iframe=card.querySelector('iframe');
+    function reload(){ iframe.src=embedUrl(g,chart,s,false); }
+    reload();
+    card.querySelector('[data-ctl="range"]').addEventListener('change',function(e){ s.range=e.target.value; reload(); save(); });
+    card.querySelectorAll('[data-ctl="theme"] button').forEach(function(b){ b.addEventListener('click',function(){ s.theme=b.dataset.theme; card.querySelectorAll('[data-ctl="theme"] button').forEach(function(x){x.classList.toggle('on',x===b);}); reload(); save(); }); });
+    card.querySelector('[data-ctl="slide"]').addEventListener('input',function(e){ s.slide=e.target.value.replace(/[^0-9]/g,''); card.querySelector('.slidebox').classList.toggle('unset',s.slide===''); save(); reposition(key); renderCount(); });
+    card.querySelectorAll('input[data-series]').forEach(function(cb){ cb.addEventListener('change',function(){ s.series=Array.prototype.map.call(card.querySelectorAll('input[data-series]:checked'),function(x){return x.dataset.series;}); if(!s.series.length){cb.checked=true;s.series=[cb.dataset.series];toast('Keep at least one variable.');} reload(); save(); }); });
+    card.querySelector('.rm').addEventListener('click',function(){ s.inDeck=false; save(); removeCard(key);
+      var lc=document.querySelector('.lib-row[data-key="'+key+'"]'); if(lc){ lc.classList.remove('on'); lc.querySelector('input').checked=false; } renderCount(); });
+    return card;
+  }
+  function addCard(key){ if(cardEls[key])return; var el=buildCard(key); cardEls[key]=el; deck.insertBefore(el, positionFor(key)); updateEmpty(); }
+  function removeCard(key){ var el=cardEls[key]; if(el){ el.remove(); delete cardEls[key]; } updateEmpty(); }
+  function updateEmpty(){ emptyEl.style.display=Object.keys(cardEls).length?'none':''; }
+
+  function renderCount(){
+    var inDeck=0, wired=0;
+    Object.keys(state).forEach(function(k){ if(state[k]&&state[k].inDeck){ inDeck++; if(state[k].slide!=='')wired++; } });
+    document.getElementById('count').textContent=inDeck+' in deck · '+wired+' on a slide';
+  }
+
+  // initial deck render (restore checked charts, sorted by slide)
+  Object.keys(byKey).forEach(function(k){ if(st(byKey[k].chart).inDeck) addCard(k); });
+  updateEmpty(); renderCount();
+
+  // ---------------- export deck_charts.yaml ----------------
+  function yamlStr(s){ return '"'+String(s).replace(/"/g,'\\"')+'"'; }
   function buildYaml(){
-    var lines = [];
-    lines.push('# Generated by the Deck Chart Studio — ' + ORIGIN + '/deck/');
-    lines.push('# Set a Slide # on a card to wire that chart to a deck slide.');
-    lines.push('');
-    lines.push('defaults:');
-    lines.push('  theme: dark');
-    lines.push('  range: max');
-    lines.push('');
-    lines.push('charts:');
-    var wired = 0;
-    REG.groups.forEach(function(group){
-      group.charts.forEach(function(chart){
-        var s = st(chart);
-        var hasSlide = s.slide !== '' && s.slide != null;
-        if (hasSlide) wired++;
-        lines.push('  - slide: ' + (hasSlide ? s.slide : 'null') + (hasSlide ? '' : '        # set a Slide # in the studio to wire this'));
-        lines.push('    title: ' + yamlStr(chart.title));
-        lines.push('    topic: ' + group.topic);
-        lines.push('    embed_base: ' + yamlStr(ORIGIN + group.embed));
-        lines.push('    chart: ' + chart.key);
-        lines.push('    range: ' + s.range);
-        lines.push('    theme: ' + s.theme);
-        lines.push('    series: [' + s.series.join(', ') + ']');
-        lines.push('    status: ' + (hasSlide ? 'wired' : 'pending'));
-      });
-    });
-    return { text: lines.join('\n') + '\n', wired: wired };
-  }
-  document.getElementById('dlBtn').addEventListener('click', function(){
-    var out = buildYaml();
-    var blob = new Blob([out.text], {type:'text/yaml'});
-    var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-    a.download = 'deck_charts.yaml'; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1500);
-    toast(out.wired ? ('Exported — ' + out.wired + ' slide(s) wired') : 'Exported (no slides assigned yet)');
-  });
-
-  // ---- Export to PowerPoint: write deck_charts.yaml straight into the
-  //      Deck Builder folder (Chrome File System Access). The folder is
-  //      remembered across visits; the auto-build helper does the rest. ----
-  function idb(){ return new Promise(function(res,rej){ var r=indexedDB.open('eg-deck',1);
-    r.onupgradeneeded=function(){ r.result.createObjectStore('kv'); };
-    r.onsuccess=function(){res(r.result);}; r.onerror=function(){rej(r.error);}; }); }
-  function idbGet(k){ return idb().then(function(db){ return new Promise(function(res,rej){
-    var t=db.transaction('kv','readonly').objectStore('kv').get(k);
-    t.onsuccess=function(){res(t.result);}; t.onerror=function(){rej(t.error);}; }); }); }
-  function idbSet(k,v){ return idb().then(function(db){ return new Promise(function(res,rej){
-    var s=db.transaction('kv','readwrite').objectStore('kv'); s.put(v,k);
-    s.transaction.oncomplete=function(){res();}; s.transaction.onerror=function(){rej(s.transaction.error);}; }); }); }
-
-  async function ensureDir(forcePick){
-    var h = forcePick ? null : await idbGet('dir');
-    if (h){
-      var p = await h.queryPermission({mode:'readwrite'});
-      if (p !== 'granted') p = await h.requestPermission({mode:'readwrite'});
-      if (p === 'granted') return h;
-    }
-    h = await window.showDirectoryPicker({mode:'readwrite', id:'eg-deck-builder'});
-    await idbSet('dir', h);
-    return h;
+    var lines=['# Generated by the Deck Chart Studio — '+ORIGIN+'/deck/','# Only charts checked into your deck are listed.','','defaults:','  theme: dark','  range: max','','charts:'];
+    var wired=0;
+    REG.groups.forEach(function(group){ group.charts.forEach(function(chart){
+      var s=st(chart); if(!s.inDeck) return;
+      var hasSlide=s.slide!=='' && s.slide!=null; if(hasSlide)wired++;
+      lines.push('  - slide: '+(hasSlide?s.slide:'null')+(hasSlide?'':'        # set a Slide # in the studio to wire this'));
+      lines.push('    title: '+yamlStr(chart.title));
+      lines.push('    topic: '+group.topic);
+      lines.push('    embed_base: '+yamlStr(ORIGIN+group.embed));
+      lines.push('    chart: '+chart.key);
+      lines.push('    range: '+s.range);
+      lines.push('    theme: '+s.theme);
+      lines.push('    series: ['+s.series.join(', ')+']');
+      lines.push('    status: '+(hasSlide?'wired':'pending'));
+    }); });
+    return { text:lines.join('\n')+'\n', wired:wired };
   }
 
+  // ---------------- File System Access: write straight to the folder ----------------
+  function idb(){ return new Promise(function(res,rej){ var r=indexedDB.open('eg-deck',1); r.onupgradeneeded=function(){ r.result.createObjectStore('kv'); }; r.onsuccess=function(){res(r.result);}; r.onerror=function(){rej(r.error);}; }); }
+  function idbGet(k){ return idb().then(function(db){ return new Promise(function(res,rej){ var t=db.transaction('kv','readonly').objectStore('kv').get(k); t.onsuccess=function(){res(t.result);}; t.onerror=function(){rej(t.error);}; }); }); }
+  function idbSet(k,v){ return idb().then(function(db){ return new Promise(function(res,rej){ var o=db.transaction('kv','readwrite').objectStore('kv'); o.put(v,k); o.transaction.oncomplete=function(){res();}; o.transaction.onerror=function(){rej(o.transaction.error);}; }); }); }
+  async function ensureDir(force){
+    var h=force?null:await idbGet('dir');
+    if(h){ var p=await h.queryPermission({mode:'readwrite'}); if(p!=='granted')p=await h.requestPermission({mode:'readwrite'}); if(p==='granted')return h; }
+    h=await window.showDirectoryPicker({mode:'readwrite', id:'eg-deck-builder'}); await idbSet('dir',h); return h;
+  }
   async function exportToPpt(){
-    var out = buildYaml();
-    if (!window.showDirectoryPicker){            // Safari / Firefox fallback
-      document.getElementById('dlBtn').click();
-      toast('Saved to Downloads (this browser can’t write to folders — use Chrome for one-click).');
-      return;
-    }
-    try {
-      var dir = await ensureDir(false);
-      var fh  = await dir.getFileHandle('deck_charts.yaml', { create:true });
-      var w   = await fh.createWritable();
-      await w.write(out.text); await w.close();
-      toast(out.wired
-        ? ('Sent to Deck Builder — ' + out.wired + ' slide(s). It’ll rebuild if auto-build is on.')
-        : 'Sent — but no Slide # is set yet, so nothing will build.');
-    } catch (e){
-      if (e && e.name === 'AbortError') return;  // user closed the picker
-      try { await ensureDir(true); toast('Folder re-linked — click Export again.'); }
-      catch(_){ toast('Couldn’t write to the folder.'); }
-    }
+    var out=buildYaml();
+    if(!window.showDirectoryPicker){ downloadYaml(out); toast('Saved to Downloads (use Chrome for one-click folder write).'); return; }
+    try{
+      var dir=await ensureDir(false);
+      var fh=await dir.getFileHandle('deck_charts.yaml',{create:true}); var w=await fh.createWritable(); await w.write(out.text); await w.close();
+      toast(out.wired?('Sent to Deck Builder — '+out.wired+' slide(s). Auto-build (if on) will rebuild.'):'Sent, but no Slide # set yet — nothing will build.');
+    }catch(e){ if(e&&e.name==='AbortError')return; try{await ensureDir(true);toast('Folder re-linked — click Export again.');}catch(_){toast('Couldn’t write to the folder.');} }
   }
-  document.getElementById('fsBtn').addEventListener('click', exportToPpt);
+  function downloadYaml(out){ var b=new Blob([out.text],{type:'text/yaml'}); var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='deck_charts.yaml'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(a.href);},1500); }
 
-  document.getElementById('resetBtn').addEventListener('click', function(){
-    if (!confirm('Reset all chart settings in this browser?')) return;
-    state = {}; save(); location.reload();
-  });
+  document.getElementById('fsBtn').addEventListener('click', exportToPpt);
+  document.getElementById('dlBtn').addEventListener('click', function(){ var o=buildYaml(); downloadYaml(o); toast(o.wired?('Downloaded — '+o.wired+' slide(s) wired'):'Downloaded (no slides assigned yet)'); });
+  document.getElementById('resetBtn').addEventListener('click', function(){ if(!confirm('Clear your whole deck and all settings in this browser?'))return; state={}; save(); location.reload(); });
 })();
 </script>
 </body>
