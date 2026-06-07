@@ -133,7 +133,7 @@
   function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; }
   function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(function(){t.classList.remove('show');},1700); }
 
-  function defaults(chart){ return { inDeck:false, range:'max', theme:'dark', slide:'', series:chart.series.map(function(s){return s.key;}) }; }
+  function defaults(chart){ return { inDeck:false, range:'max', theme:'dark', slide:'', series:chart.series.filter(function(s){return !s.off;}).map(function(s){return s.key;}) }; }
   function st(chart){
     var d=defaults(chart), s=state[chart.key]||(state[chart.key]=d);
     if(s.range==null)s.range=d.range; if(s.theme==null)s.theme=d.theme;

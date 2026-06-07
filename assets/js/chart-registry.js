@@ -173,6 +173,90 @@ window.EG_CHART_REGISTRY = {
           ]
         }
       ]
+    },
+    {
+      topic: 'government',
+      label: 'Government',
+      embed: '/government/embed/',
+      data:  '/data/government.json',
+      module:'government',
+      charts: [
+        {
+          key:'debt', canvas:'cGovDebt',
+          title:'Federal Debt Outstanding',
+          subtitle:'Total public debt, $ trillions, daily — vertical lines mark each trillion crossed',
+          source:'Source: U.S. Treasury — Fiscal Data, Debt to the Penny.',
+          series:[ {key:'federal_debt', label:'Federal debt (total public debt, $T)'} ]
+        },
+        {
+          key:'employment', canvas:'cGovEmp',
+          title:'Government Employment',
+          subtitle:'Federal (left) vs. state + local (right), millions of workers',
+          source:'Source: BLS Current Employment Statistics — federal, state, local government.',
+          series:[
+            {key:'federal',     label:'Federal government (left)'},
+            {key:'state_local', label:'State + local government (right)'}
+          ]
+        },
+        {
+          key:'outlays-receipts', canvas:'cGovOutRcpt',
+          title:'Federal Outlays vs. Receipts',
+          subtitle:'Trailing-12-month sums, $B — the gap is the deficit',
+          source:'Source: U.S. Treasury — Monthly Treasury Statement (outlays, receipts).',
+          series:[
+            {key:'outlays',  label:'Outlays (trailing 12 mo, $B)'},
+            {key:'receipts', label:'Receipts (trailing 12 mo, $B)'}
+          ]
+        },
+        {
+          key:'m2', canvas:'cGovM2',
+          title:'M2 Money Supply',
+          subtitle:'Level ($T, left); YoY and annualized monthly growth, % (right)',
+          source:'Source: Federal Reserve via FRED — M2SL.',
+          series:[
+            {key:'m2_level', label:'M2 level ($T, left)'},
+            {key:'m2_yoy',   label:'YoY % (right)'},
+            {key:'m2_ann3',  label:'Monthly growth, 3-mo annualized (right)'},
+            {key:'m2_ann1',  label:'Monthly growth, 1-mo annualized (right)', off:true}
+          ]
+        },
+        {
+          key:'fed-balance-sheet', canvas:'cGovFedBS',
+          title:'Federal Reserve Balance Sheet',
+          subtitle:'Stacked composition (Treasuries / MBS / other), $B, weekly — green lines = easing, orange = tightening',
+          source:'Source: Federal Reserve H.4.1 via FRED — WALCL, TREAST, WSHOMCB.',
+          series:[
+            {key:'treasuries', label:'U.S. Treasuries'},
+            {key:'mbs',        label:'Mortgage-backed securities'},
+            {key:'other',      label:'All other assets'},
+            {key:'total',      label:'Total assets'}
+          ]
+        },
+        {
+          key:'tariffs', canvas:'cGovTariffs',
+          title:'Tariff Revenue',
+          subtitle:'Customs duties collected, $B, monthly — gold bands = Trump terms, gray = NBER recessions',
+          source:'Source: U.S. BEA NIPA customs duties via FRED; trailing-12-month sum derived in-house.',
+          series:[
+            {key:'duties_monthly', label:'Customs duties (monthly, $B)'},
+            {key:'duties_12m',     label:'Trailing 12-mo sum ($B)'}
+          ]
+        },
+        {
+          key:'interest', canvas:'cGovInterest',
+          title:'Federal Interest Expense',
+          subtitle:'Annualized quarterly rate, $B — now the third-largest federal outlay',
+          source:'Source: BEA NIPA / Treasury — federal interest payments.',
+          series:[ {key:'interest', label:'Interest payments (annualized, $B)'} ]
+        },
+        {
+          key:'debt-gdp', canvas:'cGovDebtGdp',
+          title:'Federal Debt as Percent of GDP',
+          subtitle:'Total public debt ÷ nominal GDP, %, quarterly',
+          source:'Source: Federal Reserve via FRED — GFDEGDQ188S.',
+          series:[ {key:'debt_to_gdp', label:'Federal debt / nominal GDP (%)'} ]
+        }
+      ]
     }
     // Add more groups here as their embed pages ship (housing, labor, …).
   ],
