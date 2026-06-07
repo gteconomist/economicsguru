@@ -731,8 +731,63 @@ window.EG_CHART_REGISTRY = {
           ]
         }
       ]
+    },
+    {
+      topic: 'gdp',
+      label: 'GDP',
+      embed: '/gdp/embed/',
+      data:  '/data/gdp.json',
+      module:'gdp',
+      charts: [
+        {
+          key:'gdp-headline', canvas:'cGdpHeadline',
+          title:'Real GDP — Quarter-over-Quarter Growth',
+          subtitle:'% change from preceding quarter, SAAR',
+          source:'Source: U.S. Bureau of Economic Analysis — real GDP, % change at annual rate.',
+          series:[ {key:'gdp_qoq', label:'Real GDP, % change at annual rate'} ]
+        },
+        {
+          key:'gdp-profits', canvas:'cGdpProfits',
+          title:'Real Corporate Profits — QoQ Growth',
+          subtitle:'With IVA & CCAdj, deflated by GDP price index; % change at annual rate',
+          source:'Source: U.S. Bureau of Economic Analysis — corporate profits with IVA & CCAdj, deflated.',
+          series:[ {key:'profits', label:'Real corporate profits, % change at annual rate'} ]
+        },
+        {
+          key:'gdp-components', canvas:'cGdpComponents',
+          title:'Components of GDP — Contributions to % Change',
+          subtitle:'Stacked bars sum to headline GDP growth; line shows total',
+          source:'Source: U.S. Bureau of Economic Analysis — contributions of PCE, investment, net exports, government to real GDP growth.',
+          series:[
+            {key:'pce',         label:'Personal consumption (PCE)'},
+            {key:'investment',  label:'Private investment'},
+            {key:'net_exports', label:'Net exports'},
+            {key:'government',  label:'Government'}
+          ]
+        },
+        {
+          key:'gdp-productivity', canvas:'cGdpProductivity',
+          title:'Productivity — Output per Hour',
+          subtitle:'Non-farm business and manufacturing; % change at annual rate',
+          source:'Source: U.S. Bureau of Labor Statistics — labor productivity (output per hour).',
+          series:[
+            {key:'nfb', label:'Non-farm business'},
+            {key:'mfg', label:'Manufacturing'}
+          ]
+        },
+        {
+          key:'gdp-vs-gdi', canvas:'cGdpVsGdi',
+          title:'GDP vs GDI — Year-over-Year % Change',
+          subtitle:'Real GDP vs real GDI; gap is the statistical discrepancy',
+          source:'Source: U.S. Bureau of Economic Analysis — real GDP and real GDI.',
+          series:[
+            {key:'gdp_yoy', label:'Real GDP YoY %'},
+            {key:'gdi_yoy', label:'Real GDI YoY %'}
+          ]
+        }
+      ]
     }
-    // Add more groups here as their embed pages ship (gdp, consumer, …).
+    // Add more groups here as their embed pages ship (consumer, surveys, …).
   ],
 
   // ---- helpers shared by the embed page + control panel ----
