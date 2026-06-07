@@ -672,6 +672,65 @@ window.EG_CHART_REGISTRY = {
           ]
         }
       ]
+    },
+    {
+      topic: 'rates-equities',
+      label: 'Rates · Equities',
+      embed: '/rates/equities/embed/',
+      data:  '/data/equities.json',
+      module:'equities',
+      charts: [
+        {
+          key:'eq-spx', canvas:'cEqSpx',
+          title:'S&P 500',
+          subtitle:'Daily close, index level',
+          source:'Source: Yahoo Finance — S&P 500 daily close.',
+          series:[ {key:'spx', label:'S&P 500'} ]
+        },
+        {
+          key:'eq-rebased', canvas:'cEqRebased',
+          title:'Major Indices — Rebased to 100',
+          subtitle:'S&P 500, Nasdaq, Dow & Russell 2000, each = 100 at start of window',
+          source:'Source: Yahoo Finance — S&P 500, Nasdaq Composite, Dow Jones, Russell 2000.',
+          series:[
+            {key:'spx',     label:'S&P 500'},
+            {key:'nasdaq',  label:'Nasdaq Composite'},
+            {key:'dow',     label:'Dow Jones'},
+            {key:'russell', label:'Russell 2000'}
+          ]
+        },
+        {
+          key:'eq-vix', canvas:'cEqVix',
+          title:'VIX — Volatility Index',
+          subtitle:'CBOE 30-day implied volatility; below 20 = calm, above 30 = stress',
+          source:'Source: CBOE via FRED — VIXCLS.',
+          series:[ {key:'vix', label:'VIX'} ]
+        },
+        {
+          key:'eq-drawdown', canvas:'cEqDrawdown',
+          title:'S&P 500 — Drawdown From All-Time High',
+          subtitle:'Percent below the running peak; reference lines at -10% and -20%',
+          source:'Source: Yahoo Finance — derived from S&P 500 daily close.',
+          series:[ {key:'drawdown', label:'S&P 500 drawdown'} ]
+        },
+        {
+          key:'eq-wilshire-pe', canvas:'cEqWilshirePE',
+          title:'Wilshire 5000 / After-Tax Corporate Profits',
+          subtitle:'Economy-wide "P/E"; long-run average ~12; bands: cheap <9, fair 9-15, over-valued 15-18, frothy >18',
+          source:'Source: Yahoo Finance (Wilshire 5000) ÷ BEA NIPA after-tax corporate profits with IVA & CCAdj (CPATAX) via FRED.',
+          series:[]   // valuation bands draw first, data line last — composite, all stay on
+        },
+        {
+          key:'eq-nasdaq-russell', canvas:'cEqNdqRut',
+          title:'Nasdaq vs. Russell 2000 — Rebased to 100',
+          subtitle:'Tech-heavy large caps vs. small caps',
+          source:'Source: Yahoo Finance — Nasdaq Composite, Russell 2000.',
+          series:[
+            {key:'nasdaq',  label:'Nasdaq Composite'},
+            {key:'russell', label:'Russell 2000'}
+          ]
+        }
+      ]
     }
     // Add more groups here as their embed pages ship (gdp, consumer, …).
   ],
