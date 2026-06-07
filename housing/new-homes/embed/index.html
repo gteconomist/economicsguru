@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Housing · Permits & Starts Chart — Economics Guru</title>
+<title>Housing · New Homes Chart — Economics Guru</title>
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,9 +12,9 @@
 <link rel="stylesheet" href="/assets/css/base.css">
 <link rel="stylesheet" href="/assets/css/components.css">
 <!--
-  Single-chart embed for the Housing "Permits & Starts" subpage, new engine
+  Single-chart embed for the Housing "New Homes" subpage, new engine
   (chart-core.js + pages/housing.js). Metadata from the shared registry
-  (chart-registry.js), scoped to the "permits-starts" group. Params: chart range theme series.
+  (chart-registry.js), scoped to the "new-homes" group. Params: chart range theme series.
   Exposes the branded ↓ PNG / ↓ PNG (light) exports for the deck builder.
 -->
 <style>
@@ -50,7 +50,7 @@
 (function () {
   function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; }
   var REG = window.EG_CHART_REGISTRY;
-  var PAGE_KEY = 'permits-starts';                 // this embed serves one Housing subpage group
+  var PAGE_KEY = 'new-homes';                 // this embed serves one Housing subpage group
   var RANGES = {}; (REG.ranges||[]).forEach(function(r){ RANGES[r]=1; });
 
   var grp = null;

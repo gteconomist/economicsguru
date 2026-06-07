@@ -257,8 +257,338 @@ window.EG_CHART_REGISTRY = {
           series:[ {key:'debt_to_gdp', label:'Federal debt / nominal GDP (%)'} ]
         }
       ]
+    },
+    {
+      topic: 'housing-existing',
+      label: 'Housing · Existing Homes',
+      embed: '/housing/existing/embed/',
+      data:  '/data/housing_existing.json',
+      module:'existing',
+      charts: [
+        {
+          key:'eh-sales', canvas:'cEhSales',
+          title:'Existing Home Sales',
+          subtitle:'Seasonally adjusted annual rate, units',
+          source:'Source: NAR via FRED — EXHOSLUSM495S.',
+          series:[ {key:'sales', label:'Existing home sales (SAAR)'} ]
+        },
+        {
+          key:'eh-median-price', canvas:'cEhMedianPrice',
+          title:'Existing Home Sales & Median Price',
+          subtitle:'Sales SAAR (left); median sales price USD (right)',
+          source:'Sources: NAR via FRED — EXHOSLUSM495S (sales); HOSMEDUSM052N (NSA price); SA price computed in-house.',
+          series:[
+            {key:'sales_left',  label:'Existing home sales (SAAR, left)'},
+            {key:'median_nsa',  label:'Median price (NSA, right)'},
+            {key:'median_sa',   label:'Median price (SA, right)'}
+          ]
+        },
+        {
+          key:'eh-cs-level', canvas:'cEhCsLevel',
+          title:'Case-Shiller US National HPI',
+          subtitle:'Index level; Jan 2000 = 100, NSA',
+          source:'Source: S&P Cotality Case-Shiller via FRED — CSUSHPINSA.',
+          series:[ {key:'cs_level', label:'Case-Shiller US National HPI'} ]
+        },
+        {
+          key:'eh-inventory', canvas:'cEhInventory',
+          title:'Inventory & Months Supply',
+          subtitle:'Active listings (left) and months of supply (right), NSA',
+          source:'Source: NAR via FRED — HOSINVUSM495N, HOSSUPUSM673N.',
+          series:[
+            {key:'active_inventory', label:'Active inventory (units, left)'},
+            {key:'months_supply',    label:'Months supply (right)'}
+          ]
+        },
+        {
+          key:'eh-cs-yoy', canvas:'cEhCsYoy',
+          title:'Case-Shiller HPI — YoY % Change',
+          subtitle:'U.S. National HPI and 20-City Composite, SA',
+          source:'Source: S&P Cotality Case-Shiller via FRED — CSUSHPISA (National, SA), SPCS20RSA (20-City, SA).',
+          series:[
+            {key:'national_yoy', label:'U.S. National HPI YoY (SA)'},
+            {key:'city20_yoy',   label:'20-City Composite YoY (SA)'}
+          ]
+        },
+        {
+          key:'eh-mortgage', canvas:'cEhMortgage',
+          title:'30-Year Fixed Mortgage Rate',
+          subtitle:'Freddie Mac PMMS, monthly average of weekly surveys',
+          source:'Source: Freddie Mac via FRED — MORTGAGE30US.',
+          series:[ {key:'mortgage_30y', label:'30-year fixed mortgage rate'} ]
+        },
+        {
+          key:'eh-cs-metros-yoy', canvas:'cEhCsMetrosYoy',
+          title:'Case-Shiller HPI — YoY % Change by Metro',
+          subtitle:'Selected U.S. metro markets; SA; year-over-year percent change',
+          source:'Source: S&P Cotality Case-Shiller via FRED — individual metros (*XRSA series, SA). Click any legend label to hide that metro.',
+          series:[]   // metros are data-driven (case_shiller_metros_order) — all stay on
+        }
+      ]
+    },
+    {
+      topic: 'housing-new-homes',
+      label: 'Housing · New Homes',
+      embed: '/housing/new-homes/embed/',
+      data:  '/data/housing_new.json',
+      module:'new-homes',
+      charts: [
+        {
+          key:'nh-sales', canvas:'cNhSales',
+          title:'New Home Sales',
+          subtitle:'Seasonally adjusted annual rate, units',
+          source:'Source: US Census Bureau, New Residential Sales (SOLD/ASOLD).',
+          series:[ {key:'sales_saar', label:'New home sales (SAAR)'} ]
+        },
+        {
+          key:'nh-median-price', canvas:'cNhMedianPrice',
+          title:'Median & Average Sales Price',
+          subtitle:'NSA, USD — the gap tracks upper-tail pricing',
+          source:'Source: US Census Bureau, New Residential Sales (SOLD/MEDIAN and SOLD/AVERAG, NSA).',
+          series:[
+            {key:'average_price', label:'Average sales price (NSA)'},
+            {key:'median_price',  label:'Median sales price (NSA)'}
+          ]
+        },
+        {
+          key:'nh-inventory', canvas:'cNhInventory',
+          title:'Inventory by Stage of Construction',
+          subtitle:'Houses for sale at end of period, SA',
+          source:'Source: US Census Bureau (FORSALE: TOTAL / COMPED / UNDERC, SA).',
+          series:[
+            {key:'total_sa',   label:'Total for sale (SA, thousands)'},
+            {key:'underc_sa',  label:'Under construction (SA)'},
+            {key:'comped_sa',  label:'Completed (SA)'}
+          ]
+        },
+        {
+          key:'nh-months-supply', canvas:'cNhMonthsSupply',
+          title:'Months Supply',
+          subtitle:'At current sales rate, NSA & SA, months',
+          source:'Source: US Census Bureau (FORSALE/MONSUP).',
+          series:[
+            {key:'months_supply_sa',  label:'Months supply (SA)'},
+            {key:'months_supply_nsa', label:'Months supply (NSA)'}
+          ]
+        },
+        {
+          key:'nh-regional', canvas:'cNhRegional',
+          title:'New Home Sales by Region',
+          subtitle:'SAAR — Northeast, Midwest, South, West',
+          source:'Source: US Census Bureau via FRED — HSN1FNE / HSN1FMW / HSN1FS / HSN1FW.',
+          series:[
+            {key:'sales_s',  label:'South (SAAR, thousands)'},
+            {key:'sales_w',  label:'West'},
+            {key:'sales_mw', label:'Midwest'},
+            {key:'sales_ne', label:'Northeast'}
+          ]
+        },
+        {
+          key:'nh-sales-yoy', canvas:'cNhSalesYoy',
+          title:'New Home Sales — YoY % Change',
+          subtitle:'Year-over-year percent change in SAAR — cycle indicator',
+          source:'Source: US Census Bureau, derived from sales SAAR.',
+          series:[ {key:'sales_yoy', label:'New home sales YoY'} ]
+        },
+        {
+          key:'nh-nahb-hmi', canvas:'cNhNahbHmi',
+          title:'NAHB/Wells Fargo Housing Market Index',
+          subtitle:'Builder sentiment — 0 to 100, 50 = neutral',
+          source:'Source: NAHB — scraped monthly from press release; historical baseline from data/historical/nahb_hmi.csv.',
+          series:[ {key:'nahb_hmi', label:'NAHB Housing Market Index'} ]
+        },
+        {
+          key:'nh-nahb-sub', canvas:'cNhNahbSub',
+          title:'NAHB Sub-Indices',
+          subtitle:'Current sales, expectations next 6 months, buyer traffic — 0 to 100',
+          source:'Source: NAHB — scraped monthly; historical from data/historical/nahb_hmi.csv.',
+          series:[
+            {key:'nahb_current', label:'Current sales (NAHB)'},
+            {key:'nahb_next6',   label:'Sales expectations 6M (NAHB)'},
+            {key:'nahb_traffic', label:'Buyer traffic (NAHB)'}
+          ]
+        },
+        {
+          key:'nh-nahb-regional', canvas:'cNhNahbRegional',
+          title:'NAHB HMI by Region',
+          subtitle:'Regional builder sentiment — Northeast, Midwest, South, West',
+          source:'Source: NAHB — scraped monthly; historical from data/historical/nahb_hmi.csv.',
+          series:[
+            {key:'nahb_s',  label:'South HMI'},
+            {key:'nahb_w',  label:'West HMI'},
+            {key:'nahb_mw', label:'Midwest HMI'},
+            {key:'nahb_ne', label:'Northeast HMI'}
+          ]
+        }
+      ]
+    },
+    {
+      topic: 'housing-permits-starts',
+      label: 'Housing · Permits & Starts',
+      embed: '/housing/permits-starts/embed/',
+      data:  '/data/housing_permits.json',
+      module:'permits-starts',
+      charts: [
+        {
+          key:'ps-permits', canvas:'cPsPermits',
+          title:'Building Permits',
+          subtitle:'Privately-owned units authorized — SAAR; total, single- and multi-family',
+          source:'Source: US Census Bureau, Building Permits Survey via FRED — PERMIT, PERMIT1, derived multi-family.',
+          series:[
+            {key:'permits_total', label:'Total permits (SAAR)'},
+            {key:'permits_sf',    label:'Single-family'},
+            {key:'permits_mf',    label:'Multi-family (2+ units)'}
+          ]
+        },
+        {
+          key:'ps-permits-mom', canvas:'cPsPermitsMom',
+          title:'Building Permits — MoM % Change by Type',
+          subtitle:'Percent change from prior month, by permit category',
+          source:'Source: US Census Bureau via FRED — PERMIT, PERMIT1, PERMIT24, PERMIT5 (and derived multi-family total).',
+          series:[
+            {key:'total',    label:'Total permits'},
+            {key:'sf',       label:'Single-family'},
+            {key:'mf_total', label:'Multi-family total'},
+            {key:'mf_24',    label:'Multi-family 2-4 units'},
+            {key:'mf_5plus', label:'Multi-family 5+ units'}
+          ]
+        },
+        {
+          key:'ps-permits-mf', canvas:'cPsPermitsMf',
+          title:'Multi-Family Permits Detail',
+          subtitle:'5+ unit (left) vs. 2-4 unit (right) buildings — SAAR, dual axis',
+          source:'Source: US Census Bureau, Building Permits Survey via FRED — PERMIT24, PERMIT5.',
+          series:[
+            {key:'mf_5plus', label:'5+ unit buildings (left)'},
+            {key:'mf_24',    label:'2-4 unit buildings (right)'}
+          ]
+        },
+        {
+          key:'ps-starts', canvas:'cPsStarts',
+          title:'Housing Starts',
+          subtitle:'Privately-owned units started — SAAR; total, single- and multi-family',
+          source:'Source: US Census Bureau, Survey of Construction via FRED — HOUST, HOUST1F, derived multi-family.',
+          series:[
+            {key:'starts_total', label:'Total starts (SAAR)'},
+            {key:'starts_sf',    label:'Single-family'},
+            {key:'starts_mf',    label:'Multi-family (2+ units)'}
+          ]
+        },
+        {
+          key:'ps-starts-mom', canvas:'cPsStartsMom',
+          title:'Housing Starts — MoM % Change by Type',
+          subtitle:'Total, single-family, multi-family — percent change from prior month',
+          source:'Source: US Census Bureau via FRED — HOUST, HOUST1F (and derived multi-family).',
+          series:[
+            {key:'total', label:'Total'},
+            {key:'sf',    label:'Single-family'},
+            {key:'mf',    label:'Multi-family'}
+          ]
+        },
+        {
+          key:'ps-permits-vs-starts', canvas:'cPsPvsS',
+          title:'Permits vs. Starts',
+          subtitle:'Total SAAR — permits lead starts by ~1 month',
+          source:'Source: US Census Bureau via FRED — PERMIT and HOUST, both SAAR.',
+          series:[
+            {key:'permits_total', label:'Total permits (SAAR)'},
+            {key:'starts_total',  label:'Total starts (SAAR)'}
+          ]
+        },
+        {
+          key:'ps-yoy', canvas:'cPsYoy',
+          title:'Year-over-Year % Change',
+          subtitle:'Permits and starts, total SAAR — cycle indicator',
+          source:'Source: US Census Bureau via FRED — derived from SAAR totals.',
+          series:[
+            {key:'permits_yoy', label:'Permits YoY %'},
+            {key:'starts_yoy',  label:'Starts YoY %'}
+          ]
+        },
+        {
+          key:'ps-ratio', canvas:'cPsRatio',
+          title:'Permits-to-Starts Ratio',
+          subtitle:'Total permits ÷ total starts — above 1.0 = authorizing faster than breaking ground',
+          source:'Source: US Census Bureau via FRED — PERMIT ÷ HOUST.',
+          series:[ {key:'ratio', label:'Permits ÷ Starts'} ]
+        }
+      ]
+    },
+    {
+      topic: 'housing-mortgage-activity',
+      label: 'Housing · Mortgage Activity',
+      embed: '/housing/mortgage-activity/embed/',
+      data:  '/data/housing_mortgage_activity.json',
+      module:'mortgage-activity',
+      charts: [
+        {
+          key:'ma-apps', canvas:'cMaApps',
+          title:'MBA Mortgage Applications',
+          subtitle:'Refinance index (left) & purchase index (right) — index 3/16/1990 = 100, SA',
+          source:'Source: Mortgage Bankers Association — Weekly Applications Survey. History to Jan 1990 seeded in-house; weekly updates from the MBA press release.',
+          series:[
+            {key:'refinance', label:'Refinance index (left)'},
+            {key:'purchase',  label:'Purchase index (right)'}
+          ]
+        },
+        {
+          key:'ma-rates', canvas:'cMaRates',
+          title:'30-Year vs 15-Year Fixed Mortgage Rate',
+          subtitle:'Freddie Mac PMMS, weekly',
+          source:'Source: Freddie Mac via FRED — MORTGAGE30US, MORTGAGE15US.',
+          series:[
+            {key:'mortgage_30y', label:'30-year fixed'},
+            {key:'mortgage_15y', label:'15-year fixed'}
+          ]
+        },
+        {
+          key:'ma-spread', canvas:'cMaSpread',
+          title:'30-Year Mortgage − 10-Year Treasury Spread',
+          subtitle:'Weekly; blew out historically wide post-2022',
+          source:'Source: Freddie Mac + U.S. Treasury via FRED — MORTGAGE30US − DGS10 (DGS10 averaged over the trailing 5 business days).',
+          series:[ {key:'spread', label:'30Y mortgage − 10Y Treasury (pp)'} ]
+        },
+        {
+          key:'ma-golden-handcuff', canvas:'cMaGoldenHandcuff',
+          title:'“Golden Handcuff”: Market Rate vs Effective Rate on Outstanding Debt',
+          subtitle:'Monthly; 30Y PMMS vs effective rate on outstanding mortgage debt',
+          source:'Sources: Freddie Mac via FRED — MORTGAGE30US (monthly mean). U.S. BEA — NIPA mortgage interest paid, owner- and tenant-occupied residential housing.',
+          series:[
+            {key:'mortgage_30y_m', label:'30-year fixed mortgage rate (monthly avg)'},
+            {key:'eff_rate',       label:'Effective rate on outstanding mortgage debt'}
+          ]
+        },
+        {
+          key:'ma-delinquency', canvas:'cMaDelinquency',
+          title:'Mortgage Delinquency Rate',
+          subtitle:'Single-family residential at all commercial banks; quarterly, SA',
+          source:'Source: Federal Reserve Board via FRED — DRSFRMACBS.',
+          series:[ {key:'delinquency_rate', label:'Single-family mortgage delinquency rate'} ]
+        },
+        {
+          key:'ma-debt', canvas:'cMaDebt',
+          title:'Mortgage Debt Outstanding',
+          subtitle:'1-4 family residential mortgage balance; quarterly, $ trillions, NSA',
+          source:'Source: Federal Reserve Bank of New York — Quarterly Report on Household Debt and Credit (HHDC), mortgage component.',
+          series:[ {key:'mortgage_debt_out', label:'1-4 family residential mortgage debt'} ]
+        },
+        {
+          key:'ma-affordability', canvas:'cMaAffordability',
+          title:'Housing Affordability Index',
+          subtitle:'NAR fixed-rate index, SA; 100 = median income exactly qualifies for median-priced home',
+          source:'Source: National Association of Realtors. History to Jan 1981; new months scraped from the NAR press release and seasonally adjusted in-house.',
+          series:[ {key:'affordability_index', label:'NAR fixed-rate affordability index'} ]
+        },
+        {
+          key:'ma-price-income', canvas:'cMaPriceIncome',
+          title:'Median Home Price ÷ Median Household Income',
+          subtitle:'Quarterly ratio; both nominal, current dollars',
+          source:'Sources: U.S. Census Bureau / HUD — MSPUS (quarterly NSA); U.S. Census Bureau quarterly nominal median household income (seeded in-house, extended via Census P-60).',
+          series:[ {key:'price_income_ratio', label:'Median home price ÷ median HH income'} ]
+        }
+      ]
     }
-    // Add more groups here as their embed pages ship (housing, labor, …).
+    // Add more groups here as their embed pages ship (labor, gdp, …).
   ],
 
   // ---- helpers shared by the embed page + control panel ----
