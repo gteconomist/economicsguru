@@ -95,6 +95,7 @@
   </div>
   <div class="toolbar">
     <span class="pill" id="count">0 in deck</span>
+    <button class="btn ghost" id="sortBtn">Sort by slide #</button>
     <button class="btn ghost" id="resetBtn">Reset</button>
     <button class="btn ghost" id="dlBtn">Download .yaml</button>
     <button class="btn" id="fsBtn">⬇&nbsp; Export to PowerPoint</button>
@@ -196,12 +197,13 @@
   var deck=document.getElementById('deck'), emptyEl=document.getElementById('empty'), cardEls={};
 
   function slideNum(key){ var s=state[key]; var v=s&&s.slide!==''?parseInt(s.slide,10):NaN; return isNaN(v)?Infinity:v; }
-  function positionFor(key){
-    var n=slideNum(key), kids=deck.children;
-    for(var i=0;i<kids.length;i++){ if(slideNum(kids[i].dataset.key)>n) return kids[i]; }
-    return null;
+  // Re-order cards by slide number ON DEMAND only (never while typing — slide
+  // numbers are fully independent; editing one never moves or constrains another).
+  function sortBySlide(){
+    Array.prototype.slice.call(deck.children)
+      .sort(function(a,b){ return slideNum(a.dataset.key)-slideNum(b.dataset.key); })
+      .forEach(function(el){ deck.appendChild(el); });
   }
-  function reposition(key){ var el=cardEls[key]; if(!el)return; deck.insertBefore(el, positionFor(key)); }
 
   function buildCard(key){
     var g=byKey[key].group, chart=byKey[key].chart, s=st(chart);
@@ -227,13 +229,13 @@
     reload();
     card.querySelector('[data-ctl="range"]').addEventListener('change',function(e){ s.range=e.target.value; reload(); save(); });
     card.querySelectorAll('[data-ctl="theme"] button').forEach(function(b){ b.addEventListener('click',function(){ s.theme=b.dataset.theme; card.querySelectorAll('[data-ctl="theme"] button').forEach(function(x){x.classList.toggle('on',x===b);}); reload(); save(); }); });
-    card.querySelector('[data-ctl="slide"]').addEventListener('input',function(e){ s.slide=e.target.value.replace(/[^0-9]/g,''); card.querySelector('.slidebox').classList.toggle('unset',s.slide===''); save(); reposition(key); renderCount(); });
+    card.querySelector('[data-ctl="slide"]').addEventListener('input',function(e){ s.slide=e.target.value.replace(/[^0-9]/g,''); card.querySelector('.slidebox').classList.toggle('unset',s.slide===''); save(); renderCount(); });
     card.querySelectorAll('input[data-series]').forEach(function(cb){ cb.addEventListener('change',function(){ s.series=Array.prototype.map.call(card.querySelectorAll('input[data-series]:checked'),function(x){return x.dataset.series;}); if(!s.series.length){cb.checked=true;s.series=[cb.dataset.series];toast('Keep at least one variable.');} reload(); save(); }); });
     card.querySelector('.rm').addEventListener('click',function(){ s.inDeck=false; save(); removeCard(key);
       var lc=document.querySelector('.lib-row[data-key="'+key+'"]'); if(lc){ lc.classList.remove('on'); lc.querySelector('input').checked=false; } renderCount(); });
     return card;
   }
-  function addCard(key){ if(cardEls[key])return; var el=buildCard(key); cardEls[key]=el; deck.insertBefore(el, positionFor(key)); updateEmpty(); }
+  function addCard(key){ if(cardEls[key])return; var el=buildCard(key); cardEls[key]=el; deck.appendChild(el); updateEmpty(); }
   function removeCard(key){ var el=cardEls[key]; if(el){ el.remove(); delete cardEls[key]; } updateEmpty(); }
   function updateEmpty(){ emptyEl.style.display=Object.keys(cardEls).length?'none':''; }
 
@@ -245,7 +247,7 @@
 
   // initial deck render (restore checked charts, sorted by slide)
   Object.keys(byKey).forEach(function(k){ if(st(byKey[k].chart).inDeck) addCard(k); });
-  updateEmpty(); renderCount();
+  sortBySlide(); updateEmpty(); renderCount();
 
   // ---------------- export deck_charts.yaml ----------------
   function yamlStr(s){ return '"'+String(s).replace(/"/g,'\\"')+'"'; }
@@ -288,6 +290,7 @@
   }
   function downloadYaml(out){ var b=new Blob([out.text],{type:'text/yaml'}); var a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download='deck_charts.yaml'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(a.href);},1500); }
 
+  document.getElementById('sortBtn').addEventListener('click', function(){ sortBySlide(); toast('Sorted by slide #'); });
   document.getElementById('fsBtn').addEventListener('click', exportToPpt);
   document.getElementById('dlBtn').addEventListener('click', function(){ var o=buildYaml(); downloadYaml(o); toast(o.wired?('Downloaded — '+o.wired+' slide(s) wired'):'Downloaded (no slides assigned yet)'); });
   document.getElementById('resetBtn').addEventListener('click', function(){ if(!confirm('Clear your whole deck and all settings in this browser?'))return; state={}; save(); location.reload(); });
