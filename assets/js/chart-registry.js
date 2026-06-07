@@ -587,8 +587,93 @@ window.EG_CHART_REGISTRY = {
           series:[ {key:'price_income_ratio', label:'Median home price ÷ median HH income'} ]
         }
       ]
+    },
+    {
+      topic: 'labor',
+      label: 'Labor',
+      embed: '/labor/embed/',
+      data:  '/data/labor.json',
+      module:'labor',
+      charts: [
+        {
+          key:'lab-ur-lfp', canvas:'cUrLfp',
+          title:'Unemployment & Participation',
+          subtitle:'Seasonally adjusted, percent — dual axis',
+          source:'Source: BLS — LNS14000000 (U-3), LNS13327709 (U-6), LNS11300000 (LFP).',
+          series:[
+            {key:'u3',  label:'Unemployment (U-3)'},
+            {key:'u6',  label:'U-6'},
+            {key:'lfp', label:'Participation'}
+          ]
+        },
+        {
+          key:'lab-payrolls', canvas:'cPayrolls',
+          title:'Monthly Change in Nonfarm Payrolls',
+          subtitle:'Seasonally adjusted; thousands of jobs',
+          source:'Source: BLS Current Employment Statistics — CES0000000001.',
+          series:[ {key:'payrolls', label:'Nonfarm payrolls'} ]
+        },
+        {
+          key:'lab-payrolls-hh', canvas:'cPayrollsHh',
+          title:'Payrolls vs Household Employment',
+          subtitle:'Monthly change; seasonally adjusted; thousands',
+          source:'Source: BLS — CES0000000001 (payrolls), LNS12000000 (household employment).',
+          series:[
+            {key:'payrolls',  label:'Nonfarm payrolls'},
+            {key:'household', label:'Household employment'}
+          ]
+        },
+        {
+          key:'lab-pay-3mma', canvas:'cPay3mma',
+          title:'Payrolls — 3-Month Moving Average',
+          subtitle:'Monthly change; seasonally adjusted; thousands',
+          source:'Source: BLS CES — CES0000000001 (3-month trailing average).',
+          series:[ {key:'pay_3mma', label:'3-mo avg'} ]
+        },
+        {
+          key:'lab-wages', canvas:'cWages',
+          title:'Wages & Hours',
+          subtitle:'Total private; AHE YoY (left) and avg weekly hours (right)',
+          source:'Source: BLS CES — CES0500000003 (AHE), CES0500000002 (hours).',
+          series:[
+            {key:'ahe_yoy', label:'Avg hourly earnings YoY'},
+            {key:'hours',   label:'Avg weekly hours'}
+          ]
+        },
+        {
+          key:'lab-ft-pt', canvas:'cFtPt',
+          title:'Full-Time vs Part-Time Employment',
+          subtitle:'Seasonally adjusted; start of selected range = 100',
+          source:'Source: BLS CPS — LNS12500000 (FT), LNS12600000 (PT).',
+          series:[
+            {key:'full_time', label:'Full-time'},
+            {key:'part_time', label:'Part-time'}
+          ]
+        },
+        {
+          key:'lab-nativity', canvas:'cNativity',
+          title:'Foreign-Born vs Native-Born Employment',
+          subtitle:'Year-over-year percent change; NSA',
+          source:'Source: BLS CPS Table A-7 — LNU02073413, LNU02073395.',
+          series:[
+            {key:'foreign_born', label:'Foreign-born'},
+            {key:'native_born',  label:'Native-born'}
+          ]
+        },
+        {
+          key:'lab-jolts', canvas:'cJolts',
+          title:'JOLTS — Openings, Hires, Quits',
+          subtitle:'Total nonfarm; millions, seasonally adjusted',
+          source:'Source: BLS JOLTS — JTSJOL / JTSHIL / JTSQUL.',
+          series:[
+            {key:'openings', label:'Openings'},
+            {key:'hires',    label:'Hires'},
+            {key:'quits',    label:'Quits'}
+          ]
+        }
+      ]
     }
-    // Add more groups here as their embed pages ship (labor, gdp, …).
+    // Add more groups here as their embed pages ship (gdp, consumer, …).
   ],
 
   // ---- helpers shared by the embed page + control panel ----

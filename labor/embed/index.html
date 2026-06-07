@@ -3,71 +3,111 @@
 <head>
 <meta charset="utf-8">
 <title>Labor Chart — Economics Guru</title>
+<meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;900&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<!--
+  Single-chart embed for the Labor page, new engine (chart-core.js +
+  pages/labor.js). Metadata from the shared registry (chart-registry.js),
+  scoped to the "labor" group. Params: chart range theme series.
+  Exposes the branded ↓ PNG / ↓ PNG (light) exports for the deck builder.
+  (Replaces the legacy charts.js-based embed.)
+-->
 <style>
-  :root {
-    --navy: #003057; --mustard: #d4a017; --chart-bg: #fbf5dc; --ink-soft: #6b7280;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; height: 100%; background: transparent; font-family: "Source Sans Pro", sans-serif; }
-  .embed { padding: 8px 12px 6px; height: 100vh; display: flex; flex-direction: column; }
-  .title { font-weight: 800; font-size: 16px; color: var(--navy); text-align: center; margin: 0 0 1px; }
-  .subtitle { font-style: italic; font-size: 12px; color: var(--ink-soft); text-align: center; margin: 0 0 6px; }
-  .chart-wrap { position: relative; flex: 1 1 auto; min-height: 0; background: var(--chart-bg); border: 1px solid var(--navy); padding: 6px; }
-  .source { margin-top: 4px; font-size: 10px; color: var(--ink-soft); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-  .source a { color: var(--mustard); text-decoration: none; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; font-size: 10px; }
-  .source a:hover { text-decoration: underline; }
+  html,body{margin:0;height:100%;background:var(--bg,#04263f);}
+  #mount{height:100vh;padding:10px 14px;box-sizing:border-box;}
+  #mount .card{height:100%;margin:0;display:flex;flex-direction:column;}
+  #mount .card .plot{flex:1 1 auto;min-height:0;}
+  #range{position:absolute;left:-9999px;top:-9999px;}
+  body.theme-light{background:#ffffff;}
+  body.theme-light .card{background:#ffffff;border-color:#e7e2d2;box-shadow:none;}
+  body.theme-light .ct{color:#10233a;}
+  body.theme-light .cs,body.theme-light .src{color:#5d6f82;}
+  body.theme-light .dl{color:#857437;}
 </style>
 </head>
 <body>
-<div class="embed">
-  <div class="title" id="t">&hellip;</div>
-  <div class="subtitle" id="s"></div>
-  <div class="chart-wrap">
-    <canvas id="chartUrLfp"    style="display:none"></canvas>
-    <canvas id="chartPayrolls" style="display:none"></canvas>
-    <canvas id="chartWages"    style="display:none"></canvas>
-    <canvas id="chartFtPt"     style="display:none"></canvas>
-    <canvas id="chartNativity" style="display:none"></canvas>
-    <canvas id="chartJolts"    style="display:none"></canvas>
-  </div>
-  <div class="source">
-    <span id="src">Source: U.S. Bureau of Labor Statistics</span>
-    <a href="https://economicsguru.com/labor/" target="_blank" rel="noopener">economicsguru.com</a>
-  </div>
+<div id="mount"></div>
+
+<div class="seg" id="range">
+  <button data-r="6m">6 mo</button>
+  <button data-r="12m">12 mo</button>
+  <button data-r="5y">5 yr</button>
+  <button data-r="10y">10 yr</button>
+  <button data-r="20y">20 yr</button>
+  <button data-r="max">Max</button>
 </div>
 
-<script src="/assets/charts.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/assets/js/chart-registry.js"></script>
+<script src="/assets/js/chart-core.js"></script>
+<script src="/assets/js/pages/labor.js"></script>
 <script>
-const CHART_INFO = {
-  unemployment: { canvas: 'chartUrLfp',    title: 'Unemployment & Labor Force Participation', subtitle: '(SA, Percent — dual axis)' },
-  payrolls:     { canvas: 'chartPayrolls', title: 'Monthly Change in Nonfarm Payrolls',       subtitle: '(SA; Thousands of Jobs)' },
-  wages:        { canvas: 'chartWages',    title: 'Wages & Hours',                            subtitle: '(Total Private; AHE YoY and Avg Weekly Hours)' },
-  fulltime:     { canvas: 'chartFtPt',     title: 'Full-Time vs Part-Time Employment',        subtitle: '(SA; Start of Range = 100)' },
-  nativity:     { canvas: 'chartNativity', title: 'Foreign-Born vs Native-Born Employment',   subtitle: '(YoY % Change; NSA)' },
-  jolts:        { canvas: 'chartJolts',    title: 'JOLTS — Openings, Hires, Quits',           subtitle: '(Total Nonfarm; Thousands, SA)' },
-};
+(function () {
+  function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; }
+  var REG = window.EG_CHART_REGISTRY;
+  var PAGE_KEY = 'labor';                 // this embed serves the Labor group only
+  var RANGES = {}; (REG.ranges||[]).forEach(function(r){ RANGES[r]=1; });
 
-const params = new URLSearchParams(window.location.search);
-const chartKey = (params.get('chart') || 'unemployment').toLowerCase();
-const range = (params.get('range') || '12m').toLowerCase();
-const info = CHART_INFO[chartKey] || CHART_INFO.unemployment;
+  var grp = null;
+  for (var i=0;i<REG.groups.length;i++){ if (REG.groups[i].module === PAGE_KEY){ grp = REG.groups[i]; break; } }
 
-document.getElementById('t').textContent = info.title;
-document.getElementById('s').textContent = info.subtitle;
-document.getElementById(info.canvas).style.display = 'block';
+  var p = new URLSearchParams(location.search);
+  var chartKey = (p.get('chart') || '').toLowerCase();
+  var reg = null;
+  for (var j=0;j<grp.charts.length;j++){ if (grp.charts[j].key === chartKey){ reg = grp.charts[j]; break; } }
+  if (!reg) reg = grp.charts[0];
 
-fetch('/data/labor.json', { cache: 'no-cache' })
-  .then(r => r.json())
-  .then(data => EG.renderLaborEmbed(chartKey, data, range))
-  .catch(err => {
-    document.getElementById('t').textContent = 'Could not load data';
-    console.error(err);
-  });
+  var range = (p.get('range') || 'max').toLowerCase(); if (!RANGES[range]) range = '12m';
+  var theme = (p.get('theme') || 'dark').toLowerCase(); if (theme !== 'light') theme = 'dark';
+  var wantSeries = (p.get('series') || '').split(',').map(function(s){return s.trim();}).filter(Boolean);
+
+  if (theme === 'light') document.body.classList.add('theme-light');
+  window.__egExportAct = (theme === 'light') ? 'png-light' : 'png';
+
+  document.getElementById('mount').innerHTML =
+    '<div class="card">' +
+      '<div class="top"><div>' +
+        '<div class="ct">' + esc(reg.title) + '</div>' +
+        '<div class="cs">' + esc(reg.subtitle) + '</div>' +
+      '</div><span class="dls">' +
+        '<a class="dl ex" data-act="png" href="#">↓ PNG</a>' +
+        '<a class="dl ex" data-act="csv" href="#">↓ CSV</a>' +
+      '</span></div>' +
+      '<div class="plot"><canvas id="' + reg.canvas + '"></canvas></div>' +
+      '<div class="src">' + esc(reg.source) + '</div>' +
+    '</div>';
+
+  var rb = document.querySelector('#range button[data-r="' + range + '"]') ||
+           document.querySelector('#range button[data-r="12m"]');
+  if (rb) rb.classList.add('active');
+
+  EG.boot(grp.data, grp.module);
+
+  var seriesKeys = (reg.series || []).map(function(s){ return s.key; });
+  var tries = 0;
+  var poll = setInterval(function () {
+    var ch = window.Chart && Chart.getChart(reg.canvas);
+    if (ch) {
+      clearInterval(poll);
+      if (wantSeries.length) {
+        seriesKeys.forEach(function (key, i) {
+          if (i < ch.data.datasets.length) ch.setDatasetVisibility(i, wantSeries.indexOf(key) !== -1);
+        });
+        ch.update('none');
+      }
+      setTimeout(function(){ document.body.setAttribute('data-chart-ready','1'); }, 350);
+    } else if (++tries > 200) {
+      clearInterval(poll);
+      document.body.setAttribute('data-chart-ready','error');
+    }
+  }, 100);
+})();
 </script>
 </body>
 </html>
