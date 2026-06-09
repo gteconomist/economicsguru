@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-06-03T19:17:31.814373Z",
+  "build_time": "2026-06-09T13:02:52.937039Z",
   "latest_label": "2026-05-01",
   "kpis": {
     "ism_mfg_total": {
@@ -33,14 +33,14 @@
       "label": "2026-03-01"
     },
     "nfib_optimism": {
-      "value": 95.9,
-      "delta": 0.1,
-      "label": "2026-04-01"
+      "value": 95.3,
+      "delta": -0.6,
+      "label": "2026-05-01"
     },
     "nfib_uncertainty": {
-      "value": 88.0,
-      "delta": -4.0,
-      "label": "2026-04-01"
+      "value": 91.0,
+      "delta": 3.0,
+      "label": "2026-05-01"
     }
   },
   "ism_manufacturing": {
@@ -25192,6 +25192,10 @@
       [
         "2026-04-01",
         95.9
+      ],
+      [
+        "2026-05-01",
+        95.3
       ]
     ],
     "uncertainty": [
@@ -27130,32 +27134,36 @@
       [
         "2026-04-01",
         88.0
+      ],
+      [
+        "2026-05-01",
+        91.0
       ]
     ],
     "problems_latest": [
       {
         "label": "Taxes",
-        "value": 17.0,
+        "value": 19.0,
         "slug": "taxes"
       },
       {
         "label": "Labor quality",
-        "value": 18.0,
+        "value": 13.0,
         "slug": "labor-quality"
       },
       {
         "label": "Inflation",
-        "value": 16.0,
+        "value": 18.0,
         "slug": "inflation"
       },
       {
         "label": "Poor sales",
-        "value": 10.0,
+        "value": 7.0,
         "slug": "poor-sales"
       },
       {
         "label": "Labor costs",
-        "value": 9.0,
+        "value": 14.0,
         "slug": "labor-costs"
       },
       {
@@ -27165,22 +27173,22 @@
       },
       {
         "label": "Government regulations",
-        "value": 8.0,
+        "value": 10.0,
         "slug": "regulations"
       },
       {
         "label": "Competition from large biz",
-        "value": 7.0,
+        "value": 6.0,
         "slug": "competition"
       },
       {
         "label": "Financing & interest rates",
-        "value": 3.0,
+        "value": 2.0,
         "slug": "interest-rates"
       },
       {
         "label": "Other / none",
-        "value": 4.0,
+        "value": 3.0,
         "slug": "other"
       }
     ]
