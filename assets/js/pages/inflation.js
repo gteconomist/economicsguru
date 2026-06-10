@@ -20,6 +20,49 @@ window.EG_PAGES.cpi = function (data, EG) {
 
   function seriesTail(key, n){ return EG.tail(data[key] || [], n); }
 
+  // Vintage compare: 1971–1983 CPI YoY vs 2018–present CPI YoY, overlaid on a
+  // shared elapsed-time axis (2018-08 lines up at the Jan-1971 x position).
+  // Range-independent — always shows the full historical comparison — but is
+  // rebuilt every draw() so it survives EG.reset().
+  function drawVintage() {
+    var el = document.getElementById('cVintage');
+    if (!el) return;
+    var oldRows = data.cpi_vintage_old || [], newRows = data.cpi_vintage_new || [];
+    if (!oldRows.length && !newRows.length) return;
+
+    var N = Math.max(oldRows.length, newRows.length) + 6; // small right padding
+    var origDates = [];
+    for (var i = 0; i < N; i++) {
+      var y = 1971 + Math.floor(i / 12), m = (i % 12) + 1;
+      origDates.push(y + '-' + (m < 10 ? '0' : '') + m);
+    }
+    var vlabels = origDates.map(EG.lab);
+
+    var oldByDate = {};
+    oldRows.forEach(function (r) { oldByDate[r[0]] = r[1]; });
+    var oldSeries = origDates.map(function (d) { return oldByDate.hasOwnProperty(d) ? oldByDate[d] : null; });
+
+    // New series shifted: newRows[0] (2018-08) sits at x position 0 (= Jan 1971).
+    var newSeries = origDates.map(function () { return null; });
+    for (var j = 0; j < newRows.length && j < N; j++) { newSeries[j] = newRows[j][1]; }
+
+    var vopts = EG.baseOpts(true);
+    // 1970s / early-80s NBER recession bands (keyed to the shared origDates axis).
+    vopts.plugins.politicalShading = {
+      regions: [
+        { start:'1973-11', end:'1975-03', color:'#9fb1c2', alpha:0.16 },
+        { start:'1980-01', end:'1980-07', color:'#9fb1c2', alpha:0.16 },
+        { start:'1981-07', end:'1982-11', color:'#9fb1c2', alpha:0.16 }
+      ],
+      origDates: origDates
+    };
+
+    EG.newChart('cVintage', { type:'line', data:{ labels:vlabels, datasets:[
+      EG.line(oldSeries, T.core,   { label:'CPI (1971 – 1983)',    borderWidth:2.5, spanGaps:false }),
+      EG.line(newSeries, '#FFCD00', { label:'CPI (2018 – Current)', borderWidth:2.5, spanGaps:false })
+    ]}, options:vopts }, { pct:true, y1:false });
+  }
+
   function draw(range) {
     var n = EG.months(range);
     EG.reset();
@@ -74,6 +117,9 @@ window.EG_PAGES.cpi = function (data, EG) {
       EG.line(EG.rebase(gl), T.gas, { label:'Gasoline' }),
       EG.line(EG.rebase(el), T.energyAll, { label:'Energy (all)' })
     ]}, options:EG.baseOpts(false) }, { pct:false, y1:false });
+
+    // Vintage 1970s-vs-now comparison (range-independent; rebuilt after reset).
+    drawVintage();
   }
 
   return draw;
