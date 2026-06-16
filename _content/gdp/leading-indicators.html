@@ -1,0 +1,26 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max" class="active">Max</button>
+  </div>
+  <span class="hint">Shaded bands mark NBER recessions · click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+
+<div class="grid">
+  <div class="card span2">
+    <div class="top"><div><div class="ct">Index of Leading Economic Indicators</div><div class="cs">Conference Board LEI — index level, 2016 = 100, seasonally adjusted</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cLeiLevel"></canvas></div>
+    <div class="src">Source: The Conference Board — Composite Index of Leading Indicators (2016=100, SA). Shaded bands: NBER recessions.</div>
+  </div>
+  <div class="card span2">
+    <div class="top"><div><div class="ct">LEI — Six-Month Growth Rate</div><div class="cs">Annualized % change over the prior six months — the classic business-cycle signal</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cLeiGrowth"></canvas></div>
+    <div class="src">Source: The Conference Board — computed as ((LEI₍t₎ / LEI₍t-6₎)² − 1) × 100. Shaded bands: NBER recessions.</div>
+  </div>
+</div>

@@ -27,6 +27,17 @@ def real_inds(g):
     """indicators that are their own subpage (have a slug)"""
     return [i for i in g["indicators"] if i.get("slug")]
 
+def overview_ind(g):
+    """the indicator that lives at /group/ itself (empty slug), if any"""
+    for i in g["indicators"]:
+        if not i.get("slug"):
+            return i
+    return None
+
+def nav_count(g):
+    """number of distinct navigable pages: the /group/ landing + slugged subs"""
+    return len(real_inds(g)) + (1 if (overview_ind(g) or real_inds(g)) else 0)
+
 # ---------- navigation (one definition, used on every generated page) ----------
 def nav_html(active_slug):
     out = ['<a href="/"%s>Home</a>' % (' class="active"' if active_slug == "home" else "")]
@@ -34,7 +45,7 @@ def nav_html(active_slug):
         gurl = "/%s/" % g["slug"]
         active = " active" if g["slug"] == active_slug else ""
         subs = real_inds(g)
-        if len(subs) > 1:
+        if subs:
             items = ['<a href="%s"><div class="mt">Overview</div><div class="md">%s</div></a>'
                      % (gurl, esc(g.get("blurb", "")))]
             for i in subs:
@@ -72,12 +83,13 @@ def pagehead(title, sub, with_latest=False):
             % (esc(title), esc(sub), latest))
 
 def pills(g, active_ind):
-    subs = real_inds(g)
-    if len(subs) < 2:
+    ov = overview_ind(g)
+    pages = ([ov] if ov else []) + real_inds(g)
+    if len(pages) < 2:
         return ""
     links = ['<a href="%s"%s>%s</a>' % (ind_url(g, i),
              ' class="active"' if i is active_ind else "", esc(i.get("nav", i["title"])))
-             for i in subs]
+             for i in pages]
     return '<nav class="pills">' + "".join(links) + "</nav>"
 
 # ---------- page builders ----------
@@ -122,7 +134,8 @@ def build_home():
     for i, g in enumerate(SITE["groups"]):
         title = "Government" if g["title"] == "Gov't" else g["title"]
         subs = real_inds(g)
-        meta = ("%d indicators" % len(subs)) if len(subs) > 1 else "Overview"
+        npages = len(subs) + (1 if overview_ind(g) else 0)
+        meta = ("%d indicators" % npages) if npages > 1 else "Overview"
         cards.append(
             '<a class="gcard" href="/%s/" style="--accent:%s">'
             '<h3>%s</h3><p>%s</p>'
@@ -157,12 +170,19 @@ def main():
         if g.get("status") != "new":
             continue
         subs = real_inds(g)
-        if subs:                       # multi-page hub group
+        ov = overview_ind(g)
+        if ov is not None:             # real Overview at /group/ (+ optional subpages)
+            if ov.get("status") == "new":
+                written.append(build_leaf(g, ov))
+            for ind in g["indicators"]:
+                if ind.get("status") == "new" and ind.get("slug"):
+                    written.append(build_leaf(g, ind))
+        elif subs:                     # multi-page hub group (auto cards landing)
             written.append(build_hub(g))
             for ind in g["indicators"]:
                 if ind.get("status") == "new" and ind.get("slug"):
                     written.append(build_leaf(g, ind))
-        else:                          # single-page group → chart page at /group/
+        else:                          # fallback: single indicator
             ind = g["indicators"][0]
             if ind.get("status") == "new":
                 written.append(build_leaf(g, ind))

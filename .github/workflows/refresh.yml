@@ -108,6 +108,17 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_gdp.py
 
+      # Conference Board LEI is proprietary (no FRED, no public API). The
+      # historical baseline at data/historical/conference_board_lei.csv is the
+      # durable source of truth; each run optionally scrapes the latest monthly
+      # value from the Conference Board press release on PR Newswire (Tavily) and
+      # appends it -- same pattern as ISM / MBA.
+      - name: Refresh Leading Indicators (Conference Board LEI via Tavily)
+        env:
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        continue-on-error: true
+        run: python scripts/fetch_leading.py
+
       - name: Refresh Consumer data from FRED + manual CSVs
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
@@ -172,7 +183,7 @@ jobs:
       - name: Show generated data summary
         run: |
           set +e
-          for f in inflation ppi labor pce housing_existing housing_new housing_permits housing_mortgage_activity gdp consumer treasuries commodities equities industry_manufacturing industry_surveys government; do
+          for f in inflation ppi labor pce housing_existing housing_new housing_permits housing_mortgage_activity gdp leading consumer treasuries commodities equities industry_manufacturing industry_surveys government; do
             if [[ -s "data/${f}.json" ]]; then
               echo "OK  data/${f}.json ($(stat -c%s data/${f}.json) bytes)"
             else
@@ -242,6 +253,7 @@ jobs:
               data/historical/nahb_hmi.csv \
               data/historical/umich_sentiment.csv \
               data/historical/conference_board.csv \
+              data/historical/conference_board_lei.csv \
               data/historical/precious_metals_kitco.csv \
               data/historical/ism_manufacturing.csv \
               data/historical/ism_services.csv \

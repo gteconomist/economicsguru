@@ -2,114 +2,439 @@
   "brand": "EconomicsGuru",
   "groups": [
     {
-      "slug": "inflation", "title": "Inflation", "status": "new",
+      "slug": "inflation",
+      "title": "Inflation",
+      "status": "new",
       "blurb": "Three ways the U.S. measures inflation — consumer prices (CPI), producer prices (PPI), and the PCE deflator.",
       "indicators": [
-        { "slug": "cpi", "title": "US Consumer Price Index", "nav": "CPI",
+        {
+          "slug": "cpi",
+          "title": "US Consumer Price Index",
+          "nav": "CPI",
           "subtitle": "Headline and core CPI, components, and energy prices — sourced live from the U.S. Bureau of Labor Statistics.",
           "card": "Headline & core CPI, monthly change, components, energy prices. Source: BLS.",
-          "data": "/data/inflation.json", "module": "inflation", "page": "cpi", "status": "new",
-          "keywords": ["cpi", "consumer price index", "core", "supercore", "shelter", "energy", "bls", "inflation"] },
-        { "slug": "ppi", "title": "US Producer Price Index", "nav": "PPI",
+          "data": "/data/inflation.json",
+          "module": "inflation",
+          "page": "cpi",
+          "status": "new",
+          "keywords": [
+            "cpi",
+            "consumer price index",
+            "core",
+            "supercore",
+            "shelter",
+            "energy",
+            "bls",
+            "inflation"
+          ]
+        },
+        {
+          "slug": "ppi",
+          "title": "US Producer Price Index",
+          "nav": "PPI",
           "subtitle": "Final-demand prices producers receive — headline, core, goods, services, foods, energy. Source: BLS.",
           "card": "Final-demand prices producers receive — headline, core, goods, services. Source: BLS.",
-          "data": "/data/ppi.json", "module": "inflation", "page": "ppi", "status": "new",
-          "keywords": ["ppi", "producer price index", "final demand", "wholesale", "bls"] },
-        { "slug": "pce", "title": "PCE Price Index", "nav": "PCE",
+          "data": "/data/ppi.json",
+          "module": "inflation",
+          "page": "ppi",
+          "status": "new",
+          "keywords": [
+            "ppi",
+            "producer price index",
+            "final demand",
+            "wholesale",
+            "bls"
+          ]
+        },
+        {
+          "slug": "pce",
+          "title": "PCE Price Index",
+          "nav": "PCE",
           "subtitle": "The Fed's preferred inflation gauge — headline, core, services, and supercore. Source: BEA.",
           "card": "The Fed's preferred gauge — headline, core, services, supercore. Source: BEA.",
-          "data": "/data/pce.json", "module": "inflation", "page": "pce", "status": "new",
-          "keywords": ["pce", "personal consumption", "deflator", "supercore", "fed", "bea"] }
+          "data": "/data/pce.json",
+          "module": "inflation",
+          "page": "pce",
+          "status": "new",
+          "keywords": [
+            "pce",
+            "personal consumption",
+            "deflator",
+            "supercore",
+            "fed",
+            "bea"
+          ]
+        }
       ]
     },
-    { "slug": "labor", "title": "Labor", "status": "new",
+    {
+      "slug": "labor",
+      "title": "Labor",
+      "status": "new",
       "blurb": "Payrolls, unemployment, JOLTS, wages, participation.",
       "indicators": [
-        { "slug": "", "title": "US Labor Market", "nav": "Overview",
+        {
+          "slug": "",
+          "title": "US Labor Market",
+          "nav": "Overview",
           "subtitle": "Payrolls, unemployment, wages, hours, participation, and JOLTS — sourced live from the U.S. Bureau of Labor Statistics.",
           "card": "Payrolls, unemployment, JOLTS, wage growth, participation.",
-          "data": "/data/labor.json", "module": "labor", "page": "labor", "status": "new",
-          "keywords": ["labor", "jobs", "payrolls", "unemployment", "jolts", "wages", "participation", "bls"] } ] },
-    { "slug": "housing", "title": "Housing", "status": "new",
+          "data": "/data/labor.json",
+          "module": "labor",
+          "page": "labor",
+          "status": "new",
+          "keywords": [
+            "labor",
+            "jobs",
+            "payrolls",
+            "unemployment",
+            "jolts",
+            "wages",
+            "participation",
+            "bls"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "housing",
+      "title": "Housing",
+      "status": "new",
       "blurb": "Sales, permits & starts, prices, mortgage activity.",
       "indicators": [
-        { "slug": "existing", "title": "US Existing Home Market", "nav": "Existing",
+        {
+          "slug": "existing",
+          "title": "US Existing Home Market",
+          "nav": "Existing",
           "subtitle": "Existing home sales, median price, inventory, Case-Shiller HPI, and the 30-year mortgage rate — sourced live from FRED.",
           "card": "Existing home sales, median price, inventory, Case-Shiller HPI, mortgage rate. Source: FRED.",
-          "data": "/data/housing_existing.json", "module": "housing", "page": "existing", "status": "new",
-          "keywords": ["existing home sales", "case-shiller", "hpi", "inventory", "median price", "mortgage rate", "nar"] },
-        { "slug": "new-homes", "title": "US New Home Market", "nav": "New Homes",
+          "data": "/data/housing_existing.json",
+          "module": "housing",
+          "page": "existing",
+          "status": "new",
+          "keywords": [
+            "existing home sales",
+            "case-shiller",
+            "hpi",
+            "inventory",
+            "median price",
+            "mortgage rate",
+            "nar"
+          ]
+        },
+        {
+          "slug": "new-homes",
+          "title": "US New Home Market",
+          "nav": "New Homes",
           "subtitle": "New home sales, prices, inventory by stage of construction, months supply, regional sales, and the NAHB Housing Market Index — sourced live from the US Census Bureau, FRED, and NAHB.",
           "card": "New home sales, median & average price, inventory, regional sales, NAHB sentiment. Source: Census, FRED, NAHB.",
-          "data": "/data/housing_new.json", "module": "housing", "page": "new-homes", "status": "new",
-          "keywords": ["new home sales", "census", "nahb", "hmi", "builder sentiment", "inventory", "months supply"] },
-        { "slug": "permits-starts", "title": "US Building Permits & Housing Starts", "nav": "Permits & Starts",
+          "data": "/data/housing_new.json",
+          "module": "housing",
+          "page": "new-homes",
+          "status": "new",
+          "keywords": [
+            "new home sales",
+            "census",
+            "nahb",
+            "hmi",
+            "builder sentiment",
+            "inventory",
+            "months supply"
+          ]
+        },
+        {
+          "slug": "permits-starts",
+          "title": "US Building Permits & Housing Starts",
+          "nav": "Permits & Starts",
           "subtitle": "Permits authorized and units started — total, single-family, and multi-family (with the 2-4 and 5+ unit breakdown). Sourced live from the US Census Bureau via FRED; SAAR.",
           "card": "Permits & starts — total, single-family, multi-family, MoM by type, permits-to-starts ratio. Source: Census/FRED.",
-          "data": "/data/housing_permits.json", "module": "housing", "page": "permits-starts", "status": "new",
-          "keywords": ["building permits", "housing starts", "single-family", "multi-family", "saar", "census", "fred"] },
-        { "slug": "mortgage-activity", "title": "US Mortgage Activity", "nav": "Mortgage Activity",
+          "data": "/data/housing_permits.json",
+          "module": "housing",
+          "page": "permits-starts",
+          "status": "new",
+          "keywords": [
+            "building permits",
+            "housing starts",
+            "single-family",
+            "multi-family",
+            "saar",
+            "census",
+            "fred"
+          ]
+        },
+        {
+          "slug": "mortgage-activity",
+          "title": "US Mortgage Activity",
+          "nav": "Mortgage Activity",
           "subtitle": "Application volume, rates & spreads, the “golden handcuff,” and stress indicators — sourced live from the MBA, Freddie Mac, the Federal Reserve, and BEA.",
           "card": "MBA applications, 30Y/15Y rates, spread, the golden handcuff, delinquency, debt, affordability. Source: MBA, Freddie Mac, Fed, BEA.",
-          "data": "/data/housing_mortgage_activity.json", "module": "housing", "page": "mortgage-activity", "status": "new",
-          "keywords": ["mortgage", "mba applications", "refinance", "purchase", "30-year rate", "spread", "delinquency", "affordability"] } ] },
-    { "slug": "gdp", "title": "GDP", "status": "new",
-      "blurb": "Real GDP, contributions, profits, productivity, GDP vs GDI.",
-      "indicators": [ { "slug": "", "title": "Gross Domestic Product", "nav": "Overview",
-        "subtitle": "Real GDP, component contributions, corporate profits, productivity, and GDP vs GDI — sourced live from the U.S. Bureau of Economic Analysis, BLS, and FRED.",
-        "card": "Real GDP growth, component contributions, corporate profits, productivity, GDP vs GDI.",
-        "data": "/data/gdp.json", "module": "gdp", "page": "gdp", "status": "new",
-        "keywords": ["gdp", "gross domestic product", "real gdp", "contributions", "corporate profits", "productivity", "gdi", "bea"] } ] },
-    { "slug": "consumer", "title": "Consumer", "status": "new",
+          "data": "/data/housing_mortgage_activity.json",
+          "module": "housing",
+          "page": "mortgage-activity",
+          "status": "new",
+          "keywords": [
+            "mortgage",
+            "mba applications",
+            "refinance",
+            "purchase",
+            "30-year rate",
+            "spread",
+            "delinquency",
+            "affordability"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "gdp",
+      "title": "GDP",
+      "status": "new",
+      "blurb": "Real GDP, contributions, profits, productivity, and the Conference Board leading index.",
+      "indicators": [
+        {
+          "slug": "",
+          "title": "Gross Domestic Product",
+          "nav": "Overview",
+          "subtitle": "Real GDP, component contributions, corporate profits, productivity, and GDP vs GDI — sourced live from the U.S. Bureau of Economic Analysis, BLS, and FRED.",
+          "card": "Real GDP growth, component contributions, corporate profits, productivity, GDP vs GDI.",
+          "data": "/data/gdp.json",
+          "module": "gdp",
+          "page": "gdp",
+          "status": "new",
+          "keywords": [
+            "gdp",
+            "gross domestic product",
+            "real gdp",
+            "contributions",
+            "corporate profits",
+            "productivity",
+            "gdi",
+            "bea"
+          ]
+        },
+        {
+          "slug": "leading-indicators",
+          "title": "Index of Leading Economic Indicators",
+          "nav": "Leading Indicators",
+          "subtitle": "The Conference Board's composite Leading Economic Index (LEI) — the standard forward-looking gauge of the U.S. business cycle. Index level and the six-month annualized growth rate, with NBER recessions shaded.",
+          "card": "Conference Board LEI — index level and 6-month growth rate, with recession shading. Source: The Conference Board.",
+          "data": "/data/leading.json",
+          "module": "leading",
+          "page": "leading",
+          "status": "new",
+          "keywords": [
+            "lei",
+            "leading economic index",
+            "leading indicators",
+            "conference board",
+            "business cycle",
+            "recession",
+            "composite index"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "consumer",
+      "title": "Consumer",
+      "status": "new",
       "blurb": "Retail sales, income & spending, sentiment & confidence.",
       "indicators": [
-        { "slug": "income-spending-debt", "title": "Income, Spending & Debt", "nav": "Income & Spending",
+        {
+          "slug": "income-spending-debt",
+          "title": "Income, Spending & Debt",
+          "nav": "Income & Spending",
           "subtitle": "How US households are earning, spending, saving, and borrowing — income & consumption (nominal and real), saving rate, interest payments, consumer credit, revolving debt, and 90+ day delinquencies. Source: BEA via FRED; NY Fed.",
           "card": "Income & consumption, saving rate, interest payments, consumer credit, revolving debt, delinquencies.",
-          "data": "/data/consumer.json", "module": "consumer", "page": "income-spending-debt", "status": "new",
-          "keywords": ["personal income", "consumption", "pce", "saving rate", "consumer credit", "revolving", "delinquency", "household debt"] },
-        { "slug": "retail-confidence", "title": "Retail Sales & Confidence", "nav": "Retail & Confidence",
+          "data": "/data/consumer.json",
+          "module": "consumer",
+          "page": "income-spending-debt",
+          "status": "new",
+          "keywords": [
+            "personal income",
+            "consumption",
+            "pce",
+            "saving rate",
+            "consumer credit",
+            "revolving",
+            "delinquency",
+            "household debt"
+          ]
+        },
+        {
+          "slug": "retail-confidence",
+          "title": "Retail Sales & Confidence",
+          "nav": "Retail & Confidence",
           "subtitle": "Retail sales (total / ex-MV / control), sector contributions across 12 NAICS categories, UMich Consumer Sentiment, and the Conference Board Consumer Confidence Index — Census, FRED, UMich, Conference Board.",
           "card": "Retail sales (total/ex-MV/control), sector contributions, UMich sentiment, Conference Board confidence.",
-          "data": "/data/consumer.json", "module": "consumer", "page": "retail-confidence", "status": "new",
-          "keywords": ["retail sales", "control group", "consumer sentiment", "umich", "conference board", "consumer confidence"] } ] },
-    { "slug": "rates", "title": "Rates", "status": "new",
+          "data": "/data/consumer.json",
+          "module": "consumer",
+          "page": "retail-confidence",
+          "status": "new",
+          "keywords": [
+            "retail sales",
+            "control group",
+            "consumer sentiment",
+            "umich",
+            "conference board",
+            "consumer confidence"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "rates",
+      "title": "Rates",
+      "status": "new",
       "blurb": "Treasury yields, the curve, credit spreads, equities, commodities.",
       "indicators": [
-        { "slug": "treasuries", "title": "Treasury Yields, Fed Funds & Credit Spreads", "nav": "Treasuries",
+        {
+          "slug": "treasuries",
+          "title": "Treasury Yields, Fed Funds & Credit Spreads",
+          "nav": "Treasuries",
           "subtitle": "The shape of the yield curve, the level of policy rates, the market's read on inflation, and the price of corporate credit — sourced live from FRED. Daily, in percent unless noted.",
           "card": "Yield curve, 10Y, 2s10s, Fed funds vs 10Y, real yields & breakevens, IG vs HY credit spreads.",
-          "data": "/data/treasuries.json", "module": "rates", "page": "treasuries", "status": "new",
-          "keywords": ["treasury", "yield curve", "10-year", "2s10s", "fed funds", "tips", "breakeven", "credit spread", "oas"] },
-        { "slug": "equities", "title": "US Equities — Indices, Volatility & Valuation", "nav": "Equities",
+          "data": "/data/treasuries.json",
+          "module": "rates",
+          "page": "treasuries",
+          "status": "new",
+          "keywords": [
+            "treasury",
+            "yield curve",
+            "10-year",
+            "2s10s",
+            "fed funds",
+            "tips",
+            "breakeven",
+            "credit spread",
+            "oas"
+          ]
+        },
+        {
+          "slug": "equities",
+          "title": "US Equities — Indices, Volatility & Valuation",
+          "nav": "Equities",
           "subtitle": "The four major US benchmarks (S&P 500, Nasdaq, Dow, Russell 2000), the VIX, the S&P's drawdown from its high, and an economy-wide valuation gauge (Wilshire 5000 / after-tax profits).",
           "card": "S&P 500, major indices rebased, VIX, drawdown, the Wilshire/profits valuation gauge, Nasdaq vs Russell.",
-          "data": "/data/equities.json", "module": "rates", "page": "equities", "status": "new",
-          "keywords": ["s&p 500", "nasdaq", "dow", "russell 2000", "vix", "drawdown", "valuation", "wilshire", "p/e"] },
-        { "slug": "commodities", "title": "Commodities — Metals & Energy", "nav": "Commodities",
+          "data": "/data/equities.json",
+          "module": "rates",
+          "page": "equities",
+          "status": "new",
+          "keywords": [
+            "s&p 500",
+            "nasdaq",
+            "dow",
+            "russell 2000",
+            "vix",
+            "drawdown",
+            "valuation",
+            "wilshire",
+            "p/e"
+          ]
+        },
+        {
+          "slug": "commodities",
+          "title": "Commodities — Metals & Energy",
+          "nav": "Commodities",
           "subtitle": "Gold and silver, the gold/silver ratio, WTI vs Brent crude, Henry Hub natural gas, platinum, and an energy-vs-metals composite. Daily spot via Kitco/MetalPriceAPI and FRED.",
           "card": "Gold & silver, gold/silver ratio, WTI vs Brent, natural gas, platinum, energy-vs-metals composite.",
-          "data": "/data/commodities.json", "module": "rates", "page": "commodities", "status": "new",
-          "keywords": ["gold", "silver", "platinum", "crude oil", "wti", "brent", "natural gas", "commodities", "gold silver ratio"] } ] },
-    { "slug": "industry", "title": "Industry", "status": "new",
+          "data": "/data/commodities.json",
+          "module": "rates",
+          "page": "commodities",
+          "status": "new",
+          "keywords": [
+            "gold",
+            "silver",
+            "platinum",
+            "crude oil",
+            "wti",
+            "brent",
+            "natural gas",
+            "commodities",
+            "gold silver ratio"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "industry",
+      "title": "Industry",
+      "status": "new",
       "blurb": "Industrial production, factory orders, ISM PMIs.",
       "indicators": [
-        { "slug": "manufacturing", "title": "Manufacturing & Production", "nav": "Manufacturing",
+        {
+          "slug": "manufacturing",
+          "title": "Manufacturing & Production",
+          "nav": "Manufacturing",
           "subtitle": "Industrial production, capacity utilization, factory orders, capital-goods shipments, and electricity generation — the hard data on whether the productive economy is expanding. Sourced live from the Fed G.17, Census M3 (via FRED), BLS CPI, and the EIA.",
           "card": "Industrial production, capacity utilization, factory orders, durable goods, capital-goods shipments, electricity. Source: Fed, Census, EIA.",
-          "data": "/data/industry_manufacturing.json", "module": "industry", "page": "manufacturing", "status": "new",
-          "keywords": ["industrial production", "capacity utilization", "factory orders", "durable goods", "capex", "manufacturing", "fed g.17"] },
-        { "slug": "surveys", "title": "Industry Surveys — ISM, Cass & NFIB", "nav": "Surveys",
+          "data": "/data/industry_manufacturing.json",
+          "module": "industry",
+          "page": "manufacturing",
+          "status": "new",
+          "keywords": [
+            "industrial production",
+            "capacity utilization",
+            "factory orders",
+            "durable goods",
+            "capex",
+            "manufacturing",
+            "fed g.17"
+          ]
+        },
+        {
+          "slug": "surveys",
+          "title": "Industry Surveys — ISM, Cass & NFIB",
+          "nav": "Surveys",
           "subtitle": "The forward-looking layer on top of the hard data: ISM Manufacturing & Services PMIs and sub-indices, the Cass Freight Index, and NFIB small-business optimism & uncertainty. PMIs above 50 = expansion.",
           "card": "ISM Manufacturing & Services PMIs, components, Cass Freight, NFIB optimism & uncertainty. Source: ISM, Cass, NFIB.",
-          "data": "/data/industry_surveys.json", "module": "industry", "page": "surveys", "status": "new",
-          "keywords": ["ism", "pmi", "manufacturing", "services", "diffusion index", "cass freight", "nfib", "small business optimism"] } ] },
-    { "slug": "government", "title": "Gov't", "status": "new",
+          "data": "/data/industry_surveys.json",
+          "module": "industry",
+          "page": "surveys",
+          "status": "new",
+          "keywords": [
+            "ism",
+            "pmi",
+            "manufacturing",
+            "services",
+            "diffusion index",
+            "cass freight",
+            "nfib",
+            "small business optimism"
+          ]
+        }
+      ]
+    },
+    {
+      "slug": "government",
+      "title": "Gov't",
+      "status": "new",
       "blurb": "Federal debt, fiscal flows, money supply, the Fed balance sheet.",
-      "indicators": [ { "slug": "", "title": "Government & Fiscal Policy", "nav": "Overview",
-        "subtitle": "The federal balance sheet, who staffs government, the cash flowing in and out of Treasury, the money supply, and the Fed's footprint — sourced live from the U.S. Treasury (Fiscal Data), the Federal Reserve via FRED, and BLS.",
-        "card": "Federal debt, government employment, outlays vs receipts, M2, the Fed balance sheet, tariffs, interest expense, debt/GDP.",
-        "data": "/data/government.json", "module": "government", "page": "government", "status": "new",
-        "keywords": ["federal debt", "deficit", "outlays", "receipts", "m2", "money supply", "fed balance sheet", "tariffs", "interest expense", "debt to gdp"] } ] }
+      "indicators": [
+        {
+          "slug": "",
+          "title": "Government & Fiscal Policy",
+          "nav": "Overview",
+          "subtitle": "The federal balance sheet, who staffs government, the cash flowing in and out of Treasury, the money supply, and the Fed's footprint — sourced live from the U.S. Treasury (Fiscal Data), the Federal Reserve via FRED, and BLS.",
+          "card": "Federal debt, government employment, outlays vs receipts, M2, the Fed balance sheet, tariffs, interest expense, debt/GDP.",
+          "data": "/data/government.json",
+          "module": "government",
+          "page": "government",
+          "status": "new",
+          "keywords": [
+            "federal debt",
+            "deficit",
+            "outlays",
+            "receipts",
+            "m2",
+            "money supply",
+            "fed balance sheet",
+            "tariffs",
+            "interest expense",
+            "debt to gdp"
+          ]
+        }
+      ]
+    }
   ]
 }
