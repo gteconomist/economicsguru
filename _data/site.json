@@ -214,10 +214,10 @@
         },
         {
           "slug": "leading-indicators",
-          "title": "Index of Leading Economic Indicators",
+          "title": "Leading, Coincident & Lagging Indicators",
           "nav": "Leading Indicators",
-          "subtitle": "The Conference Board's composite Leading Economic Index (LEI) — the standard forward-looking gauge of the U.S. business cycle. Index level and the six-month annualized growth rate, with NBER recessions shaded.",
-          "card": "Conference Board LEI — index level and 6-month growth rate, with recession shading. Source: The Conference Board.",
+          "subtitle": "The Conference Board's composite business-cycle indexes — the Leading Economic Index (LEI) plus the Coincident and Lagging indexes — with the LEI's six-month growth rate, month-over-month change, and the movement of its ten components. NBER recessions shaded.",
+          "card": "Conference Board Leading, Coincident & Lagging indexes, LEI 6-month & m/m change, and the 10 components. Source: The Conference Board, FRED.",
           "data": "/data/leading.json",
           "module": "leading",
           "page": "leading",
@@ -225,11 +225,14 @@
           "keywords": [
             "lei",
             "leading economic index",
-            "leading indicators",
+            "coincident index",
+            "lagging index",
+            "leading credit index",
             "conference board",
             "business cycle",
             "recession",
-            "composite index"
+            "composite index",
+            "components"
           ]
         }
       ]

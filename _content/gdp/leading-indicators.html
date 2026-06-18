@@ -4,10 +4,12 @@
 
 <div class="controls">
   <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m">12 mo</button>
     <button data-r="5y">5 yr</button>
-    <button data-r="10y">10 yr</button>
+    <button data-r="10y" class="active">10 yr</button>
     <button data-r="20y">20 yr</button>
-    <button data-r="max" class="active">Max</button>
+    <button data-r="max">Max</button>
   </div>
   <span class="hint">Shaded bands mark NBER recessions · click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
 </div>
@@ -19,8 +21,23 @@
     <div class="src">Source: The Conference Board — Composite Index of Leading Indicators (2016=100, SA). Shaded bands: NBER recessions.</div>
   </div>
   <div class="card span2">
-    <div class="top"><div><div class="ct">LEI — Six-Month Growth Rate</div><div class="cs">Annualized % change over the prior six months — the classic business-cycle signal</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="top"><div><div class="ct">Leading, Coincident &amp; Lagging Indexes</div><div class="cs">The three composite business-cycle indexes — 2016 = 100, SA. Leading turns first; lagging turns last.</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cTriIndex"></canvas></div>
+    <div class="src">Source: The Conference Board — Composite Indexes of Leading, Coincident & Lagging Indicators (2016=100, SA). Shaded bands: NBER recessions.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">LEI — Six-Month Growth Rate</div><div class="cs">Annualized % change over the prior six months — the classic recession signal</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
     <div class="plot"><canvas id="cLeiGrowth"></canvas></div>
-    <div class="src">Source: The Conference Board — computed as ((LEI₍t₎ / LEI₍t-6₎)² − 1) × 100. Shaded bands: NBER recessions.</div>
+    <div class="src">Source: The Conference Board — ((LEI₍t₎ / LEI₍t-6₎)² − 1) × 100. Shaded bands: NBER recessions.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">LEI — Month-over-Month Change</div><div class="cs">% change from the prior month, SA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cLeiMom"></canvas></div>
+    <div class="src">Source: The Conference Board — Composite Index of Leading Indicators, monthly % change.</div>
+  </div>
+  <div class="card span2">
+    <div class="top"><div><div class="ct">LEI Components — Standardized 6-Month Change</div><div class="cs">Each component's own 6-month swing, standardized (z-score), sign-oriented so positive = supportive of growth. A contribution proxy — toggle series in the legend.</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cLeiComponents"></canvas></div>
+    <div class="src">Sources: FRED (weekly hours, jobless claims, consumer- & capital-goods orders, building permits, 10yr–fed funds spread, consumer expectations), in-house (ISM new orders, S&P 500), and The Conference Board (Leading Credit Index). Standardization is in-house; not the Conference Board's official weighted contributions.</div>
   </div>
 </div>

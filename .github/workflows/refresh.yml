@@ -108,14 +108,14 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_gdp.py
 
-      # Conference Board LEI is proprietary (no FRED, no public API). The
-      # historical baseline at data/historical/conference_board_lei.csv is the
-      # durable source of truth; each run optionally scrapes the latest monthly
-      # value from the Conference Board press release on PR Newswire (Tavily) and
-      # appends it -- same pattern as ISM / MBA.
-      - name: Refresh Leading Indicators (Conference Board LEI via Tavily)
+      # Conference Board composite indexes (Leading/Coincident/Lagging + Leading
+      # Credit Index) are proprietary (not on FRED). The committed Haver export
+      # data/historical/tcb_composite_indexes.csv is the durable source of truth
+      # (re-export when the CB benchmark-revises). This step also pulls the 9
+      # free/in-house LEI components from FRED to build the components chart.
+      - name: Refresh Leading Indicators (Conference Board composites + FRED components)
         env:
-          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         continue-on-error: true
         run: python scripts/fetch_leading.py
 
@@ -253,7 +253,7 @@ jobs:
               data/historical/nahb_hmi.csv \
               data/historical/umich_sentiment.csv \
               data/historical/conference_board.csv \
-              data/historical/conference_board_lei.csv \
+              data/historical/tcb_composite_indexes.csv \
               data/historical/precious_metals_kitco.csv \
               data/historical/ism_manufacturing.csv \
               data/historical/ism_services.csv \
