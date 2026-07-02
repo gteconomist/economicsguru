@@ -474,6 +474,47 @@ def _ism_target_dates():
         ref = ref.replace(day=1) - dt.timedelta(days=1)
 
 
+# ---- Annual revision capture: the "THE LAST 12 MONTHS" headline-PMI table ----
+# ISM restates ~12 months of seasonally-adjusted headline PMI each January when
+# it recalculates seasonal factors. Every monthly release carries this table, so
+# re-parsing it on each successful scrape backfills those revisions for free.
+_ISM_12MO_MONTHS = {"jan":1,"feb":2,"mar":3,"apr":4,"may":5,"jun":6,
+                    "jul":7,"aug":8,"sep":9,"oct":10,"nov":11,"dec":12}
+_ISM_12MO_PAIR_RE = re.compile(
+    r"\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{4})\s+(\d{2,3}(?:\.\d)?)\b",
+    re.IGNORECASE)
+
+
+def _ism_parse_12mo(text):
+    """Parse the release's 'THE LAST 12 MONTHS' headline-PMI table into a list
+    of (YYYY-MM, value), sorted ascending. Returns [] if the block is absent."""
+    # Both reports end this table with "Average for 12 months"; the heading
+    # differs by sector ("THE LAST 12 MONTHS" for Mfg, "SERVICES PMI HISTORY"
+    # for Services), so anchor on the end line and walk back to the nearest
+    # known header, falling back to a bounded window.
+    end = text.find("Average for 12 months")
+    if end == -1:
+        return []
+    start = -1
+    for hdr in ("THE LAST 12 MONTHS", "PMI HISTORY"):
+        i = text.rfind(hdr, 0, end)
+        if i > start:
+            start = i
+    if start == -1:
+        start = max(0, end - 600)
+    block = text[start:end]
+    out = {}
+    for mo, yr, val in _ISM_12MO_PAIR_RE.findall(block):
+        mnum = _ISM_12MO_MONTHS.get(mo[:3].lower())
+        if not mnum:
+            continue
+        try:
+            out[f"{int(yr):04d}-{mnum:02d}"] = float(val)
+        except ValueError:
+            continue
+    return sorted(out.items())
+
+
 def _scrape_ism_via_tavily(sector, csv_path, headline_patterns,
                             sub_specs, primary_col):
     """Generic ISM scraper.
@@ -566,7 +607,18 @@ def _scrape_ism_via_tavily(sector, csv_path, headline_patterns,
                 row[col] = v
         print(f"  ISM {sector} scraped from {chosen_url}: {row}",
               file=sys.stderr)
-        return [row]
+
+        # Also refresh the trailing 12 months of the headline column from the
+        # release's "THE LAST 12 MONTHS" table (headline only; subindexes aren't
+        # in that table). This captures ISM's annual seasonal-factor recalc with
+        # no extra API calls. _upsert_csv only rewrites cells that actually move.
+        hist_rows = [{"month": hm, primary_col: hv}
+                     for hm, hv in _ism_parse_12mo(text) if hm != m_label]
+        if hist_rows:
+            print(f"  ISM {sector} 12-month history: refreshing "
+                  f"{len(hist_rows)} prior month(s) of {primary_col}",
+                  file=sys.stderr)
+        return [row] + hist_rows
 
     return []
 
