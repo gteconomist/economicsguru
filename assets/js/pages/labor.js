@@ -32,10 +32,10 @@ window.EG_PAGES.labor = function (data, EG) {
     var o = EG.baseOpts(true);
     o.scales = Object.assign(EG.baseScales(true), {
       y:  { position:'left',  grid:EG.grid, border:{display:false},
-            ticks:{ font:{size:11}, callback:function(v){ return leftPct  ? v+'%' : v; } },
+            ticks:{ font:{size:11}, callback:function(v){ return leftPct  ? (+v.toFixed(2))+'%' : v; } },
             title:{ display:true, text:leftTitle, font:{size:10} } },
       y1: { position:'right', grid:{display:false}, border:{display:false},
-            ticks:{ font:{size:11}, callback:function(v){ return rightPct ? v+'%' : v; } },
+            ticks:{ font:{size:11}, callback:function(v){ return rightPct ? (+v.toFixed(2))+'%' : v; } },
             title:{ display:true, text:rightTitle, font:{size:10} } }
     });
     return o;
