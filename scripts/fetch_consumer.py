@@ -477,6 +477,27 @@ _CB_EXPECT_RE  = re.compile(rf"Expectations\s+Index.{{0,400}}?to\s+{_CB_VALUE}",
 _CB_PRIOR_RE   = re.compile(rf"from\s+(?:an?\s+)?(?:(?:upwardly|downwardly)\s+revised\s+)?{_CB_VALUE}\s+in\s+{_CB_MONTH}", re.IGNORECASE | re.DOTALL)
 _CB_REVISED_RE = _CB_PRIOR_RE
 
+# Prior-month COMPONENT revisions (Present Situation / Expectations) are not
+# restated as explicit levels in the press text, but they are recoverable from
+# the current month's "<verb> by N points to Y" phrasing: prior = Y - signed N.
+_CB_UP   = r"(?:rose|increased|improved|gained|climbed|jumped|advanced|picked up|ticked up|inched up|edged up)"
+_CB_DOWN = r"(?:fell|declined|dropped|decreased|retreated|slipped|eased|softened|pulled back|ticked down|inched down|edged down)"
+
+def _cb_prior_component(text, index_name, current_val):
+    if current_val is None:
+        return None
+    if re.search(rf"{index_name}.{{0,120}}?\b(?:was\s+)?(?:unchanged|flat|held\s+steady)\b",
+                 text, re.IGNORECASE | re.DOTALL):
+        return current_val
+    m = re.search(
+        rf"{index_name}.{{0,200}}?\b({_CB_UP}|{_CB_DOWN})\b\s+(?:by\s+)?([\d.]+)\s+points?\s+to\s+{_CB_VALUE}",
+        text, re.IGNORECASE | re.DOTALL)
+    if not m:
+        return None
+    verb, mag, cur = m.group(1), float(m.group(2)), float(m.group(3))
+    sign = 1.0 if re.match(_CB_UP, verb, re.IGNORECASE) else -1.0
+    return round(cur - sign * mag, 1)
+
 
 def _strip_html(html):
     s = re.sub(r"<script[^>]*>.*?</script>", " ", html, flags=re.IGNORECASE | re.DOTALL)
@@ -527,10 +548,19 @@ def _cb_parse_press(text):
         py = yr
         if MONTHS_FULL[prev_mon] > MONTHS_FULL[month_name]:
             py -= 1
-        rows.append({
+        prior_row = {
             "month": f"{py:04d}-{MONTHS_FULL[prev_mon]:02d}",
             "cci": prev_val,
-        })
+        }
+        prev_present = _cb_prior_component(text, "Present Situation Index",
+                                           cur_row.get("present_situation"))
+        prev_expect = _cb_prior_component(text, "Expectations Index",
+                                          cur_row.get("expectations"))
+        if prev_present is not None:
+            prior_row["present_situation"] = prev_present
+        if prev_expect is not None:
+            prior_row["expectations"] = prev_expect
+        rows.append(prior_row)
     return rows
 
 
