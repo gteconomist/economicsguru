@@ -469,8 +469,13 @@ _CB_HEADLINE_RES = [
 ]
 _CB_PRESENT_RE = re.compile(rf"Present\s+Situation\s+Index.{{0,400}}?to\s+{_CB_VALUE}", re.IGNORECASE | re.DOTALL)
 _CB_EXPECT_RE  = re.compile(rf"Expectations\s+Index.{{0,400}}?to\s+{_CB_VALUE}",       re.IGNORECASE | re.DOTALL)
-_CB_REVISED_RE = re.compile(rf"from\s+{_CB_VALUE}\s+in\s+{_CB_MONTH}(?:['’]s)?\s+(?:upwardly|downwardly)?\s*revised", re.IGNORECASE | re.DOTALL)
-_CB_PRIOR_RE   = re.compile(rf"from\s+{_CB_VALUE}\s+in\s+{_CB_MONTH}\b", re.IGNORECASE | re.DOTALL)
+# Robust prior-month capture. The CB press release phrases the revised prior
+# month three different ways month-to-month; all must be caught:
+#   "from 92.2 in March's upwardly revised reading"  (value right after "from")
+#   "from an upwardly revised 93.8 in April"          (value after "an upwardly revised")
+#   "from a downwardly revised 90.6 in May"           (value after "a downwardly revised")
+_CB_PRIOR_RE   = re.compile(rf"from\s+(?:an?\s+)?(?:(?:upwardly|downwardly)\s+revised\s+)?{_CB_VALUE}\s+in\s+{_CB_MONTH}", re.IGNORECASE | re.DOTALL)
+_CB_REVISED_RE = _CB_PRIOR_RE
 
 
 def _strip_html(html):
