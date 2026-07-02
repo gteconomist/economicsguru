@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-07-01T15:48:04.552858Z",
+  "build_time": "2026-07-02T13:34:11.591383Z",
   "latest_label": "2026-06-01",
   "kpis": {
     "ism_mfg_total": {
@@ -27220,7 +27220,7 @@
     "nfib_sbet": true
   },
   "scraped_this_run": {
-    "ism_manufacturing": true,
+    "ism_manufacturing": false,
     "ism_services": false,
     "cass_freight": false,
     "nfib_sbet": true
