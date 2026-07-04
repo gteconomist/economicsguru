@@ -30968,14 +30968,14 @@
     {
       "name": "Atlanta",
       "fred_id": "ATXRSA",
-      "latest": "2026-03",
-      "points": 411
+      "latest": null,
+      "points": 0
     },
     {
       "name": "Boston",
       "fred_id": "BOXRSA",
-      "latest": "2026-03",
-      "points": 459
+      "latest": null,
+      "points": 0
     },
     {
       "name": "Charlotte",
@@ -30986,8 +30986,8 @@
     {
       "name": "Chicago",
       "fred_id": "CHXRSA",
-      "latest": "2026-03",
-      "points": 459
+      "latest": null,
+      "points": 0
     },
     {
       "name": "Dallas",
@@ -30998,38 +30998,38 @@
     {
       "name": "Denver",
       "fred_id": "DNXRSA",
-      "latest": "2026-03",
-      "points": 459
+      "latest": null,
+      "points": 0
     },
     {
       "name": "Las Vegas",
       "fred_id": "LVXRSA",
-      "latest": "2026-03",
-      "points": 459
+      "latest": null,
+      "points": 0
     },
     {
       "name": "Miami",
       "fred_id": "MIXRSA",
-      "latest": "2026-03",
-      "points": 459
+      "latest": null,
+      "points": 0
     },
     {
       "name": "New York",
       "fred_id": "NYXRSA",
-      "latest": "2026-03",
-      "points": 459
+      "latest": null,
+      "points": 0
     },
     {
       "name": "San Francisco",
       "fred_id": "SFXRSA",
-      "latest": "2026-03",
-      "points": 459
+      "latest": null,
+      "points": 0
     },
     {
       "name": "Tampa",
       "fred_id": "TPXRSA",
-      "latest": "2026-03",
-      "points": 459
+      "latest": null,
+      "points": 0
     }
   ],
   "mortgage_30y": [
@@ -33725,7 +33725,7 @@
   "latest_label": "2026-05",
   "case_shiller_latest": "2026-04",
   "mortgage_latest": "2026-07",
-  "build_time": "2026-07-03T15:14:24Z",
+  "build_time": "2026-07-04T14:41:06Z",
   "csv_baseline_loaded": true,
   "sa_method": "computed_ratio_to_ma",
   "csv_rows_appended_this_run": 0
