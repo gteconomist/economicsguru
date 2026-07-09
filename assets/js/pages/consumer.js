@@ -138,6 +138,23 @@ window.EG_PAGES['income-spending-debt'] = function (data, EG) {
       EG.line(conAlign(rev, data.revolving_yoy), ORANGE, { label:'YoY % change (right)', borderWidth:2.2, yAxisID:'y1' })
     ]}, options:o6 });
 
+    // 6b. Consumer credit — monthly change ($B, SA): revolving + nonrevolving, stacked bars (G.19)
+    function monthlyChg(series){
+      var s = series || [], out = [];
+      for (var i = 1; i < s.length; i++){
+        var a = s[i-1][1], b = s[i][1];
+        out.push([ s[i][0], (a==null||b==null) ? null : (b - a) / 1000 ]);  // $millions -> $B change
+      }
+      return out;
+    }
+    var revChg  = mt(monthlyChg(data.revolving));
+    var nrevChg = monthlyChg(data.nonrevolving);
+    var oCC = EG.singleOpts(conFmtB); oCC.scales.x.stacked = true; oCC.scales.y.stacked = true;
+    EG.newChart('cCsCreditChange', { type:'bar', data:{ labels:revChg.map(function(r){return EG.lab(r[0]);}), datasets:[
+      { label:'Revolving',    data:revChg.map(function(r){return r[1];}), backgroundColor:ELEC, borderColor:ELEC, stack:'g19', barPercentage:.9, categoryPercentage:.85 },
+      { label:'Nonrevolving', data:conAlign(revChg, nrevChg),             backgroundColor:GOLD, borderColor:GOLD, stack:'g19', barPercentage:.9, categoryPercentage:.85 }
+    ]}, options:oCC });
+
     // 7. 90+ day delinquency by category — 4 lines, quarterly (%)
     var delq = data.delinquency || {};
     var basis = qt((['credit_card','mortgage','auto','student'].map(function(k){return delq[k]||[];}))

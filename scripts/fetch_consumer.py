@@ -700,6 +700,13 @@ def main():
         revolsl = []
     revolsl_yoy = yoy_pct(revolsl)
 
+    print("Fetching nonrevolving consumer credit (NONREVSL)...", flush=True)
+    try:
+        nonrevsl = _fred_obs("NONREVSL")
+    except Exception as e:
+        print(f"  NONREVSL fetch failed: {e}", file=sys.stderr)
+        nonrevsl = []
+
     print("Fetching UMich consumer sentiment headline (FRED)...", flush=True)
     try:
         umcsent_fred = _fred_obs("UMCSENT")
@@ -839,6 +846,7 @@ def main():
         "interest_payments": interest_payments,
         "revolving":         revolsl,
         "revolving_yoy":     revolsl_yoy,
+        "nonrevolving":      nonrevsl,
         "debt": {
             "quarters":    debt_quarters,
             "credit_card": debt["credit_card"],
