@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-07-07T15:46:31.276067Z",
+  "build_time": "2026-07-14T14:58:16.768937Z",
   "latest_label": "2026-06-01",
   "kpis": {
     "ism_mfg_total": {
@@ -33,14 +33,14 @@
       "label": "2026-03-01"
     },
     "nfib_optimism": {
-      "value": 95.3,
-      "delta": -0.6,
-      "label": "2026-05-01"
+      "value": 97.4,
+      "delta": 2.1,
+      "label": "2026-06-01"
     },
     "nfib_uncertainty": {
-      "value": 91.0,
-      "delta": 3.0,
-      "label": "2026-05-01"
+      "value": 89.0,
+      "delta": -2.0,
+      "label": "2026-06-01"
     }
   },
   "ism_manufacturing": {
@@ -25232,6 +25232,10 @@
       [
         "2026-05-01",
         95.3
+      ],
+      [
+        "2026-06-01",
+        97.4
       ]
     ],
     "uncertainty": [
@@ -27174,6 +27178,10 @@
       [
         "2026-05-01",
         91.0
+      ],
+      [
+        "2026-06-01",
+        89.0
       ]
     ],
     "problems_latest": [
@@ -27184,12 +27192,12 @@
       },
       {
         "label": "Labor quality",
-        "value": 13.0,
+        "value": 19.0,
         "slug": "labor-quality"
       },
       {
         "label": "Inflation",
-        "value": 18.0,
+        "value": 21.0,
         "slug": "inflation"
       },
       {
@@ -27199,7 +27207,7 @@
       },
       {
         "label": "Labor costs",
-        "value": 14.0,
+        "value": 8.0,
         "slug": "labor-costs"
       },
       {
@@ -27209,22 +27217,22 @@
       },
       {
         "label": "Government regulations",
-        "value": 10.0,
+        "value": 8.0,
         "slug": "regulations"
       },
       {
         "label": "Competition from large biz",
-        "value": 6.0,
+        "value": 5.0,
         "slug": "competition"
       },
       {
         "label": "Financing & interest rates",
-        "value": 2.0,
+        "value": 3.0,
         "slug": "interest-rates"
       },
       {
         "label": "Other / none",
-        "value": 3.0,
+        "value": 2.0,
         "slug": "other"
       }
     ]
