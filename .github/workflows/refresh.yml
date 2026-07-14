@@ -177,6 +177,17 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_government.py
 
+      # Build the tiny cross-site KPI feed (api/summary.json) that alfie.com
+      # pulls on page load. Pure local computation from the freshly-fetched
+      # data/*.json above -- no network, no secrets -- so it always runs
+      # (schedule, dispatch, and push) and can't fail on a quota. If a source
+      # file is missing this run, that indicator rides forward from the last
+      # good api/summary.json. GitHub Pages serves it with
+      # Access-Control-Allow-Origin: * automatically, so alfie.com can read it.
+      - name: Build cross-site KPI summary (api/summary.json)
+        continue-on-error: true
+        run: python scripts/build_summary.py
+
       # Show data summary, but don't fail the workflow if some files are missing
       # (a fetch step may have hit a quota or rate-limit). Each line is wrapped
       # so a missing/empty JSON prints a warning and we keep going.
