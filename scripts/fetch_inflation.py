@@ -60,8 +60,12 @@ def fetch(seriesids, start_year, end_year):
 
 def yoy(rows):
     by = {(y, m): v for (y, m, v) in rows}
+    # Keep 4 decimals, not 2. The downstream KPI cards and the api/summary.json
+    # feed re-round these to 1 dp; storing only 2 dp caused a double-rounding
+    # error (e.g. true 4.2487 -> 4.25 -> 4.3 instead of BLS's 4.2). Four decimals
+    # preserves enough precision that a later 1-dp round matches BLS exactly.
     return [
-        [f"{y}-{m:02d}", round((v / by[(y - 1, m)] - 1) * 100, 2)]
+        [f"{y}-{m:02d}", round((v / by[(y - 1, m)] - 1) * 100, 4)]
         for (y, m, v) in rows
         if (y - 1, m) in by
     ]
