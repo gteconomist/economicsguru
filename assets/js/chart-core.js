@@ -120,7 +120,7 @@ window.EG = (function () {
   function baseScales(pct){
     return {
       x:{ grid:{display:false}, ticks:{ maxRotation:0, autoSkip:true, maxTicksLimit:8, font:{size:11} } },
-      y:{ grid:grid, border:{display:false}, ticks:{ font:{size:11}, callback:function(v){return pct?v+'%':v;} } }
+      y:{ grid:grid, border:{display:false}, ticks:{ font:{size:11}, callback:function(v){return pct?fmtPctAxis(v):v;} } }
     };
   }
   function baseOpts(pct){
@@ -141,6 +141,9 @@ window.EG = (function () {
   }
 
   // ---- value formatters + non-% / dual-axis option builders ----
+  // Percent axis tick: round away binary float error (0.4000000000000001 -> 0.4)
+  // while keeping up to 3 decimals (more than any Chart.js auto-tick step needs).
+  function fmtPctAxis(v){ return (Math.round(v*1000)/1000)+'%'; }
   function fmtBig(v){ if(v==null) return 'n/a'; var a=Math.abs(v); if(a>=1e6) return (v/1e6).toFixed(2)+'M'; if(a>=1e3) return Math.round(v/1e3)+'k'; return ''+v; }
   function fmtUsd(v){ return v==null?'n/a':'$'+fmtBig(v); }
   function fmtPct1(v){ return v==null?'n/a':v.toFixed(1)+'%'; }
@@ -376,7 +379,7 @@ window.EG = (function () {
 
   var EG = { T:T, lab:lab, tail:tail, rangeByDate:rangeByDate, val:val, months:months, rebase:rebase,
     reset:reset, newChart:newChart, baseOpts:baseOpts, baseScales:baseScales, grid:grid, line:line,
-    fmtBig:fmtBig, fmtUsd:fmtUsd, fmtPct1:fmtPct1, fmtPct1s:fmtPct1s, fmtPct2:fmtPct2, fmtIdx:fmtIdx, fmtMonths:fmtMonths, fmtMillions:fmtMillions, fmtUnitsK:fmtUnitsK, fmtRatio:fmtRatio,
+    fmtBig:fmtBig, fmtUsd:fmtUsd, fmtPctAxis:fmtPctAxis, fmtPct1:fmtPct1, fmtPct1s:fmtPct1s, fmtPct2:fmtPct2, fmtIdx:fmtIdx, fmtMonths:fmtMonths, fmtMillions:fmtMillions, fmtUnitsK:fmtUnitsK, fmtRatio:fmtRatio,
     singleOpts:singleOpts, dualOpts:dualOpts,
     renderKpis:renderKpis, boot:boot };
   return EG;

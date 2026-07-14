@@ -78,8 +78,8 @@ window.EG_PAGES.cpi = function (data, EG) {
       g.addColorStop(0, T.heroGradTop); g.addColorStop(1, T.heroGradBot);
       var heroOpts = EG.baseOpts(true);
       heroOpts.scales = Object.assign(EG.baseScales(true), {
-        y:  { position:'left',  grid:EG.grid, border:{display:false}, ticks:{ font:{size:11}, callback:function(v){return v+'%';} }, title:{display:true, text:'YoY', font:{size:10}} },
-        y1: { position:'right', grid:{display:false}, border:{display:false}, ticks:{ font:{size:11}, callback:function(v){return v+'%';} }, title:{display:true, text:'MoM', font:{size:10}} }
+        y:  { position:'left',  grid:EG.grid, border:{display:false}, ticks:{ font:{size:11}, callback:function(v){return EG.fmtPctAxis(v);} }, title:{display:true, text:'YoY', font:{size:10}} },
+        y1: { position:'right', grid:{display:false}, border:{display:false}, ticks:{ font:{size:11}, callback:function(v){return EG.fmtPctAxis(v);} }, title:{display:true, text:'MoM', font:{size:10}} }
       });
       EG.newChart('cHero', { type:'bar', data:{ labels:labels, datasets:[
         { type:'bar', label:'Headline MoM', data:EG.val(mm), backgroundColor:T.barFill, borderRadius:3, barPercentage:.9, categoryPercentage:.85, order:3, yAxisID:'y1' },
