@@ -244,6 +244,7 @@ window.EG = (function () {
   function exportData(ch, sc, theme){
     var map = theme && theme.map;
     function remap(c){
+      if(Array.isArray(c)) return c.map(remap);
       if(typeof c !== 'string') return c;
       var up = c.toUpperCase();
       if(map && map[up]) return map[up];
@@ -284,13 +285,25 @@ window.EG = (function () {
     if(!out.x){ out.x = { grid:{display:false}, ticks:Object.assign({maxRotation:0, autoSkip:true, maxTicksLimit:9}, tick) }; }
     return out;
   }
-  function exOpts(srcOptions, sc, theme){
+  function isCircular(type){ return type === 'doughnut' || type === 'pie' || type === 'polarArea'; }
+  // Circular charts (doughnut/pie) legend: keep the source chart's per-slice
+  // legend (which reads data.labels), only restyling color/size for export.
+  function circularLegend(srcOptions, sc, theme){
+    var srcLeg = (srcOptions && srcOptions.plugins && srcOptions.plugins.legend) || {};
+    return { display: srcLeg.display !== false, position: srcLeg.position || 'right',
+      labels:{ color:theme.axis, boxWidth:13*sc, padding:9*sc, usePointStyle:true, pointStyle:'circle', font:{size:14*sc, weight:'700'} } };
+  }
+  function exOpts(srcOptions, sc, theme, type){
+    var circ = isCircular(type);
     var o = {
       responsive:false, animation:false, devicePixelRatio:1, maintainAspectRatio:false,
       layout:{padding:{top:6*sc, right:12*sc, bottom:2*sc, left:2*sc}},
-      plugins:{ legend:{position:'bottom', labels:{color:theme.axis, usePointStyle:true, pointStyle:'circle', boxWidth:12*sc, padding:16*sc, font:{size:18*sc, weight:'700'}, generateLabels:gapLabels}}, tooltip:{enabled:false} },
-      scales: exScales(srcOptions && srcOptions.scales, sc, theme.axis, theme.grid)
+      plugins:{ legend: circ ? circularLegend(srcOptions, sc, theme)
+                              : {position:'bottom', labels:{color:theme.axis, usePointStyle:true, pointStyle:'circle', boxWidth:12*sc, padding:16*sc, font:{size:18*sc, weight:'700'}, generateLabels:gapLabels}},
+                tooltip:{enabled:false} },
+      scales: circ ? {} : exScales(srcOptions && srcOptions.scales, sc, theme.axis, theme.grid)
     };
+    if(circ && srcOptions && srcOptions.cutout != null) o.cutout = srcOptions.cutout;
     var sp = srcOptions && srcOptions.plugins;   // preserve event lines / shading in exports
     if(sp && sp.verticalEventLines) o.plugins.verticalEventLines = sp.verticalEventLines;
     if(sp && sp.politicalShading)  o.plugins.politicalShading  = sp.politicalShading;
@@ -311,7 +324,7 @@ window.EG = (function () {
     if(sub){ x.fillStyle=theme.muted; x.font='italic '+(17*sc)+'px '+EXF; x.fillText(sub, padL, 81*sc); }
     var pw=W-padL-padR, ph=H-headerH-footerH;
     var pc=document.createElement('canvas'); pc.width=pw; pc.height=ph;
-    var ec=new Chart(pc, { type:ch.config.type, data:exportData(ch,sc,theme), options:exOpts(ch.config.options, sc, theme) });
+    var ec=new Chart(pc, { type:ch.config.type, data:exportData(ch,sc,theme), options:exOpts(ch.config.options, sc, theme, ch.config.type) });
     if(ec.draw) ec.draw();
     x.drawImage(pc, padL, headerH);
     ec.destroy();
