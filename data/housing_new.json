@@ -57015,9 +57015,9 @@
   },
   "latest_label": "2026-05",
   "nahb_latest": "2026-07",
-  "build_time": "2026-07-16T15:07:41Z",
+  "build_time": "2026-07-16T21:55:08Z",
   "nahb_csv_present": true,
-  "nahb_csv_changed_this_run": true,
+  "nahb_csv_changed_this_run": false,
   "nahb_scrape_succeeded": true,
   "nahb_rows_scraped_this_run": 499
 }
