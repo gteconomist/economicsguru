@@ -1,11 +1,11 @@
 {
-  "build_time": "2026-07-21T15:09:32.795916Z",
+  "build_time": "2026-07-21T16:08:55.695568Z",
   "latest_label": "2026-07-21",
   "kpis": {
     "spx": {
-      "value": 7443.28,
-      "delta_pct": -0.19,
-      "label": "2026-07-20"
+      "value": 7506.89,
+      "delta_pct": 0.85,
+      "label": "2026-07-21"
     },
     "nasdaq": {
       "value": 25508.07,
@@ -13,13 +13,13 @@
       "label": "2026-07-20"
     },
     "dow": {
-      "value": 52134.15,
-      "delta_pct": 0.57,
+      "value": 52237.04,
+      "delta_pct": 0.77,
       "label": "2026-07-21"
     },
     "russell": {
-      "value": 2967.02,
-      "delta_pct": 0.84,
+      "value": 2973.84,
+      "delta_pct": 1.07,
       "label": "2026-07-21"
     },
     "vix": {
@@ -28,9 +28,9 @@
       "label": "2026-07-20"
     },
     "spx_drawdown": {
-      "value": -2.19,
-      "delta_pct": -0.19,
-      "label": "2026-07-20"
+      "value": -1.35,
+      "delta_pct": 0.84,
+      "label": "2026-07-21"
     }
   },
   "spx": [
@@ -57061,6 +57061,10 @@
     [
       "2026-07-20",
       7443.28
+    ],
+    [
+      "2026-07-21",
+      7506.89
     ]
   ],
   "nasdaq": [
@@ -147776,7 +147780,7 @@
     ],
     [
       "2026-07-21",
-      52134.15
+      52237.04
     ]
   ],
   "russell": [
@@ -186930,7 +186934,7 @@
     ],
     [
       "2026-07-21",
-      2967.02
+      2973.84
     ]
   ],
   "wilshire": [
@@ -318665,6 +318669,10 @@
     [
       "2026-07-20",
       -2.19
+    ],
+    [
+      "2026-07-21",
+      -1.35
     ]
   ],
   "wilshire_pe": [
@@ -320167,7 +320175,7 @@
       3623.72
     ]
   ],
-  "yahoo_succeeded": false,
+  "yahoo_succeeded": true,
   "fred_succeeded": true,
-  "notice": "S&P 500 daily series temporarily unavailable."
+  "notice": null
 }
