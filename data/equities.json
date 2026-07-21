@@ -1,6 +1,6 @@
 {
-  "build_time": "2026-07-21T13:09:35.080332Z",
-  "latest_label": "2026-07-20",
+  "build_time": "2026-07-21T15:09:32.795916Z",
+  "latest_label": "2026-07-21",
   "kpis": {
     "spx": {
       "value": 7443.28,
@@ -13,19 +13,19 @@
       "label": "2026-07-20"
     },
     "dow": {
-      "value": 51839.26,
-      "delta_pct": -0.59,
-      "label": "2026-07-20"
+      "value": 52134.15,
+      "delta_pct": 0.57,
+      "label": "2026-07-21"
     },
     "russell": {
-      "value": 2942.43,
-      "delta_pct": -0.67,
-      "label": "2026-07-20"
+      "value": 2967.02,
+      "delta_pct": 0.84,
+      "label": "2026-07-21"
     },
     "vix": {
-      "value": 18.77,
-      "delta_pct": 12.19,
-      "label": "2026-07-17"
+      "value": 18.65,
+      "delta_pct": -0.64,
+      "label": "2026-07-20"
     },
     "spx_drawdown": {
       "value": -2.19,
@@ -147773,6 +147773,10 @@
     [
       "2026-07-20",
       51839.26
+    ],
+    [
+      "2026-07-21",
+      52134.15
     ]
   ],
   "russell": [
@@ -186923,6 +186927,10 @@
     [
       "2026-07-20",
       2942.43
+    ],
+    [
+      "2026-07-21",
+      2967.02
     ]
   ],
   "wilshire": [
@@ -261623,6 +261631,10 @@
     [
       "2026-07-17",
       18.77
+    ],
+    [
+      "2026-07-20",
+      18.65
     ]
   ],
   "spx_drawdown": [
@@ -320155,7 +320167,7 @@
       3623.72
     ]
   ],
-  "yahoo_succeeded": true,
+  "yahoo_succeeded": false,
   "fred_succeeded": true,
-  "notice": null
+  "notice": "S&P 500 daily series temporarily unavailable."
 }
