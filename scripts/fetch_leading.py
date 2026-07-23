@@ -228,37 +228,42 @@ def _upsert_csv(path, value_columns, scraped_rows):
 # ---- press-release parsing ----
 
 # The level always appears immediately before the "(2016=100)" basis tag, e.g.
-# "...to 99.1 (2016=100)" or "...at 120.5 (2016=100)...". Anchoring on the basis
-# tag is far more robust than anchoring on verbs ("declined"/"was unchanged").
-_LEVEL_RE   = re.compile(r"(\d{2,3}(?:\.\d+)?)\s*\(\s*2016\s*=\s*100\s*\)")
+# "...to 99.1 (2016=100)" or "...at 120.5 (2016=100)...". We anchor on the index
+# NAME and reach forward (bounded, DOTALL, non-greedy) to the first level tagged
+# "(2016=100)". This deliberately skips the press release's HEADLINE occurrence
+# of the index name (e.g. "...Leading Economic Index (LEI) for the US Declined in
+# June...") which carries no level -- the regex just fails to complete there and
+# re.search advances to the body sentence. `.` (not `[^.]`) is required because
+# the prose is full of decimal points ("declined by 0.2% ... to 99.1").
+_LEVEL_ANCHORED = {
+    key: re.compile(name + r".{0,260}?(\d{2,3}(?:\.\d+)?)\s*\(\s*2016\s*=\s*100\s*\)",
+                    re.IGNORECASE | re.DOTALL)
+    for key, name in (("leading", "Leading Economic Index"),
+                      ("coincident", "Coincident Economic Index"),
+                      ("lagging", "Lagging Economic Index"))
+}
 _INMONTH_RE = re.compile(
     r"in\s+(January|February|March|April|May|June|July|August|September|October|"
     r"November|December)\s+(\d{4})", re.IGNORECASE)
 
-_INDEX_PROSE = [
-    ("leading",    "Leading Economic Index"),
-    ("coincident", "Coincident Economic Index"),
-    ("lagging",    "Lagging Economic Index"),
-]
-
 
 def _parse_prose_levels(text):
     """Return ({key: level}, (Month_full, year) | None) parsed from the three
-    headline sentences. The month/year is taken from the first index sentence
-    that carries an 'in <Month> <Year>' clause."""
+    headline sentences. The month/year is read from the immediate context of the
+    matched Leading level (it sits either just before it — "in June 2026 to 99.1
+    (2016=100)" — or just after — "at 120.5 (2016=100) in June 2026")."""
     levels = {}
     release_my = None
-    for key, name in _INDEX_PROSE:
-        i = text.find(name)
-        if i == -1:
+    for key, rx in _LEVEL_ANCHORED.items():
+        m = rx.search(text)
+        if not m:
             continue
-        window = text[i:i + 240]
-        lm = _LEVEL_RE.search(window)
-        if lm:
-            levels[key] = float(lm.group(1))
-        mm = _INMONTH_RE.search(window)
-        if mm and release_my is None:
-            release_my = (mm.group(1), int(mm.group(2)))
+        levels[key] = float(m.group(1))
+        if release_my is None:
+            ctx = text[max(0, m.start() - 170): m.end() + 40]
+            mm = _INMONTH_RE.search(ctx)
+            if mm:
+                release_my = (mm.group(1), int(mm.group(2)))
     return levels, release_my
 
 
