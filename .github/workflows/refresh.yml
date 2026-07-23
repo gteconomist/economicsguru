@@ -116,6 +116,7 @@ jobs:
       - name: Refresh Leading Indicators (Conference Board composites + FRED components)
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         continue-on-error: true
         run: python scripts/fetch_leading.py
 
