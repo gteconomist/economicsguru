@@ -3235,6 +3235,10 @@
     [
       "2026-05-01",
       99.3
+    ],
+    [
+      "2026-06-01",
+      99.1
     ]
   ],
   "lei_6m_ann": [
@@ -6449,6 +6453,10 @@
     [
       "2026-05-01",
       -0.6
+    ],
+    [
+      "2026-06-01",
+      -0.6
     ]
   ],
   "lei_yoy": [
@@ -9639,6 +9647,10 @@
     [
       "2026-05-01",
       -1.49
+    ],
+    [
+      "2026-06-01",
+      -1.39
     ]
   ],
   "lei_mom": [
@@ -12873,6 +12885,10 @@
     [
       "2026-05-01",
       0.1
+    ],
+    [
+      "2026-06-01",
+      -0.2
     ]
   ],
   "coincident_level": [
@@ -16106,10 +16122,14 @@
     ],
     [
       "2026-04-01",
-      114.4
+      114.2
     ],
     [
       "2026-05-01",
+      114.4
+    ],
+    [
+      "2026-06-01",
       114.6
     ]
   ],
@@ -19349,6 +19369,10 @@
     [
       "2026-05-01",
       120.5
+    ],
+    [
+      "2026-06-01",
+      120.5
     ]
   ],
   "coincident_yoy": [
@@ -22534,11 +22558,15 @@
     ],
     [
       "2026-04-01",
-      0.35
+      0.18
     ],
     [
       "2026-05-01",
-      0.79
+      0.62
+    ],
+    [
+      "2026-06-01",
+      0.7
     ]
   ],
   "lagging_yoy": [
@@ -25729,6 +25757,10 @@
     [
       "2026-05-01",
       0.92
+    ],
+    [
+      "2026-06-01",
+      1.01
     ]
   ],
   "components": {
@@ -52313,37 +52345,37 @@
   ],
   "kpis": {
     "level": {
-      "value": 99.3,
-      "delta": 0.1,
-      "label": "May 2026"
+      "value": 99.1,
+      "delta": -0.2,
+      "label": "Jun 2026"
     },
     "mom": {
-      "value": 0.1,
-      "delta": -0.1,
-      "label": "May 2026"
+      "value": -0.2,
+      "delta": -0.3,
+      "label": "Jun 2026"
     },
     "six_m": {
       "value": -0.6,
-      "delta": 0.6,
-      "label": "May 2026"
+      "delta": 0.0,
+      "label": "Jun 2026"
     },
     "yoy": {
-      "value": -1.5,
+      "value": -1.4,
       "delta": 0.1,
-      "label": "May 2026"
+      "label": "Jun 2026"
     },
     "coin_yoy": {
-      "value": 0.8,
-      "delta": 0.4,
-      "label": "May 2026"
+      "value": 0.7,
+      "delta": 0.1,
+      "label": "Jun 2026"
     },
     "lag_yoy": {
-      "value": 0.9,
-      "delta": -0.6,
-      "label": "May 2026"
+      "value": 1.0,
+      "delta": 0.1,
+      "label": "Jun 2026"
     }
   },
-  "latest_label": "May 2026",
+  "latest_label": "Jun 2026",
   "components_available": [
     "awhman",
     "cap_ord",
@@ -52357,5 +52389,5 @@
     "spread"
   ],
   "source_note": "The Conference Board Composite Indexes of Leading, Coincident & Lagging Indicators (2016=100, SA) + Leading Credit Index. Components: standardized 6-month change (contribution proxy); 9 from FRED/in-house, LCI from The Conference Board.",
-  "build_time": "2026-07-23T22:38:17Z"
+  "build_time": "2026-07-23T23:14:13Z"
 }
