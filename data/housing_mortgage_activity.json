@@ -15196,9 +15196,9 @@
     ]
   ],
   "mba_latest_week": "2026-05-22",
-  "mba_refi_share": 43.2,
+  "mba_refi_share": 41.2,
   "mba_arm_share": null,
-  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/07/15/mortgage-applications-decrease-in-latest-mba-weekly-survey",
+  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/07/22/mortgage-applications-increase-in-latest-mba-weekly-survey",
   "mortgage_30y": [
     [
       "1971-04-02",
@@ -67238,7 +67238,11 @@
     ],
     [
       "2026-03-31",
-      403200.0
+      408500.0
+    ],
+    [
+      "2026-06-30",
+      410700.0
     ]
   ],
   "median_hh_income_q": [
@@ -68150,14 +68154,14 @@
       "label": "2026-05-22"
     },
     "refi_share": {
-      "value": 43.2,
+      "value": 41.2,
       "delta": null,
-      "label": "2026-07-10"
+      "label": "2026-07-17"
     },
     "arm_share": {
       "value": null,
       "delta": null,
-      "label": "2026-07-10"
+      "label": "2026-07-17"
     },
     "delinquency_rate": {
       "value": 1.89,
@@ -68181,7 +68185,7 @@
     }
   },
   "latest_label": "2026-05-22",
-  "build_time": "2026-07-24T13:08:31Z",
+  "build_time": "2026-07-24T15:02:18Z",
   "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
@@ -68198,7 +68202,7 @@
   "hai_factor_window_months": 36,
   "hai_basis": "NAR Housing Affordability Index, seasonally adjusted in-house using monthly factors derived from the historical SA/NSA overlap. Trailing months from the NAR press release via Tavily.",
   "price_income_ratio_rows": 220,
-  "price_quarterly_rows": 253,
+  "price_quarterly_rows": 254,
   "seed_income_quarters": 220,
   "income_shape_factors": {
     "1": 0.9863,
