@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-07-23T22:38:38.770738Z",
+  "build_time": "2026-07-26T14:44:49.816161Z",
   "latest_label": "2026-06-01",
   "kpis": {
     "ip_yoy": {
@@ -40020,6 +40020,6 @@
     ]
   },
   "fred_succeeded": true,
-  "eia_succeeded": true,
-  "notice": null
+  "eia_succeeded": false,
+  "notice": "Electricity generation series temporarily unavailable."
 }
