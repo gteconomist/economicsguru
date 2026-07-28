@@ -57083,10 +57083,9 @@
   },
   "latest_label": "2026-06",
   "nahb_latest": "2026-07",
-  "build_time": "2026-07-27T16:09:49Z",
+  "build_time": "2026-07-28T13:09:10Z",
   "nahb_csv_present": true,
   "nahb_csv_changed_this_run": false,
-  "nahb_scrape_succeeded": false,
-  "nahb_rows_scraped_this_run": 0,
-  "notice": "Could not auto-scrape this month's NAHB Housing Market Index from nahb.org. The chart shows whatever's in the CSV; add the new month manually if needed."
+  "nahb_scrape_succeeded": true,
+  "nahb_rows_scraped_this_run": 499
 }
