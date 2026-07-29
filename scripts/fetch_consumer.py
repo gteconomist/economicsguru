@@ -461,20 +461,90 @@ def _cb_find_press_release_url(landing_html):
 _CB_VALUE = r"([\-\+]?\d{1,3}(?:\.\d+)?)"
 _CB_MONTH = r"(January|February|March|April|May|June|July|August|September|October|November|December)"
 
+# ---------------------------------------------------------------------------
+# INDEX LEVELS vs. everything else in the press release.
+#
+# 2026-07-28 bug: the July release worded the Expectations line as
+#   "...conditions-remained unchanged at 74.7."
+# with no "to <number>" anywhere in it. The old _CB_EXPECT_RE
+# ("Expectations Index.{0,400}?to VALUE") therefore skipped past that
+# sentence entirely and matched, further down the release,
+#   "net expectations for business conditions dipping by 1.5 ppts to -3.3%"
+# writing the *net-share change of a sub-component* (-3.3) into the CSV as
+# the Expectations index level. Both 2026-06 and 2026-07 were corrupted
+# (June via the "unchanged" branch of _cb_prior_component inheriting it).
+#
+# Three defences, all needed:
+#   1. _CB_LEVEL is UNSIGNED - a CB index level is never negative, so a
+#      leading "-"/"+" now disqualifies a candidate outright.
+#   2. _CB_UNIT_GUARD rejects any number followed by %, ppt, or "points" -
+#      those are changes/shares, never levels.
+#   3. _cb_index_level() understands the "unchanged/steady at N" phrasing
+#      and prefers it, so we read the real level instead of falling through.
+# Plus a numeric plausibility band (_cb_plausible) as a final backstop.
+# ---------------------------------------------------------------------------
+_CB_LEVEL = r"(\d{1,3}(?:\.\d+)?)"
+# A level is never immediately followed by a unit marker.
+_CB_UNIT_GUARD = r"(?!\s*(?:%|percent|ppts?\b|percentage|points?\b))"
+
+# Conference Board indices (1985=100) have never printed outside this band.
+CB_LEVEL_MIN, CB_LEVEL_MAX = 5.0, 250.0
+# Largest believable one-month move; anything bigger is a parse error, not news.
+CB_MAX_MONTHLY_MOVE = 30.0
+
+
+def _cb_plausible(v):
+    return v is not None and CB_LEVEL_MIN <= v <= CB_LEVEL_MAX
+
+
 _CB_HEADLINE_RES = [
-    re.compile(rf"Consumer\s+Confidence\s+Index.{{0,400}}?to\s+{_CB_VALUE}\s*\(?1985\s*=\s*100\)?\s+in\s+{_CB_MONTH}", re.IGNORECASE | re.DOTALL),
-    re.compile(rf"Consumer\s+Confidence\s+Index.{{0,400}}?to\s+{_CB_VALUE}\s+in\s+{_CB_MONTH}", re.IGNORECASE | re.DOTALL),
-    re.compile(rf"Consumer\s+Confidence\s+Index.{{0,400}}?in\s+{_CB_MONTH}\s+to\s+{_CB_VALUE}", re.IGNORECASE | re.DOTALL),
-    re.compile(rf"Consumer\s+Confidence\s+Index.{{0,400}}?in\s+{_CB_MONTH}\s+to\s+{_CB_VALUE}\s*\(?1985", re.IGNORECASE | re.DOTALL),
+    re.compile(rf"Consumer\s+Confidence\s+Index.{{0,400}}?to\s+{_CB_LEVEL}\s*\(?1985\s*=\s*100\)?\s+in\s+{_CB_MONTH}", re.IGNORECASE | re.DOTALL),
+    re.compile(rf"Consumer\s+Confidence\s+Index.{{0,400}}?(?:unchanged|steady|flat)\s+at\s+{_CB_LEVEL}\s*\(?1985\s*=\s*100\)?\s+in\s+{_CB_MONTH}", re.IGNORECASE | re.DOTALL),
+    re.compile(rf"Consumer\s+Confidence\s+Index.{{0,400}}?to\s+{_CB_LEVEL}{_CB_UNIT_GUARD}\s+in\s+{_CB_MONTH}", re.IGNORECASE | re.DOTALL),
+    re.compile(rf"Consumer\s+Confidence\s+Index.{{0,400}}?(?:unchanged|steady|flat)\s+at\s+{_CB_LEVEL}{_CB_UNIT_GUARD}\s+in\s+{_CB_MONTH}", re.IGNORECASE | re.DOTALL),
+    re.compile(rf"Consumer\s+Confidence\s+Index.{{0,400}}?in\s+{_CB_MONTH}\s+to\s+{_CB_LEVEL}{_CB_UNIT_GUARD}", re.IGNORECASE | re.DOTALL),
+    re.compile(rf"Consumer\s+Confidence\s+Index.{{0,400}}?in\s+{_CB_MONTH}[^.]{{0,200}}?(?:unchanged|steady|flat)\s+at\s+{_CB_LEVEL}{_CB_UNIT_GUARD}", re.IGNORECASE | re.DOTALL),
 ]
-_CB_PRESENT_RE = re.compile(rf"Present\s+Situation\s+Index.{{0,400}}?to\s+{_CB_VALUE}", re.IGNORECASE | re.DOTALL)
-_CB_EXPECT_RE  = re.compile(rf"Expectations\s+Index.{{0,400}}?to\s+{_CB_VALUE}",       re.IGNORECASE | re.DOTALL)
+
+# Ordered level-bearing phrasings, searched inside a tight window that starts
+# at the index name. Each must yield a LEVEL, not a change.
+_CB_LEVEL_PATTERNS = (
+    # "...remained unchanged at 74.7."   /  "...held steady at 74.7"
+    r"(?:remained|remains|was|were|is|held|holding|stayed|stands|stood)\s+"
+    r"(?:essentially\s+|virtually\s+|little\s+|broadly\s+)?"
+    r"(?:unchanged|steady|flat|at)\s+(?:at\s+)?{lvl}{guard}",
+    # "...fell by 3.6 points to 114.9"  /  "...rose 3.0 points to 74.4"
+    r"(?:by\s+)?[\d.]+\s+points?\s+to\s+{lvl}{guard}",
+    # "...declined to 114.9"
+    r"to\s+{lvl}{guard}",
+)
+
+
+def _cb_index_level(text, index_name, window=280):
+    """Return the current LEVEL of a named CB index, or None.
+
+    Anchored on each occurrence of index_name and confined to `window`
+    characters after it, so we can never drift into an unrelated sentence
+    the way the old "to <number>" regex did.
+    """
+    for anchor in re.finditer(index_name, text, re.IGNORECASE):
+        chunk = text[anchor.end(): anchor.end() + window]
+        for pat in _CB_LEVEL_PATTERNS:
+            m = re.search(pat.format(lvl=_CB_LEVEL, guard=_CB_UNIT_GUARD),
+                          chunk, re.IGNORECASE | re.DOTALL)
+            if m:
+                v = float(m.group(1))
+                if _cb_plausible(v):
+                    return v
+                print(f"  CB scrape: rejected implausible {index_name} level "
+                      f"{v} from {m.group(0)!r}", file=sys.stderr)
+    return None
 # Robust prior-month capture. The CB press release phrases the revised prior
 # month three different ways month-to-month; all must be caught:
 #   "from 92.2 in March's upwardly revised reading"  (value right after "from")
 #   "from an upwardly revised 93.8 in April"          (value after "an upwardly revised")
 #   "from a downwardly revised 90.6 in May"           (value after "a downwardly revised")
-_CB_PRIOR_RE   = re.compile(rf"from\s+(?:an?\s+)?(?:(?:upwardly|downwardly)\s+revised\s+)?{_CB_VALUE}\s+in\s+{_CB_MONTH}", re.IGNORECASE | re.DOTALL)
+_CB_PRIOR_RE   = re.compile(rf"from\s+(?:an?\s+)?(?:(?:upwardly|downwardly)\s+revised\s+)?{_CB_LEVEL}{_CB_UNIT_GUARD}\s+in\s+{_CB_MONTH}", re.IGNORECASE | re.DOTALL)
 _CB_REVISED_RE = _CB_PRIOR_RE
 
 # Prior-month COMPONENT revisions (Present Situation / Expectations) are not
@@ -484,19 +554,21 @@ _CB_UP   = r"(?:rose|increased|improved|gained|climbed|jumped|advanced|picked up
 _CB_DOWN = r"(?:fell|declined|dropped|decreased|retreated|slipped|eased|softened|pulled back|ticked down|inched down|edged down)"
 
 def _cb_prior_component(text, index_name, current_val):
-    if current_val is None:
+    if not _cb_plausible(current_val):
         return None
-    if re.search(rf"{index_name}.{{0,120}}?\b(?:was\s+)?(?:unchanged|flat|held\s+steady)\b",
+    if re.search(rf"{index_name}.{{0,160}}?\b(?:was\s+|remained\s+|remains\s+)?"
+                 rf"(?:unchanged|flat|held\s+steady|steady)\b",
                  text, re.IGNORECASE | re.DOTALL):
         return current_val
     m = re.search(
-        rf"{index_name}.{{0,200}}?\b({_CB_UP}|{_CB_DOWN})\b\s+(?:by\s+)?([\d.]+)\s+points?\s+to\s+{_CB_VALUE}",
+        rf"{index_name}.{{0,200}}?\b({_CB_UP}|{_CB_DOWN})\b\s+(?:by\s+)?([\d.]+)\s+points?\s+to\s+{_CB_LEVEL}{_CB_UNIT_GUARD}",
         text, re.IGNORECASE | re.DOTALL)
     if not m:
         return None
     verb, mag, cur = m.group(1), float(m.group(2)), float(m.group(3))
     sign = 1.0 if re.match(_CB_UP, verb, re.IGNORECASE) else -1.0
-    return round(cur - sign * mag, 1)
+    prior = round(cur - sign * mag, 1)
+    return prior if _cb_plausible(prior) else None
 
 
 def _strip_html(html):
@@ -531,14 +603,25 @@ def _cb_parse_press(text):
         yr -= 1
     current_month_label = f"{yr:04d}-{MONTHS_FULL[month_name]:02d}"
 
+    if not _cb_plausible(cci_value):
+        print(f"  CB scrape: headline CCI {cci_value} outside plausible band "
+              f"- discarding release", file=sys.stderr)
+        return []
+
     cur_row = {"month": current_month_label, "cci": cci_value}
 
-    pm = _CB_PRESENT_RE.search(text)
-    em = _CB_EXPECT_RE.search(text)
-    if pm:
-        cur_row["present_situation"] = float(pm.group(1))
-    if em:
-        cur_row["expectations"] = float(em.group(1))
+    present_val = _cb_index_level(text, r"Present\s+Situation\s+Index")
+    expect_val  = _cb_index_level(text, r"Expectations\s+Index")
+    if present_val is not None:
+        cur_row["present_situation"] = present_val
+    else:
+        print("  CB scrape: no plausible Present Situation level found "
+              "- leaving that cell untouched", file=sys.stderr)
+    if expect_val is not None:
+        cur_row["expectations"] = expect_val
+    else:
+        print("  CB scrape: no plausible Expectations level found "
+              "- leaving that cell untouched", file=sys.stderr)
     rows.append(cur_row)
 
     rm = _CB_REVISED_RE.search(text) or _CB_PRIOR_RE.search(text)
@@ -548,13 +631,17 @@ def _cb_parse_press(text):
         py = yr
         if MONTHS_FULL[prev_mon] > MONTHS_FULL[month_name]:
             py -= 1
+        if not _cb_plausible(prev_val):
+            print(f"  CB scrape: prior-month CCI {prev_val} outside plausible "
+                  f"band - skipping revision row", file=sys.stderr)
+            return rows
         prior_row = {
             "month": f"{py:04d}-{MONTHS_FULL[prev_mon]:02d}",
             "cci": prev_val,
         }
-        prev_present = _cb_prior_component(text, "Present Situation Index",
+        prev_present = _cb_prior_component(text, r"Present\s+Situation\s+Index",
                                            cur_row.get("present_situation"))
-        prev_expect = _cb_prior_component(text, "Expectations Index",
+        prev_expect = _cb_prior_component(text, r"Expectations\s+Index",
                                           cur_row.get("expectations"))
         if prev_present is not None:
             prior_row["present_situation"] = prev_present
@@ -562,6 +649,43 @@ def _cb_parse_press(text):
             prior_row["expectations"] = prev_expect
         rows.append(prior_row)
     return rows
+
+
+def _cb_sanity_check(scraped_rows, existing):
+    """Drop any scraped cell that is implausible on its own, or that would be
+    an impossibly large move against the last value already in the CSV.
+
+    `existing` is the dict-of-lists returned by _read_csv_series.
+    """
+    last = {}
+    for col in ("cci", "expectations", "present_situation"):
+        series = existing.get(col) or []
+        if series:
+            last[col] = series[-1]
+
+    clean = []
+    for row in scraped_rows:
+        keep = {"month": row["month"]}
+        for col in ("cci", "expectations", "present_situation"):
+            if col not in row:
+                continue
+            v = row[col]
+            if not _cb_plausible(v):
+                print(f"  CB guard: {row['month']} {col}={v} outside "
+                      f"[{CB_LEVEL_MIN}, {CB_LEVEL_MAX}] - dropped",
+                      file=sys.stderr)
+                continue
+            ref = last.get(col)
+            if ref and ref[0] < row["month"] and abs(v - ref[1]) > CB_MAX_MONTHLY_MOVE:
+                print(f"  CB guard: {row['month']} {col}={v} moves "
+                      f"{abs(v - ref[1]):.1f} pts from {ref[1]} ({ref[0]}) - "
+                      f"exceeds {CB_MAX_MONTHLY_MOVE} pt limit, dropped",
+                      file=sys.stderr)
+                continue
+            keep[col] = v
+        if len(keep) > 1:
+            clean.append(keep)
+    return clean
 
 
 def scrape_conference_board():
@@ -735,6 +859,10 @@ def main():
     except Exception as e:
         print(f"  CB scrape: unexpected error {e}", file=sys.stderr)
         cb_scraped = []
+    if cb_scraped:
+        cb_before = _read_csv_series(CB_CSV,
+            ["cci", "expectations", "present_situation"])
+        cb_scraped = _cb_sanity_check(cb_scraped, cb_before)
     if cb_scraped:
         cb_csv_changed = _upsert_csv(CB_CSV,
             ["cci", "expectations", "present_situation"], cb_scraped)
