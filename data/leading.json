@@ -28609,7 +28609,7 @@
       ],
       [
         "1994-02-01",
-        -0.35
+        -0.36
       ],
       [
         "1994-03-01",
@@ -28617,7 +28617,7 @@
       ],
       [
         "1994-04-01",
-        -0.75
+        -0.76
       ],
       [
         "1994-05-01",
@@ -28825,7 +28825,7 @@
       ],
       [
         "1998-08-01",
-        -1.22
+        -1.23
       ],
       [
         "1998-09-01",
@@ -29521,7 +29521,7 @@
       ],
       [
         "2013-02-01",
-        0.28
+        0.27
       ],
       [
         "2013-03-01",
@@ -30165,7 +30165,7 @@
       ],
       [
         "2026-07-01",
-        0.07
+        0.15
       ]
     ],
     "ism_no": [
@@ -52393,5 +52393,5 @@
     "spread"
   ],
   "source_note": "The Conference Board Composite Indexes of Leading, Coincident & Lagging Indicators (2016=100, SA) + Leading Credit Index. Components: standardized 6-month change (contribution proxy); 9 from FRED/in-house, LCI from The Conference Board.",
-  "build_time": "2026-07-30T15:15:43Z"
+  "build_time": "2026-07-30T16:08:55Z"
 }
