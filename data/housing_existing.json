@@ -33799,7 +33799,7 @@
     ],
     [
       "2026-07",
-      6.51
+      6.54
     ]
   ],
   "kpis": {
@@ -33829,15 +33829,15 @@
       "label": "2026-05"
     },
     "mortgage_30y": {
-      "value": 6.51,
-      "delta": 0.02,
+      "value": 6.54,
+      "delta": 0.05,
       "label": "2026-07"
     }
   },
   "latest_label": "2026-06",
   "case_shiller_latest": "2026-05",
   "mortgage_latest": "2026-07",
-  "build_time": "2026-07-29T13:08:36Z",
+  "build_time": "2026-07-31T13:08:21Z",
   "csv_baseline_loaded": true,
   "sa_method": "computed_ratio_to_ma",
   "csv_rows_appended_this_run": 0
