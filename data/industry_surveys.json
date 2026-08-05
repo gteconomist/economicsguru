@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-08-04T15:28:18.951653Z",
+  "build_time": "2026-08-05T18:14:06.961944Z",
   "latest_label": "2026-07-01",
   "kpis": {
     "ism_mfg_total": {
@@ -13,14 +13,14 @@
       "label": "2026-07-01"
     },
     "ism_svc_composite": {
-      "value": 54.0,
-      "delta": -0.5,
-      "label": "2026-06-01"
+      "value": 54.1,
+      "delta": 0.1,
+      "label": "2026-07-01"
     },
     "ism_svc_new_orders": {
-      "value": 55.1,
-      "delta": -2.2,
-      "label": "2026-06-01"
+      "value": 57.2,
+      "delta": 2.1,
+      "label": "2026-07-01"
     },
     "cass_level": {
       "value": 1.007,
@@ -15508,6 +15508,10 @@
       [
         "2026-06-01",
         54.0
+      ],
+      [
+        "2026-07-01",
+        54.1
       ]
     ],
     "employment": [
@@ -16902,6 +16906,10 @@
       [
         "2026-06-01",
         51.2
+      ],
+      [
+        "2026-07-01",
+        47.4
       ]
     ],
     "new_orders": [
@@ -18296,6 +18304,10 @@
       [
         "2026-06-01",
         55.1
+      ],
+      [
+        "2026-07-01",
+        57.2
       ]
     ],
     "prices": [
@@ -19690,6 +19702,10 @@
       [
         "2026-06-01",
         67.7
+      ],
+      [
+        "2026-07-01",
+        70.3
       ]
     ]
   },
@@ -27265,7 +27281,7 @@
   },
   "scraped_this_run": {
     "ism_manufacturing": false,
-    "ism_services": false,
+    "ism_services": true,
     "cass_freight": false,
     "nfib_sbet": false
   },
