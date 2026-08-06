@@ -143,7 +143,6 @@ def build_home():
             % (g["slug"], accents[i % len(accents)], esc(title), esc(g.get("blurb", "")), meta))
     hero = (
         '<section class="home-hero">'
-        '<div class="eyebrow">A product of Economic Impact Group</div>'
         '<h1>Live U.S. economic data,<br><span class="grad">tracked beautifully.</span></h1>'
         '<p class="lede">Charts, KPIs, and downloadable series for the indicators that move markets &mdash; '
         'CPI, jobs, GDP, housing, rates, equities, commodities, and the federal balance sheet. '
