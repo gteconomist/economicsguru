@@ -24,8 +24,18 @@ CPS (household survey, Seasonally Adjusted)
   LNS12600000    Employed, Usually Work Part Time (thousands)
 
 CPS (Not Seasonally Adjusted)
-  LNU02073413    Foreign-Born, Employment Level (thousands, NSA)
-  LNU02073395    Native-Born, Employment Level (thousands, NSA)
+  LNU02073413    Native-Born, Employment Level (thousands, NSA)
+  LNU02073395    Foreign-Born, Employment Level (thousands, NSA)
+  LNU01073413    Native-Born, Civilian Labor Force Level (thousands, NSA)
+  LNU01073395    Foreign-Born, Civilian Labor Force Level (thousands, NSA)
+  LNU01000000    Civilian Labor Force Level, total 16+ (thousands, NSA)
+
+Labor force participation rate by age (full history from 1948)
+  LNS11300012    16-19 yrs. (SA)
+  LNS11300036    20-24 yrs. (SA)
+  LNS11300060    25-54 yrs., prime working age (SA)
+  LNU01300095    55-64 yrs. (NSA — shown as 12-month trailing average)
+  LNU01300097    65 yrs. & over (NSA — shown as 12-month trailing average)
 
 JOLTS (Seasonally Adjusted)
   JTS000000000000000JOL  Job Openings, total nonfarm (thousands)
@@ -50,9 +60,38 @@ CPS_SA_IDS = [
     "LNS14000000", "LNS12500000", "LNS12600000",
     "LNS13327709",  # U-6 unemployment (broader measure: + marginally attached + part-time-for-economic-reasons)
 ]
-CPS_NSA_IDS = ["LNU02073413", "LNU02073395"]
+CPS_NSA_IDS = [
+    "LNU02073413",  # Employment level, NATIVE born (NSA)
+    "LNU02073395",  # Employment level, FOREIGN born (NSA)
+    "LNU01073413",  # Civilian labor force level, NATIVE born (NSA)
+    "LNU01073395",  # Civilian labor force level, FOREIGN born (NSA)
+    "LNU01000000",  # Civilian labor force level, total 16+ (NSA)
+]
 JOLTS_IDS = ["JTS000000000000000JOL", "JTS000000000000000HIL", "JTS000000000000000QUL"]
 ALL_IDS = CES_IDS + CPS_SA_IDS + CPS_NSA_IDS + JOLTS_IDS
+
+# Labor force participation rate by age — full history back to 1948.
+# BLS publishes SA participation rates for 16-19, 20-24, 25-54 and 55+ only;
+# the 55-64 and 65+ splits exist unadjusted only, so those two are shown as a
+# 12-month trailing average of the NSA series (see AGE_NSA_IDS below).
+AGE_SA_IDS = {
+    "a1619": "LNS11300012",   # 16-19 yrs.
+    "a2024": "LNS11300036",   # 20-24 yrs.
+    "a2554": "LNS11300060",   # 25-54 yrs. (prime working age)
+}
+AGE_NSA_IDS = {
+    "a5564": "LNU01300095",   # 55-64 yrs. (NSA -> 12-mo trailing avg)
+    "a65p":  "LNU01300097",   # 65 yrs. & over (NSA -> 12-mo trailing avg)
+}
+AGE_START_YEAR = 1948
+
+# NBER business-cycle contractions (peak month -> trough month), 1948-present.
+NBER_RECESSIONS = [
+    ("1948-11", "1949-10"), ("1953-07", "1954-05"), ("1957-08", "1958-04"),
+    ("1960-04", "1961-02"), ("1969-12", "1970-11"), ("1973-11", "1975-03"),
+    ("1980-01", "1980-07"), ("1981-07", "1982-11"), ("1990-07", "1991-03"),
+    ("2001-03", "2001-11"), ("2007-12", "2009-06"), ("2020-02", "2020-04"),
+]
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OUT_PATH = REPO_ROOT / "data" / "labor.json"
@@ -143,6 +182,42 @@ def values(rows, decimals=2):
     return [[f"{y}-{m:02d}", round(v, decimals)] for (y, m, v) in rows]
 
 
+def _prev_month(y, m, back=1):
+    total = y * 12 + (m - 1) - back
+    return total // 12, total % 12 + 1
+
+
+def moving_avg(rows, k, min_obs=None):
+    """k-month trailing average over calendar months.
+
+    A month is emitted only if it has its own observation and at least
+    `min_obs` of the k window months are present (default: all k). Averaging
+    over what is there — rather than requiring a complete window — keeps a
+    single missing release (e.g. the shutdown-canceled Oct-2025 CPS) from
+    blanking out the following k-1 months as well.
+    """
+    if min_obs is None:
+        min_obs = k
+    by = {(y, m): v for (y, m, v) in rows}
+    out = []
+    for (y, m, _v) in rows:
+        vals = [by[key] for key in (_prev_month(y, m, b) for b in range(k)) if key in by]
+        if len(vals) >= min_obs:
+            out.append((y, m, sum(vals) / len(vals)))
+    return out
+
+
+def yoy_of_ma(rows, k=3, decimals=2):
+    """Year-over-year % change in the k-month moving average."""
+    ma = moving_avg(rows, k, min_obs=k - 1)
+    by = {(y, m): v for (y, m, v) in ma}
+    return [
+        [f"{y}-{m:02d}", round((v / by[(y - 1, m)] - 1) * 100, decimals)]
+        for (y, m, v) in ma
+        if (y - 1, m) in by and by[(y - 1, m)]
+    ]
+
+
 def kpi(series, unit="pp"):
     last = series[-1][1]
     prev = None
@@ -198,12 +273,29 @@ def main():
     pt_level = values(raw["LNS12600000"], 0)
 
     # NSA series → YoY washes out seasonality; pre-compute over full history
-    foreign_born_yoy = yoy(raw["LNU02073413"])
-    native_born_yoy  = yoy(raw["LNU02073395"])
+    foreign_born_yoy = yoy(raw["LNU02073395"])
+    native_born_yoy  = yoy(raw["LNU02073413"])
+
+    # Labor force by nativity: YoY % change in the 3-month moving average
+    lf_foreign_yoy3 = yoy_of_ma(raw["LNU01073395"], 3)
+    lf_native_yoy3  = yoy_of_ma(raw["LNU01073413"], 3)
+    lf_total_yoy3   = yoy_of_ma(raw["LNU01000000"], 3)
 
     jolts_openings = values(raw["JTS000000000000000JOL"], 0)
     jolts_hires    = values(raw["JTS000000000000000HIL"], 0)
     jolts_quits    = values(raw["JTS000000000000000QUL"], 0)
+
+    # Participation rate by age — separate long fetch back to 1948.
+    age_ids = list(AGE_SA_IDS.values()) + list(AGE_NSA_IDS.values())
+    age_raw = fetch_long(age_ids, AGE_START_YEAR, today.year)
+    lfp_age = {}
+    for key, sid in AGE_SA_IDS.items():
+        lfp_age[key] = values(age_raw[sid], 1)
+    for key, sid in AGE_NSA_IDS.items():
+        lfp_age[key] = [
+            [f"{y}-{m:02d}", round(v, 1)]
+            for (y, m, v) in moving_avg(age_raw[sid], 12, min_obs=11)
+        ]
 
     cps_latest   = "{}-{:02d}".format(*raw["LNS14000000"][-1][:2])
     ces_latest   = "{}-{:02d}".format(*raw["CES0000000001"][-1][:2])
@@ -222,6 +314,11 @@ def main():
         "pt_level":          pt_level,
         "foreign_born_yoy":  foreign_born_yoy,
         "native_born_yoy":   native_born_yoy,
+        "lf_foreign_yoy3":   lf_foreign_yoy3,
+        "lf_native_yoy3":    lf_native_yoy3,
+        "lf_total_yoy3":     lf_total_yoy3,
+        "lfp_age":           lfp_age,
+        "recessions":        [list(r) for r in NBER_RECESSIONS],
         "jolts_openings":    jolts_openings,
         "jolts_hires":       jolts_hires,
         "jolts_quits":       jolts_quits,
@@ -255,7 +352,8 @@ def main():
     print(
         f"Wrote {OUT_PATH} ({OUT_PATH.stat().st_size} bytes); "
         f"CPS={cps_latest}; CES={ces_latest}; JOLTS={jolts_latest}; "
-        f"UR history={len(unemployment_rate)} months; gaps={gaps}"
+        f"UR history={len(unemployment_rate)} months; gaps={gaps}; "
+        f"LFP-by-age from {lfp_age['a1619'][0][0]} ({len(lfp_age['a1619'])} months)"
     )
 
 

@@ -78,7 +78,17 @@
   <div class="card">
     <div class="top"><div><div class="ct">Foreign-Born vs Native-Born Employment</div><div class="cs">Year-over-year percent change; NSA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
     <div class="plot"><canvas id="cNativity"></canvas></div>
-    <div class="src">Source: BLS CPS Table A-7 — LNU02073413, LNU02073395.</div>
+    <div class="src">Source: BLS CPS Table A-7 — LNU02073395 (foreign born), LNU02073413 (native born).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Labor Force by Nativity</div><div class="cs">Year-over-year percent change in the 3-month moving average; NSA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cLaborForceNat"></canvas></div>
+    <div class="src">Source: BLS CPS — LNU01073413 (native born), LNU01073395 (foreign born), LNU01000000 (total).</div>
+  </div>
+  <div class="card span2">
+    <div class="top"><div><div class="ct">Labor Force Participation Rate by Age</div><div class="cs">Percent; monthly since 1948 — shaded bands mark NBER recessions</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cLfpAge"></canvas></div>
+    <div class="src">Source: BLS CPS — LNS11300012 (16-19), LNS11300036 (20-24), LNS11300060 (25-54), all seasonally adjusted. BLS publishes 55-64 (LNU01300095) and 65+ (LNU01300097) unadjusted only; both are shown as a 12-month trailing average.</div>
   </div>
   <div class="card">
     <div class="top"><div><div class="ct">JOLTS — Openings, Hires, Quits</div><div class="cs">Total nonfarm; millions, seasonally adjusted</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>

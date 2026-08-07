@@ -654,10 +654,34 @@ window.EG_CHART_REGISTRY = {
           key:'lab-nativity', canvas:'cNativity',
           title:'Foreign-Born vs Native-Born Employment',
           subtitle:'Year-over-year percent change; NSA',
-          source:'Source: BLS CPS Table A-7 — LNU02073413, LNU02073395.',
+          source:'Source: BLS CPS Table A-7 — LNU02073395 (foreign born), LNU02073413 (native born).',
           series:[
             {key:'foreign_born', label:'Foreign-born'},
             {key:'native_born',  label:'Native-born'}
+          ]
+        },
+        {
+          key:'lab-lf-nativity', canvas:'cLaborForceNat',
+          title:'Labor Force by Nativity',
+          subtitle:'Year-over-year percent change in the 3-month moving average; NSA',
+          source:'Source: BLS CPS — LNU01073413 (native born), LNU01073395 (foreign born), LNU01000000 (total).',
+          series:[
+            {key:'lf_native',  label:'Native born'},
+            {key:'lf_foreign', label:'Foreign born'},
+            {key:'lf_total',   label:'Total'}
+          ]
+        },
+        {
+          key:'lab-lfp-age', canvas:'cLfpAge',
+          title:'Labor Force Participation Rate by Age',
+          subtitle:'Percent; monthly since 1948 — shaded bands mark NBER recessions',
+          source:'Source: BLS CPS — LNS11300012 (16-19), LNS11300036 (20-24), LNS11300060 (25-54), all seasonally adjusted. BLS publishes 55-64 (LNU01300095) and 65+ (LNU01300097) unadjusted only; both are shown as a 12-month trailing average.',
+          series:[
+            {key:'a1619', label:'16-19 yrs.'},
+            {key:'a2024', label:'20-24 yrs.'},
+            {key:'a2554', label:'25-54 yrs. (prime age)'},
+            {key:'a5564', label:'55-64 yrs. (12-mo avg)'},
+            {key:'a65p',  label:'65 yrs. & over (12-mo avg)'}
           ]
         },
         {

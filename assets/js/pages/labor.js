@@ -27,6 +27,14 @@ window.EG_PAGES.labor = function (data, EG) {
     }
     return out;
   }
+  // align a [date, value] series to a shared date axis (null where absent).
+  // CPS series do not all start in the same month and share release gaps
+  // (e.g. the canceled Oct-2025 survey), so charts that plot several of them
+  // together key off one axis instead of assuming equal lengths.
+  function align(dates, series){
+    var by = {}; (series || []).forEach(function(p){ by[p[0]] = p[1]; });
+    return dates.map(function(d){ return by.hasOwnProperty(d) ? by[d] : null; });
+  }
   // dual-axis option builder reusing baseOpts but with two y axes + titles
   function dual(leftTitle, leftPct, rightTitle, rightPct){
     var o = EG.baseOpts(true);
@@ -93,7 +101,36 @@ window.EG_PAGES.labor = function (data, EG) {
       EG.line(EG.val(nb), C[1], { label:'Native-born' })
     ]}, options:EG.baseOpts(true) });
 
-    // 8. JOLTS openings / hires / quits (thousands)
+    // 8. Labor force by nativity — YoY % change in the 3-month moving average
+    var lfn = st('lf_native_yoy3', n), lff = st('lf_foreign_yoy3', n), lft = st('lf_total_yoy3', n);
+    var lfDates = (lft.length >= lfn.length ? lft : lfn).map(function(p){ return p[0]; });
+    EG.newChart('cLaborForceNat', { type:'line', data:{ labels:lfDates.map(EG.lab), datasets:[
+      EG.line(align(lfDates, lfn), C[0], { label:'Native born' }),
+      EG.line(align(lfDates, lff), C[2], { label:'Foreign born' }),
+      EG.line(align(lfDates, lft), C[1], { label:'Total', borderWidth:2.6 })
+    ]}, options:EG.baseOpts(true) });
+
+    // 9. Labor force participation rate by age (long history + recession bands)
+    var age = data.lfp_age || {};
+    var axis = EG.tail(age.a2554 || [], n).map(function(p){ return p[0]; });
+    if (axis.length) {
+      var ageOpts = EG.baseOpts(true);
+      ageOpts.plugins.politicalShading = {
+        regions: (data.recessions || []).map(function(r){
+          return { start:r[0], end:r[1], color:'#9fb1c2', alpha:0.16 };
+        }),
+        origDates: axis
+      };
+      EG.newChart('cLfpAge', { type:'line', data:{ labels:axis.map(EG.lab), datasets:[
+        EG.line(align(axis, age.a1619), C[0], { label:'16-19 yrs.',                 borderWidth:1.6 }),
+        EG.line(align(axis, age.a2024), C[1], { label:'20-24 yrs.',                 borderWidth:1.6 }),
+        EG.line(align(axis, age.a2554), C[6], { label:'25-54 yrs. (prime age)',     borderWidth:2.4 }),
+        EG.line(align(axis, age.a5564), C[4], { label:'55-64 yrs. (12-mo avg)',     borderWidth:1.8 }),
+        EG.line(align(axis, age.a65p),  C[2], { label:'65 yrs. & over (12-mo avg)', borderWidth:1.8 })
+      ]}, options:ageOpts });
+    }
+
+    // 10. JOLTS openings / hires / quits (thousands)
     var op = st('jolts_openings', n);
     EG.newChart('cJolts', { type:'line', data:{ labels:op.map(function(p){return EG.lab(p[0]);}), datasets:[
       EG.line(EG.val(op), C[0], { label:'Openings' }),
