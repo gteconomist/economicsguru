@@ -15196,9 +15196,9 @@
     ]
   ],
   "mba_latest_week": "2026-05-22",
-  "mba_refi_share": 39.9,
+  "mba_refi_share": 41.5,
   "mba_arm_share": null,
-  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/08/05/mortgage-applications-decrease-in-latest-mba-weekly-survey",
+  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/06/24/mortgage-applications-increase-in-latest-mba-weekly-survey",
   "mortgage_30y": [
     [
       "1971-04-02",
@@ -26751,6 +26751,10 @@
     [
       "2026-07-30",
       6.66
+    ],
+    [
+      "2026-08-06",
+      6.69
     ]
   ],
   "mortgage_15y": [
@@ -34045,6 +34049,10 @@
     [
       "2026-07-30",
       6.04
+    ],
+    [
+      "2026-08-06",
+      6.01
     ]
   ],
   "treasury_10y": [
@@ -45599,6 +45607,10 @@
     [
       "2026-07-30",
       4.66
+    ],
+    [
+      "2026-08-06",
+      4.68
     ]
   ],
   "spread_30y_10y": [
@@ -57153,6 +57165,10 @@
     [
       "2026-07-30",
       2.0
+    ],
+    [
+      "2026-08-06",
+      2.01
     ]
   ],
   "mortgage_30y_m": [
@@ -59811,6 +59827,10 @@
     [
       "2026-07-01",
       6.54
+    ],
+    [
+      "2026-08-01",
+      6.69
     ]
   ],
   "eff_rate_outstanding": [
@@ -68145,19 +68165,19 @@
   ],
   "kpis": {
     "mortgage_30y": {
-      "value": 6.66,
-      "delta": 0.08,
-      "label": "2026-07-30"
+      "value": 6.69,
+      "delta": 0.03,
+      "label": "2026-08-06"
     },
     "mortgage_15y": {
-      "value": 6.04,
-      "delta": 0.08,
-      "label": "2026-07-30"
+      "value": 6.01,
+      "delta": -0.03,
+      "label": "2026-08-06"
     },
     "spread_30y_10y": {
-      "value": 2.0,
-      "delta": 0.05,
-      "label": "2026-07-30"
+      "value": 2.01,
+      "delta": 0.01,
+      "label": "2026-08-06"
     },
     "purchase_index": {
       "value": 169.7,
@@ -68170,14 +68190,14 @@
       "label": "2026-05-22"
     },
     "refi_share": {
-      "value": 39.9,
+      "value": 41.5,
       "delta": null,
-      "label": "2026-07-31"
+      "label": "2026-06-19"
     },
     "arm_share": {
       "value": null,
       "delta": null,
-      "label": "2026-07-31"
+      "label": "2026-06-19"
     },
     "delinquency_rate": {
       "value": 1.89,
@@ -68201,7 +68221,7 @@
     }
   },
   "latest_label": "2026-05-22",
-  "build_time": "2026-08-06T14:04:57Z",
+  "build_time": "2026-08-07T13:06:50Z",
   "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
