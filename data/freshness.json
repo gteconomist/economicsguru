@@ -1,8 +1,16 @@
 {
-  "build_time": "2026-08-12T12:54:38.644184Z",
+  "build_time": "2026-08-12T13:33:41.759041Z",
   "checked_date": "2026-08-12",
-  "stale_count": 0,
-  "stale": [],
+  "stale_count": 7,
+  "stale": [
+    "consumer.json:debt.credit_card: newest observation 2025-12-31 is 224d old (tolerance 135d)",
+    "consumer.json:delinquency.credit_card: newest observation 2025-12-31 is 224d old (tolerance 135d)",
+    "housing_mortgage_activity.json:mba_refinance: newest observation 2026-05-22 is 82d old (tolerance 20d)",
+    "housing_mortgage_activity.json:mba_purchase: newest observation 2026-05-22 is 82d old (tolerance 20d)",
+    "housing_mortgage_activity.json:affordability_index: newest observation 2026-04-30 is 104d old (tolerance 75d)",
+    "housing_mortgage_activity.json:eff_rate_outstanding: newest observation 2026-03-31 is 134d old (tolerance 75d)",
+    "housing_mortgage_activity.json:delinquency_rate: newest observation 2026-01-31 is 193d old (tolerance 135d)"
+  ],
   "datasets": {
     "commodities.json": {
       "status": "ok",
@@ -12,22 +20,36 @@
       "build_age_days": 1,
       "note": "Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier).",
       "wrote_this_run": false,
-      "consecutive_misses": 1
+      "consecutive_misses": 2
     },
     "consumer.json": {
-      "status": "ok",
+      "status": "STALE",
       "latest": "2026-07-31",
       "age_days": 12,
       "max_age_days": 48,
       "build_age_days": 0,
       "note": "Conference Board confidence prints the last Tuesday of the SAME month; UMich mid-month.",
       "wrote_this_run": true,
-      "consecutive_misses": 0
+      "consecutive_misses": 0,
+      "watch": {
+        "debt.credit_card": {
+          "status": "STALE",
+          "latest": "2025-12-31",
+          "age_days": 224,
+          "max_age_days": 135
+        },
+        "delinquency.credit_card": {
+          "status": "STALE",
+          "latest": "2025-12-31",
+          "age_days": 224,
+          "max_age_days": 135
+        }
+      }
     },
     "equities.json": {
       "status": "ok",
-      "latest": "2026-08-11",
-      "age_days": 1,
+      "latest": "2026-08-12",
+      "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily index closes.",
@@ -65,14 +87,52 @@
       "consecutive_misses": 0
     },
     "housing_mortgage_activity.json": {
-      "status": "ok",
+      "status": "STALE",
       "latest": "2026-08-06",
       "age_days": 6,
       "max_age_days": 16,
       "build_age_days": 0,
-      "note": "MBA weekly applications, published Wednesdays.",
+      "note": "MBA weekly applications Wednesdays; FRED rate series daily/weekly.",
       "wrote_this_run": true,
-      "consecutive_misses": 0
+      "consecutive_misses": 0,
+      "watch": {
+        "mba_refinance": {
+          "status": "STALE",
+          "latest": "2026-05-22",
+          "age_days": 82,
+          "max_age_days": 20
+        },
+        "mba_purchase": {
+          "status": "STALE",
+          "latest": "2026-05-22",
+          "age_days": 82,
+          "max_age_days": 20
+        },
+        "affordability_index": {
+          "status": "STALE",
+          "latest": "2026-04-30",
+          "age_days": 104,
+          "max_age_days": 75
+        },
+        "eff_rate_outstanding": {
+          "status": "STALE",
+          "latest": "2026-03-31",
+          "age_days": 134,
+          "max_age_days": 75
+        },
+        "mortgage_debt_out": {
+          "status": "ok",
+          "latest": "2026-03-31",
+          "age_days": 134,
+          "max_age_days": 135
+        },
+        "delinquency_rate": {
+          "status": "STALE",
+          "latest": "2026-01-31",
+          "age_days": 193,
+          "max_age_days": 135
+        }
+      }
     },
     "housing_new.json": {
       "status": "ok",
@@ -146,7 +206,7 @@
       "build_age_days": 5,
       "note": "Employment Situation lands ~1st Friday (R~6). JOLTS runs 2 months behind and is checked separately below.",
       "wrote_this_run": false,
-      "consecutive_misses": 1,
+      "consecutive_misses": 2,
       "watch": {
         "jolts_openings": {
           "status": "ok",
@@ -192,7 +252,7 @@
       "build_age_days": 28,
       "note": "PPI ~day 16 (R~16).",
       "wrote_this_run": false,
-      "consecutive_misses": 1
+      "consecutive_misses": 2
     },
     "treasuries.json": {
       "status": "ok",
