@@ -39,6 +39,15 @@ jobs:
       # yesterday's committed JSON rides through to deploy -- the corresponding
       # page shows yesterday's numbers for one day instead of going blank.
 
+      - name: Install openpyxl (for NY Fed HHDC .xlsx parsing)
+        run: pip install "openpyxl>=3.1"
+
+      # Must run BEFORE fetch_consumer.py and fetch_housing_mortgage_activity.py,
+      # which both read the CSV baselines this step refreshes.
+      - name: Refresh NY Fed Household Debt and Credit CSV baselines
+        continue-on-error: true
+        run: python scripts/fetch_nyfed_hhdc.py
+
       - name: Refresh CPI data from BLS
         env:
           BLS_API_KEY: ${{ secrets.BLS_API_KEY }}

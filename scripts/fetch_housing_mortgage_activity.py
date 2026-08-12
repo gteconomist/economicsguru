@@ -584,6 +584,53 @@ def scrape_nar_hai_latest(latest_in_csv):
     return None
 
 
+# NAR's Housing Affordability Index is published to FRED as FIXHAI, and as of
+# 2026-08-12 FRED is AHEAD of the in-house seed (FRED had July; the CSV stopped
+# at April). An older note in this file said the reverse -- that was true once
+# and is not any more, which is how this column quietly fell three months
+# behind. FRED is now the primary and the press-release scrape is the fallback.
+#
+# Two things to know about FIXHAI:
+#   * NAR licenses it to FRED as a ROLLING 13-MONTH WINDOW, so FRED can never
+#     backfill history. The CSV remains the only archive -- keep appending.
+#   * FRED serves the CURRENT vintage, while older CSV rows hold whatever
+#     vintage was captured at the time. NAR revises (April 2026 has moved 2.6
+#     points so far), so months inside FRED's window are refreshed to the
+#     current vintage and anything older stays as captured.
+# Composite and ARM variants were discontinued by NAR in May 2019 (FHFA stopped
+# publishing the effective-rate series they depended on), so the fixed-rate
+# index is the only one that exists now -- don't go looking for COMPHAI, it
+# froze at April 2019.
+HAI_FRED_SERIES = "FIXHAI"
+
+
+def fetch_hai_from_fred(latest_in_csv):
+    """Return [{'date': 'YYYY-MM-01', 'nsa': float}, ...] newer than the CSV.
+
+    Empty list if FRED has nothing new; raises only on hard failure so the
+    caller can fall back to the press-release scrape.
+    """
+    obs = _fred(HAI_FRED_SERIES)
+    out = []
+    for d, v in obs:
+        month_start = f"{d[:7]}-01"
+        if latest_in_csv and month_start <= latest_in_csv:
+            continue
+        if not (50 <= v <= 250):
+            print(f"  NAR HAI: FRED value {v} for {month_start} out of plausible "
+                  f"range; skipping", file=sys.stderr)
+            continue
+        out.append({"date": month_start, "nsa": float(v)})
+    out.sort(key=lambda r: r["date"])
+    if out:
+        print(f"  NAR HAI: FRED {HAI_FRED_SERIES} has {len(out)} month(s) newer "
+              f"than the CSV ({out[0]['date']} .. {out[-1]['date']})", file=sys.stderr)
+    else:
+        print(f"  NAR HAI: FRED {HAI_FRED_SERIES} has nothing newer than the CSV",
+              file=sys.stderr)
+    return out
+
+
 def merge_hai_with_scrape(csv_rows, scraped, factors):
     """Combine CSV history with optional fresh scraped NSA reading. If scraped
     month > CSV's latest, apply seasonal factor -> SA estimate and append.
@@ -591,9 +638,19 @@ def merge_hai_with_scrape(csv_rows, scraped, factors):
     by_date = {d: (sa, nsa) for d, sa, nsa in csv_rows}
     csv_latest = max(by_date.keys()) if by_date else "0000-00-00"
     new_csv_rows = []
-    if scraped and scraped["date"] > csv_latest:
-        d   = scraped["date"]
-        nsa = scraped["nsa"]
+    # `scraped` may be a single reading (press-release fallback) or a list of
+    # them (FRED, which can return several months at once after a gap).
+    if scraped is None:
+        incoming = []
+    elif isinstance(scraped, dict):
+        incoming = [scraped]
+    else:
+        incoming = list(scraped)
+    for item in sorted(incoming, key=lambda r: r["date"]):
+        if not item or item["date"] <= csv_latest:
+            continue
+        d   = item["date"]
+        nsa = item["nsa"]
         month = int(d[5:7])
         factor = factors.get(month)
         if factor:
@@ -1031,9 +1088,16 @@ def main():
     hai_csv_latest = max((d for d, sa, nsa in hai_csv), default=None)
     hai_scraped = None
     try:
-        hai_scraped = scrape_nar_hai_latest(hai_csv_latest)
+        hai_scraped = fetch_hai_from_fred(hai_csv_latest)
     except Exception as e:
-        print(f"  NAR HAI scrape unexpectedly failed: {e}", file=sys.stderr)
+        print(f"  NAR HAI FRED fetch failed: {e}", file=sys.stderr)
+    if not hai_scraped:
+        # FRED had nothing new (or failed) -- fall back to the press release,
+        # which occasionally leads FRED by a day around the monthly release.
+        try:
+            hai_scraped = scrape_nar_hai_latest(hai_csv_latest)
+        except Exception as e:
+            print(f"  NAR HAI scrape unexpectedly failed: {e}", file=sys.stderr)
     affordability, hai_to_append = merge_hai_with_scrape(hai_csv, hai_scraped, hai_factors)
     hai_appended = append_hai_csv(hai_to_append)
 

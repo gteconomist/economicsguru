@@ -178,6 +178,12 @@ def _month_end(d):
     return dt.date(d.year, d.month, calendar.monthrange(d.year, d.month)[1])
 
 
+def _quarter_end_of(d):
+    """Last day of the quarter containing `d`."""
+    m = ((d.month - 1) // 3 + 1) * 3
+    return dt.date(d.year, m, calendar.monthrange(d.year, m)[1])
+
+
 def _series_latest(v, today=None):
     """Newest real observation in a series, as a period-END date, or None.
 
@@ -208,9 +214,16 @@ def _series_latest(v, today=None):
     if not dates:
         return None
 
-    monthly = len(dates) >= 3 and all(d.day == 1 for d in dates)
-    if monthly:
-        dates = [_month_end(d) for d in dates]
+    if len(dates) >= 3 and all(d.day == 1 for d in dates):
+        # Quarterly FRED series are dated at the START of the quarter
+        # (2026-01-01 = 2026Q1). Read as monthly that makes a perfectly
+        # current quarterly series look two months staler than it is --
+        # which is exactly why DRSFRMACBS got flagged 193 days behind when
+        # it was up to date. Tell them apart by month coverage.
+        if {d.month for d in dates} <= {1, 4, 7, 10}:
+            dates = [_quarter_end_of(d) for d in dates]
+        else:
+            dates = [_month_end(d) for d in dates]
 
     past = [d for d in dates if d <= today]
     return max(past) if past else None
@@ -239,6 +252,44 @@ def collect_series(obj, path="", out=None):
 # ---------------------------------------------------------------- the check
 
 MAX_CONSECUTIVE_MISSES = 3
+
+
+# ---------------------------------------------------------------- snoozes
+#
+# A known-broken series that is already on the fix list should stay VISIBLE in
+# the report but must not fail the job every run -- a daily email about a
+# problem you already know about is how people learn to ignore the alarm.
+#
+# Each entry is "<file>:<series>" or just "<file>" -> the date the snooze
+# EXPIRES (inclusive). On that date it starts failing again, so a snooze is a
+# deadline, not a mute button. Delete the line once the series is fixed;
+# leaving it costs you the alarm.
+#
+# Set 2026-08-12 from the source audit. Every one of these is genuinely stale
+# and tracked in SOURCE-AUDIT.md.
+SNOOZE_UNTIL = {
+    # NY Fed HHDC: FIXED 2026-08-12 by scripts/fetch_nyfed_hhdc.py -- no snooze.
+    # MBA weekly applications -- mba.org went JS-rendered; scraper needs rework.
+    "housing_mortgage_activity.json:mba_refinance":         "2026-09-15",
+    "housing_mortgage_activity.json:mba_purchase":          "2026-09-15",
+    # NAR affordability: FIXED 2026-08-12 -- now pulled from FRED FIXHAI.
+    # Effective rate on outstanding mortgage debt: hand-fed, no free monthly
+    # source exists (FHFA NMDB is quarterly and lags a further ~3 months).
+    "housing_mortgage_activity.json:eff_rate_outstanding":  "2026-09-15",
+    # delinquency_rate (DRSFRMACBS) was NEVER stale -- it was a false alarm
+    # from reading quarter-start dates as monthly. Fixed in _series_latest.
+}
+
+
+def _snoozed(key, today):
+    """True if `key` is snoozed on `today`. Key is '<file>' or '<file>:<series>'."""
+    until = SNOOZE_UNTIL.get(key)
+    if not until:
+        return False
+    try:
+        return today <= dt.date.fromisoformat(until)
+    except ValueError:
+        return False
 
 
 def _previous_report():
@@ -287,8 +338,14 @@ def check_all(today=None):
             "note":          cfg.get("note"),
         }
         if is_stale:
-            stale.append(f"{name}: newest observation {newest} is {age}d old "
-                         f"(tolerance {max_age}d)")
+            if _snoozed(name, today):
+                entry["status"] = "SNOOZED"
+                entry["snoozed_until"] = SNOOZE_UNTIL[name]
+                print(f"  SNOOZED (until {SNOOZE_UNTIL[name]}): {name} is {age}d old",
+                      file=sys.stderr)
+            else:
+                stale.append(f"{name}: newest observation {newest} is {age}d old "
+                             f"(tolerance {max_age}d)")
 
         # Did the file actually rebuild recently? A frozen build_time means the
         # fetch step is dying outright, which is a different failure from a
@@ -341,13 +398,19 @@ def check_all(today=None):
                 continue
             sub_age = (today - sub_date).days
             sub_stale = sub_age > sub_max
+            sub_key = f"{name}:{key}"
+            snoozed = sub_stale and _snoozed(sub_key, today)
             watched[key] = {
-                "status": "STALE" if sub_stale else "ok",
+                "status": "SNOOZED" if snoozed else ("STALE" if sub_stale else "ok"),
                 "latest": sub_date.isoformat(),
                 "age_days": sub_age,
                 "max_age_days": sub_max,
             }
-            if sub_stale:
+            if snoozed:
+                watched[key]["snoozed_until"] = SNOOZE_UNTIL[sub_key]
+                print(f"  SNOOZED (until {SNOOZE_UNTIL[sub_key]}): {sub_key} is "
+                      f"{sub_age}d old", file=sys.stderr)
+            elif sub_stale:
                 entry["status"] = "STALE"
                 stale.append(f"{name}:{key}: newest observation {sub_date} is "
                              f"{sub_age}d old (tolerance {sub_max}d)")
