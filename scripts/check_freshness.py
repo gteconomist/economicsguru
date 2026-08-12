@@ -221,9 +221,21 @@ def collect_series(obj, path="", out=None):
 
 # ---------------------------------------------------------------- the check
 
+MAX_CONSECUTIVE_MISSES = 3
+
+
+def _previous_report():
+    """Last run's report, for carrying the consecutive-miss counters forward."""
+    try:
+        return json.loads(OUT_PATH.read_text()).get("datasets", {})
+    except Exception:
+        return {}
+
+
 def check_all(today=None):
     today = today or dt.date.today()
     report, stale = {}, []
+    previous = _previous_report()
 
     for fp in sorted(DATA_DIR.glob("*.json")):
         name = fp.name
@@ -269,15 +281,36 @@ def check_all(today=None):
         # committed build_time is stale BY DESIGN -- the auto-commit step only
         # rewrites data/*.json when the content changes -- so this would fire on
         # every healthy dataset. Record the number always, escalate only in CI.
+        # Did this run's fetch step actually write the file? On the runner a
+        # successful fetch stamps a fresh build_time, so a build_time older
+        # than today means that fetch failed THIS RUN. (Note it does NOT mean
+        # "broken for N days" -- the committed copy only advances when the
+        # content materially changes, so N is just the age of the last content
+        # change.) Against a fresh clone this is meaningless, hence IN_CI.
+        #
+        # One miss is usually transient and not worth an email: BLS locks its
+        # database for the ~30 minutes before an embargoed release, so any
+        # refresh firing inside that window legitimately comes back empty.
+        # Only a run of consecutive misses means something is actually broken.
         bt = data.get("build_time") if isinstance(data, dict) else None
-        if isinstance(bt, str):
+        prev_misses = (previous.get(name) or {}).get("consecutive_misses", 0)
+        if isinstance(bt, str) and IN_CI:
             try:
                 built = dt.datetime.fromisoformat(bt.replace("Z", "+00:00")).date()
                 entry["build_age_days"] = (today - built).days
-                if entry["build_age_days"] > 4 and IN_CI:
+                wrote = entry["build_age_days"] <= 0
+                entry["wrote_this_run"] = wrote
+                misses = 0 if wrote else prev_misses + 1
+                entry["consecutive_misses"] = misses
+                if misses >= MAX_CONSECUTIVE_MISSES:
                     entry["status"] = "STALE"
-                    stale.append(f"{name}: not rebuilt in {entry['build_age_days']}d "
-                                 f"(fetch step is probably failing outright)")
+                    stale.append(
+                        f"{name}: fetch step has failed to write {misses} runs in a row "
+                        f"(file on disk dates from {built}) -- check that step's log")
+                elif not wrote:
+                    print(f"  note: {name} did not write this run "
+                          f"({misses}/{MAX_CONSECUTIVE_MISSES} consecutive)",
+                          file=sys.stderr)
             except ValueError:
                 pass
 

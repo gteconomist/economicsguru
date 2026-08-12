@@ -54,6 +54,24 @@ def fetch_chunk(seriesids, start_year, end_year):
         payload = json.loads(r.read())
     if payload.get("status") != "REQUEST_SUCCEEDED":
         raise RuntimeError(f"BLS API error: {payload}")
+
+    # BLS returns REQUEST_SUCCEEDED with EMPTY series data in several
+    # situations -- most importantly when a database is locked ahead of an
+    # embargoed release ("Database is locked for Series CUUR0000SA0"), and
+    # when the request quota for that key is exhausted. Checking only `status`
+    # lets that empty result flow downstream, where the script dies on an
+    # opaque IndexError, writes nothing, and turns the step red.
+    #
+    # Raising RuntimeError here instead routes into the FETCH FAILED handler
+    # at the bottom of this file, which exits 0 and lets the previous good
+    # JSON ride forward. That is the intended behaviour for a transient
+    # source outage -- and scripts/check_freshness.py is what notices if it
+    # stops being transient.
+    _msgs = " ".join(str(m) for m in (payload.get("message") or []))
+    _low  = _msgs.lower()
+    for _needle in ("is locked", "threshold", "no data available"):
+        if _needle in _low:
+            raise RuntimeError(f"BLS returned no usable data: {_msgs}")
     out = {}
     for s in payload["Results"]["series"]:
         rows = []
@@ -70,6 +88,10 @@ def fetch_chunk(seriesids, start_year, end_year):
             rows.append((int(r["year"]), month, v))
         rows.sort()
         out[s["seriesID"]] = rows
+    if not any(rows for rows in out.values()):
+        raise RuntimeError(
+            "BLS returned REQUEST_SUCCEEDED but every series came back empty "
+            f"(message: {_msgs or 'none'})")
     return out
 
 
