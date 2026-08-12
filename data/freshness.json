@@ -1,17 +1,11 @@
 {
-  "build_time": "2026-08-12T12:08:25.441856Z",
+  "build_time": "2026-08-12T12:20:56.011951Z",
   "checked_date": "2026-08-12",
-  "stale_count": 9,
+  "stale_count": 3,
   "stale": [
-    "gdp.json: not rebuilt in 6d (fetch step is probably failing outright)",
-    "housing_new.json: not rebuilt in 15d (fetch step is probably failing outright)",
-    "housing_permits.json: not rebuilt in 19d (fetch step is probably failing outright)",
-    "industry_manufacturing.json: not rebuilt in 8d (fetch step is probably failing outright)",
     "industry_surveys.json:cass_freight.index: newest observation 2026-03-31 is 134d old (tolerance 62d)",
     "inflation.json: not rebuilt in 29d (fetch step is probably failing outright)",
-    "labor.json: not rebuilt in 5d (fetch step is probably failing outright)",
-    "pce.json: not rebuilt in 13d (fetch step is probably failing outright)",
-    "ppi.json: not rebuilt in 28d (fetch step is probably failing outright)"
+    "labor.json: not rebuilt in 5d (fetch step is probably failing outright)"
   ],
   "datasets": {
     "commodities.json": {
@@ -27,7 +21,7 @@
       "latest": "2026-07-31",
       "age_days": 12,
       "max_age_days": 48,
-      "build_age_days": 4,
+      "build_age_days": 0,
       "note": "Conference Board confidence prints the last Tuesday of the SAME month; UMich mid-month."
     },
     "equities.json": {
@@ -35,23 +29,23 @@
       "latest": "2026-08-11",
       "age_days": 1,
       "max_age_days": 6,
-      "build_age_days": 1,
+      "build_age_days": 0,
       "note": "Daily index closes."
     },
     "gdp.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-06-30",
       "age_days": 43,
       "max_age_days": 130,
-      "build_age_days": 6,
+      "build_age_days": 0,
       "note": "BEA advance estimate ~30d after quarter end; third estimate ~90d. 130 tolerates a delayed advance print."
     },
     "government.json": {
       "status": "ok",
-      "latest": "2026-08-07",
-      "age_days": 5,
+      "latest": "2026-08-10",
+      "age_days": 2,
       "max_age_days": 20,
-      "build_age_days": 1,
+      "build_age_days": 0,
       "note": "Treasury Fiscal Data updates near-daily; Monthly Treasury Statement ~day 8."
     },
     "housing_existing.json": {
@@ -59,7 +53,7 @@
       "latest": "2026-07-31",
       "age_days": 12,
       "max_age_days": 62,
-      "build_age_days": 1,
+      "build_age_days": 0,
       "note": "NAR existing-home sales ~day 22 (R~22)."
     },
     "housing_mortgage_activity.json": {
@@ -67,31 +61,31 @@
       "latest": "2026-08-06",
       "age_days": 6,
       "max_age_days": 16,
-      "build_age_days": 1,
+      "build_age_days": 0,
       "note": "MBA weekly applications, published Wednesdays."
     },
     "housing_new.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-07-31",
       "age_days": 12,
       "max_age_days": 66,
-      "build_age_days": 15,
+      "build_age_days": 0,
       "note": "Census new residential sales ~day 25 (R~25)."
     },
     "housing_permits.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-06-30",
       "age_days": 43,
       "max_age_days": 58,
-      "build_age_days": 19,
+      "build_age_days": 0,
       "note": "Census permits/starts ~day 18 (R~18)."
     },
     "industry_manufacturing.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-06-30",
       "age_days": 43,
       "max_age_days": 56,
-      "build_age_days": 8,
+      "build_age_days": 0,
       "note": "Fed G.17 industrial production ~day 16 (R~16)."
     },
     "industry_surveys.json": {
@@ -145,7 +139,7 @@
       "latest": "2026-07-31",
       "age_days": 12,
       "max_age_days": 62,
-      "build_age_days": 1,
+      "build_age_days": 0,
       "note": "Conference Board LEI ~day 20 (R~20). LCI is manual and lags a month by design.",
       "watch": {
         "lei_level": {
@@ -157,27 +151,27 @@
       }
     },
     "pce.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-06-30",
       "age_days": 43,
       "max_age_days": 70,
-      "build_age_days": 13,
+      "build_age_days": 0,
       "note": "BEA Personal Income & Outlays lands ~day 28 of the following month (R~28) -- the longest monthly lag on the site."
     },
     "ppi.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-06-30",
       "age_days": 43,
       "max_age_days": 58,
-      "build_age_days": 28,
+      "build_age_days": 0,
       "note": "PPI ~day 16 (R~16)."
     },
     "treasuries.json": {
       "status": "ok",
-      "latest": "2026-08-11",
-      "age_days": 1,
+      "latest": "2026-08-12",
+      "age_days": 0,
       "max_age_days": 6,
-      "build_age_days": 1,
+      "build_age_days": 0,
       "note": "Daily H.15 yields; 6d covers a long holiday weekend."
     }
   }
