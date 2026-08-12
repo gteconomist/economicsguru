@@ -1,12 +1,8 @@
 {
-  "build_time": "2026-08-12T15:49:07.840461Z",
+  "build_time": "2026-08-12T16:04:45.439665Z",
   "checked_date": "2026-08-12",
-  "stale_count": 3,
-  "stale": [
-    "housing_mortgage_activity.json:affordability_index: newest observation 2026-04-30 is 104d old (tolerance 75d)",
-    "labor.json: fetch step has failed to write 4 runs in a row (file on disk dates from 2026-08-07) -- check that step's log",
-    "ppi.json: fetch step has failed to write 4 runs in a row (file on disk dates from 2026-07-15) -- check that step's log"
-  ],
+  "stale_count": 0,
+  "stale": [],
   "datasets": {
     "commodities.json": {
       "status": "ok",
@@ -83,7 +79,7 @@
       "consecutive_misses": 0
     },
     "housing_mortgage_activity.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-08-06",
       "age_days": 6,
       "max_age_days": 16,
@@ -107,9 +103,9 @@
           "snoozed_until": "2026-09-15"
         },
         "affordability_index": {
-          "status": "STALE",
-          "latest": "2026-04-30",
-          "age_days": 104,
+          "status": "ok",
+          "latest": "2026-07-31",
+          "age_days": 12,
           "max_age_days": 75
         },
         "eff_rate_outstanding": {
@@ -121,8 +117,8 @@
         },
         "mortgage_debt_out": {
           "status": "ok",
-          "latest": "2026-03-31",
-          "age_days": 134,
+          "latest": "2026-06-30",
+          "age_days": 43,
           "max_age_days": 135
         },
         "delinquency_rate": {
@@ -198,14 +194,14 @@
       "consecutive_misses": 0
     },
     "labor.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-07-31",
       "age_days": 12,
       "max_age_days": 45,
-      "build_age_days": 5,
+      "build_age_days": 0,
       "note": "Employment Situation lands ~1st Friday (R~6). JOLTS runs 2 months behind and is checked separately below.",
-      "wrote_this_run": false,
-      "consecutive_misses": 4,
+      "wrote_this_run": true,
+      "consecutive_misses": 0,
       "watch": {
         "jolts_openings": {
           "status": "ok",
@@ -244,14 +240,14 @@
       "consecutive_misses": 0
     },
     "ppi.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-06-30",
       "age_days": 43,
       "max_age_days": 58,
-      "build_age_days": 28,
+      "build_age_days": 0,
       "note": "PPI ~day 16 (R~16).",
-      "wrote_this_run": false,
-      "consecutive_misses": 4
+      "wrote_this_run": true,
+      "consecutive_misses": 0
     },
     "treasuries.json": {
       "status": "ok",

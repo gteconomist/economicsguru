@@ -63201,6 +63201,10 @@
     [
       "2026-03-31",
       13191.0
+    ],
+    [
+      "2026-06-30",
+      13117.0
     ]
   ],
   "affordability_index": [
@@ -65379,6 +65383,18 @@
     [
       "2026-04-01",
       112.5
+    ],
+    [
+      "2026-05-01",
+      109.1
+    ],
+    [
+      "2026-06-01",
+      109.4
+    ],
+    [
+      "2026-07-01",
+      107.7
     ]
   ],
   "price_income_ratio": [
@@ -68210,9 +68226,9 @@
       "label": "2026-03-01"
     },
     "affordability": {
-      "value": 112.5,
-      "delta": 1.4,
-      "label": "2026-04-01"
+      "value": 107.7,
+      "delta": -1.7,
+      "label": "2026-07-01"
     },
     "price_income_ratio": {
       "value": 5.05,
@@ -68221,17 +68237,17 @@
     }
   },
   "latest_label": "2026-05-22",
-  "build_time": "2026-08-12T14:22:28Z",
+  "build_time": "2026-08-12T16:03:44Z",
   "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
   "eff_rate_rows": 591,
-  "debt_csv_rows": 109,
-  "debt_latest_quarter": "2026-03-31",
+  "debt_csv_rows": 110,
+  "debt_latest_quarter": "2026-06-30",
   "csv_baseline_loaded": true,
   "mba_history_rows": 1899,
   "hai_csv_loaded": true,
-  "hai_csv_rows": 544,
+  "hai_csv_rows": 547,
   "hai_csv_rows_appended_this_run": 0,
   "hai_scrape_succeeded": false,
   "hai_scrape_source": null,
