@@ -232,6 +232,25 @@ jobs:
       #     Cass freight, NFIB SBET) keep auto-extending.
       # The [skip ci] tag prevents the bot's commit from re-triggering this
       # workflow.
+      # Freshness report. Runs BEFORE the auto-commit so data/freshness.json is
+      # committed alongside the data it describes, and so build_time is read
+      # from the files the fetch steps just wrote (a stale build_time here means
+      # that fetch step died outright). This step only REPORTS -- the pass/fail
+      # verdict is evaluated in the separate `freshness` job below, so a stale
+      # dataset can never block the deploy of the good data.
+      - name: Write data freshness report
+        continue-on-error: true
+        run: python scripts/check_freshness.py --write
+
+      - name: Upload freshness report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: freshness-report
+          path: data/freshness.json
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Commit fresh data files + CSV baselines (if changed)
         # continue-on-error so a raced/conflicting auto-commit (two refresh runs
         # overlapping and both regenerating data/*.json) never blocks the deploy.
@@ -319,3 +338,28 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  # Freshness verdict. Deliberately a SEPARATE job: it runs after build and
+  # deploy have already succeeded, so failing it turns the run red (which is
+  # what triggers GitHub's "workflow failed" email) without ever holding up a
+  # deploy. Fix a real alert by fixing the fetch; silence a false alarm by
+  # loosening that dataset's tolerance in scripts/check_freshness.py.
+  freshness:
+    needs: [build, deploy]
+    if: always() && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Download freshness report
+        uses: actions/download-artifact@v4
+        with:
+          name: freshness-report
+          path: data/
+
+      - name: Fail if any dataset is behind its release schedule
+        run: python scripts/check_freshness.py --check

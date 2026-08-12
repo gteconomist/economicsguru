@@ -442,6 +442,81 @@ def tavily_extract(url):
     return results[0].get("raw_content", "")
 
 
+def _second_tuesday(year, month):
+    """Date of the second Tuesday of a month -- NFIB's SBET release day."""
+    d = dt.date(year, month, 1)
+    first_tue = d + dt.timedelta(days=(1 - d.weekday()) % 7)   # Monday=0, Tuesday=1
+    return first_tue + dt.timedelta(days=7)
+
+
+def _month_shift(year, month, delta):
+    n = (year * 12 + (month - 1)) + delta
+    return n // 12, (n % 12) + 1
+
+
+def _expected_latest_month(key, today=None):
+    """Newest reference month that SHOULD be published by now, as 'YYYY-MM'.
+
+    Each source publishes the prior reference month on its own schedule, so
+    we only start expecting the prior month once its release day has passed;
+    before that, being one month back is normal, not stale.
+    """
+    today = today or dt.date.today()
+    y, m = today.year, today.month
+    if key == "nfib_sbet":
+        released = today >= _second_tuesday(y, m)
+    elif key == "ism_manufacturing":
+        released = today.day >= 6      # ~1st business day + slack
+    elif key == "ism_services":
+        released = today.day >= 8      # ~3rd business day + slack
+    elif key == "cass_freight":
+        released = today.day >= 18     # ~12th + slack
+    else:
+        released = today.day >= 20
+    ey, em = _month_shift(y, m, -1 if released else -2)
+    return f"{ey:04d}-{em:02d}"
+
+
+def _months_between(latest, expected):
+    """How many months `latest` ('YYYY-MM') sits behind `expected`. 0 if current."""
+    try:
+        ly, lm = (int(x) for x in latest.split("-")[:2])
+        ey, em = (int(x) for x in expected.split("-")[:2])
+    except (ValueError, AttributeError):
+        return None
+    return (ey * 12 + em) - (ly * 12 + lm)
+
+
+def _get_text_resilient(url, label=""):
+    """Fetch a page as stripped text, with a Tavily fallback.
+
+    Direct urllib fetches from GitHub Actions runners get blocked by publisher
+    bot protection (Cloudflare et al.) -- silently, and only after months of
+    working fine. That is what stalled the NFIB SBET scrape after 2026-07-14
+    while the Tavily-routed ISM scrapes kept working. Try direct first (free,
+    fast), then fall back to Tavily extract, which egresses from a pool the
+    publishers accept.
+
+    Raises if BOTH paths fail, so the caller can record a visible notice.
+    """
+    direct_err = None
+    try:
+        return _strip_html(_http_get_text(url))
+    except Exception as e:
+        direct_err = e
+        print(f"  {label} direct fetch failed ({e}); trying Tavily extract...",
+              file=sys.stderr)
+    try:
+        raw = tavily_extract(url)
+        if raw and raw.strip():
+            print(f"  {label} Tavily extract OK ({len(raw)} chars)", file=sys.stderr)
+            return _strip_html(raw)
+        raise RuntimeError("Tavily extract returned empty content")
+    except Exception as e:
+        raise RuntimeError(
+            f"{label} fetch failed both ways: direct={direct_err}; tavily={e}") from e
+
+
 def _csv_latest_month(path):
     """Return the latest 'YYYY-MM' present in a canonical CSV, or None."""
     if not path.exists():
@@ -700,13 +775,19 @@ def scrape_cass(prior_index_lookup):
     the prior-year CSV value as a cross-check.
     """
     for month_lc, year in _cass_target_months():
+        # Skip months already in the CSV. Without this, every run re-fetches
+        # three months, and now that a failed direct fetch falls back to
+        # Tavily that would burn three extra API credits per run for data we
+        # already have.
+        mkey = f"{year:04d}-{MONTHS_FULL[month_lc.capitalize()]:02d}"
+        if mkey in prior_index_lookup:
+            continue
         url = f"{CASS_BASE}{month_lc}-{year}"
         try:
-            html = _http_get_text(url)
+            text = _get_text_resilient(url, label="Cass")
         except Exception as e:
             print(f"  Cass fetch failed at {url}: {e}", file=sys.stderr)
             continue
-        text = _strip_html(html)
         m = _CASS_SHIPMENTS_PARA.search(text) or _CASS_SHIPMENTS_PARA_ALT.search(text)
         if not m:
             print(f"  Cass {url}: shipments-paragraph pattern not matched; skipping",
@@ -859,12 +940,19 @@ _NFIB_PROBLEM_TOPICS = [
     ("interest_rates",                 re.compile(r"financing(?:\s+and\s+interest\s+rates?)?|interest\s+rates?", re.IGNORECASE)),
 ]
 
-_WORD_NUM = {
-    "zero":0,"one":1,"two":2,"three":3,"four":4,"five":5,"six":6,"seven":7,"eight":8,"nine":9,
-    "ten":10,"eleven":11,"twelve":12,"thirteen":13,"fourteen":14,"fifteen":15,"sixteen":16,
-    "seventeen":17,"eighteen":18,"nineteen":19,"twenty":20,"twenty-one":21,"twenty-two":22,
-    "twenty-three":23,"twenty-four":24,"twenty-five":25,
-}
+# Built programmatically to 99 rather than hand-listed. The hand-listed version
+# stopped at "twenty-five", so July 2026's "Twenty-seven percent ... labor
+# quality" silently dropped that column out of the row.
+_WORD_ONES = ["zero","one","two","three","four","five","six","seven","eight","nine",
+              "ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen",
+              "seventeen","eighteen","nineteen"]
+_WORD_TENS = {20:"twenty",30:"thirty",40:"forty",50:"fifty",
+              60:"sixty",70:"seventy",80:"eighty",90:"ninety"}
+_WORD_NUM = {w: i for i, w in enumerate(_WORD_ONES)}
+for _t, _tw in _WORD_TENS.items():
+    _WORD_NUM[_tw] = _t
+    for _o in range(1, 10):
+        _WORD_NUM[f"{_tw}-{_WORD_ONES[_o]}"] = _t + _o
 
 def _nfib_extract_pct(sentence):
     """Return integer percent if sentence starts with '<num>%' or '<word> percent'."""
@@ -973,11 +1061,10 @@ def scrape_nfib():
     -- the upsert step will detect the no-op and skip the commit.
     """
     try:
-        html = _http_get_text(NFIB_URL)
+        text = _get_text_resilient(NFIB_URL, label="NFIB")
     except Exception as e:
         print(f"  NFIB fetch error: {e}", file=sys.stderr)
         return []
-    text = _strip_html(html)
     parsed = _nfib_parse(text)
     if not parsed:
         print("  NFIB scrape: no parse (regex miss?)", file=sys.stderr)
@@ -1148,6 +1235,28 @@ def main():
     latest_candidates = [s[-1][0] for s in (mfg["total"], svc["composite"], cass_level, nfib["optimism"]) if s]
     latest_label = _to_iso_date(max(latest_candidates)) if latest_candidates else None
 
+    # ---- Staleness check -------------------------------------------------
+    # A silently-failing scrape used to be invisible: the step is
+    # continue-on-error, the previous CSV rides forward, the JSON still
+    # builds, and the workflow goes green. Nobody finds out until someone
+    # notices the chart is a month behind. Flag it in the JSON instead.
+    stale = {}
+    for key, series in (("ism_manufacturing", mfg["total"]),
+                        ("ism_services",      svc["composite"]),
+                        ("cass_freight",      cass_level),
+                        ("nfib_sbet",         nfib["optimism"])):
+        latest = series[-1][0] if series else None
+        expected = _expected_latest_month(key)
+        behind = _months_between(latest, expected) if (latest and expected) else None
+        if behind and behind > 0:
+            stale[key] = {
+                "latest": latest, "expected": expected, "months_behind": behind,
+            }
+            print(f"  STALE: {key} latest={latest} expected={expected} "
+                  f"({behind} month(s) behind)", file=sys.stderr)
+            notices.append(
+                f"{key} is {behind} month(s) behind (latest {latest}, expected {expected}).")
+
     out = {
         "build_time":   dt.datetime.utcnow().isoformat() + "Z",
         "latest_label": latest_label,
@@ -1184,6 +1293,7 @@ def main():
             "cass_freight":      bool(cass_scraped),
             "nfib_sbet":         bool(nfib_scraped),
         },
+        "stale":  stale or None,
         "notice": " ".join(notices) if notices else None,
     }
 

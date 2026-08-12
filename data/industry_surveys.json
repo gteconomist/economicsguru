@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-08-06T11:25:49.741434Z",
+  "build_time": "2026-08-12T12:02:39.611292Z",
   "latest_label": "2026-07-01",
   "kpis": {
     "ism_mfg_total": {
@@ -33,14 +33,14 @@
       "label": "2026-03-01"
     },
     "nfib_optimism": {
-      "value": 97.4,
-      "delta": 2.1,
-      "label": "2026-06-01"
+      "value": 99.8,
+      "delta": 2.4,
+      "label": "2026-07-01"
     },
     "nfib_uncertainty": {
-      "value": 89.0,
-      "delta": -2.0,
-      "label": "2026-06-01"
+      "value": 91.0,
+      "delta": 2.0,
+      "label": "2026-07-01"
     }
   },
   "ism_manufacturing": {
@@ -25272,6 +25272,10 @@
       [
         "2026-06-01",
         97.4
+      ],
+      [
+        "2026-07-01",
+        99.8
       ]
     ],
     "uncertainty": [
@@ -27218,27 +27222,31 @@
       [
         "2026-06-01",
         89.0
+      ],
+      [
+        "2026-07-01",
+        91.0
       ]
     ],
     "problems_latest": [
       {
         "label": "Taxes",
-        "value": 19.0,
+        "value": 16.0,
         "slug": "taxes"
       },
       {
         "label": "Labor quality",
-        "value": 19.0,
+        "value": 27.0,
         "slug": "labor-quality"
       },
       {
         "label": "Inflation",
-        "value": 21.0,
+        "value": 14.0,
         "slug": "inflation"
       },
       {
         "label": "Poor sales",
-        "value": 7.0,
+        "value": 8.0,
         "slug": "poor-sales"
       },
       {
@@ -27253,22 +27261,22 @@
       },
       {
         "label": "Government regulations",
-        "value": 8.0,
+        "value": 7.0,
         "slug": "regulations"
       },
       {
         "label": "Competition from large biz",
-        "value": 5.0,
+        "value": 7.0,
         "slug": "competition"
       },
       {
         "label": "Financing & interest rates",
-        "value": 3.0,
+        "value": 2.0,
         "slug": "interest-rates"
       },
       {
         "label": "Other / none",
-        "value": 2.0,
+        "value": 3.0,
         "slug": "other"
       }
     ]
@@ -27285,5 +27293,12 @@
     "cass_freight": false,
     "nfib_sbet": false
   },
-  "notice": null
+  "stale": {
+    "cass_freight": {
+      "latest": "2026-03",
+      "expected": "2026-06",
+      "months_behind": 3
+    }
+  },
+  "notice": "cass_freight is 3 month(s) behind (latest 2026-03, expected 2026-06)."
 }
