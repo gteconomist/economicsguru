@@ -756,6 +756,61 @@ def _cass_signed(sign_word, val):
     return val
 
 
+# ---- Cass via FRED (primary source) -----------------------------------------
+#
+# Cass publishes the index level directly to FRED, which is a far better source
+# than the press release: it carries the actual LEVEL (the release only gives
+# YoY/MoM percentages, which this script used to reconstruct a level from --
+# accumulating error and depending on an unbroken chain of successful scrapes),
+# it needs no bot-evasion, and it backfills history. Verified 2026-08-12: every
+# month of the existing CSV baseline matches FRED to five decimals.
+#
+# FRED lags Cass by a few days, so the press-release scraper is kept as a
+# gap-filler for months Cass has published but FRED has not yet ingested.
+
+FRED_OBS_URL     = "https://api.stlouisfed.org/fred/series/observations"
+CASS_FRED_SERIES = "FRGSHPUSM649NCIS"   # Cass Freight Index: Shipments, Jan 1990=1, NSA
+
+
+def fetch_cass_from_fred():
+    """Return [{'month': 'YYYY-MM', 'index_level': float}, ...] from FRED.
+
+    Raises if FRED_API_KEY is unset or the response carries no observations,
+    so the caller can fall back to the press-release scraper.
+    """
+    api_key = os.environ.get("FRED_API_KEY")
+    if not api_key:
+        raise RuntimeError("FRED_API_KEY is not set")
+    params = {
+        "series_id": CASS_FRED_SERIES,
+        "api_key":   api_key,
+        "file_type": "json",
+    }
+    url = f"{FRED_OBS_URL}?{parse.urlencode(params)}"
+    req = request.Request(url, headers={"User-Agent": UA})
+    with request.urlopen(req, timeout=60) as r:
+        payload = json.loads(r.read().decode("utf-8", errors="replace"))
+
+    rows = []
+    for o in payload.get("observations", []):
+        v = o.get("value")
+        if v in (".", "", None):
+            continue
+        try:
+            val = float(v)
+        except (TypeError, ValueError):
+            continue
+        date = o.get("date", "")
+        if len(date) < 7:
+            continue
+        rows.append({"month": date[:7], "index_level": val})
+    if not rows:
+        raise RuntimeError(
+            f"FRED returned no usable observations for {CASS_FRED_SERIES}")
+    rows.sort(key=lambda r: r["month"])
+    return rows
+
+
 def _cass_target_months():
     """Cass releases ~12th of next month. Try the prior month first, then 2 back."""
     today = dt.date.today()
@@ -1154,14 +1209,29 @@ def main():
 
     # ---- Cass Freight scrape + upsert ----
     # Need prior CSV values to reconstruct index level from press-release %s.
-    print("Scraping Cass Freight...", file=sys.stderr)
+    # FRED first (authoritative levels, full history), then the press-release
+    # scraper only for months FRED has not ingested yet.
+    print("Fetching Cass Freight from FRED...", file=sys.stderr)
     cass_csv_so_far = _read_csv_series(CASS_CSV, ["index_level"])
     cass_lookup = dict(cass_csv_so_far["index_level"])
+    cass_scraped = []
     try:
-        cass_scraped = scrape_cass(cass_lookup)
+        fred_rows = fetch_cass_from_fred()
+        new_rows = [r for r in fred_rows if r["month"] not in cass_lookup]
+        print(f"  FRED returned {len(fred_rows)} months "
+              f"({len(new_rows)} not yet in the CSV)", file=sys.stderr)
+        cass_scraped.extend(fred_rows)
+        for r in fred_rows:
+            cass_lookup[r["month"]] = r["index_level"]
+    except Exception as e:
+        print(f"  Cass FRED fetch failed: {e}; falling back to press release",
+              file=sys.stderr)
+
+    print("Scraping Cass Freight press release (gap-fill)...", file=sys.stderr)
+    try:
+        cass_scraped.extend(scrape_cass(cass_lookup))
     except Exception as e:
         print(f"  Cass unexpected error: {e}", file=sys.stderr)
-        cass_scraped = []
     if cass_scraped:
         try:
             changed = _upsert_csv(CASS_CSV, ["index_level"], cass_scraped)

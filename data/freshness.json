@@ -1,125 +1,101 @@
 {
-  "build_time": "2026-08-12T12:37:43.740477Z",
+  "build_time": "2026-08-12T12:40:52.996808Z",
   "checked_date": "2026-08-12",
-  "stale_count": 1,
-  "stale": [
-    "industry_surveys.json:cass_freight.index: newest observation 2026-03-31 is 134d old (tolerance 62d)"
-  ],
+  "stale_count": 0,
+  "stale": [],
   "datasets": {
     "commodities.json": {
       "status": "ok",
       "latest": "2026-08-10",
       "age_days": 2,
       "max_age_days": 8,
-      "build_age_days": 1,
-      "note": "Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier).",
-      "wrote_this_run": false,
-      "consecutive_misses": 1
+      "build_age_days": null,
+      "note": "Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier)."
     },
     "consumer.json": {
       "status": "ok",
       "latest": "2026-07-31",
       "age_days": 12,
       "max_age_days": 48,
-      "build_age_days": 0,
-      "note": "Conference Board confidence prints the last Tuesday of the SAME month; UMich mid-month.",
-      "wrote_this_run": true,
-      "consecutive_misses": 0
+      "build_age_days": null,
+      "note": "Conference Board confidence prints the last Tuesday of the SAME month; UMich mid-month."
     },
     "equities.json": {
       "status": "ok",
       "latest": "2026-08-11",
       "age_days": 1,
       "max_age_days": 6,
-      "build_age_days": 0,
-      "note": "Daily index closes.",
-      "wrote_this_run": true,
-      "consecutive_misses": 0
+      "build_age_days": null,
+      "note": "Daily index closes."
     },
     "gdp.json": {
       "status": "ok",
       "latest": "2026-06-30",
       "age_days": 43,
       "max_age_days": 130,
-      "build_age_days": 0,
-      "note": "BEA advance estimate ~30d after quarter end; third estimate ~90d. 130 tolerates a delayed advance print.",
-      "wrote_this_run": true,
-      "consecutive_misses": 0
+      "build_age_days": null,
+      "note": "BEA advance estimate ~30d after quarter end; third estimate ~90d. 130 tolerates a delayed advance print."
     },
     "government.json": {
       "status": "ok",
       "latest": "2026-08-10",
       "age_days": 2,
       "max_age_days": 20,
-      "build_age_days": 0,
-      "note": "Treasury Fiscal Data updates near-daily; Monthly Treasury Statement ~day 8.",
-      "wrote_this_run": true,
-      "consecutive_misses": 0
+      "build_age_days": null,
+      "note": "Treasury Fiscal Data updates near-daily; Monthly Treasury Statement ~day 8."
     },
     "housing_existing.json": {
       "status": "ok",
       "latest": "2026-07-31",
       "age_days": 12,
       "max_age_days": 62,
-      "build_age_days": 0,
-      "note": "NAR existing-home sales ~day 22 (R~22).",
-      "wrote_this_run": true,
-      "consecutive_misses": 0
+      "build_age_days": null,
+      "note": "NAR existing-home sales ~day 22 (R~22)."
     },
     "housing_mortgage_activity.json": {
       "status": "ok",
       "latest": "2026-08-06",
       "age_days": 6,
       "max_age_days": 16,
-      "build_age_days": 0,
-      "note": "MBA weekly applications, published Wednesdays.",
-      "wrote_this_run": true,
-      "consecutive_misses": 0
+      "build_age_days": null,
+      "note": "MBA weekly applications, published Wednesdays."
     },
     "housing_new.json": {
       "status": "ok",
       "latest": "2026-07-31",
       "age_days": 12,
       "max_age_days": 66,
-      "build_age_days": 0,
-      "note": "Census new residential sales ~day 25 (R~25).",
-      "wrote_this_run": true,
-      "consecutive_misses": 0
+      "build_age_days": null,
+      "note": "Census new residential sales ~day 25 (R~25)."
     },
     "housing_permits.json": {
       "status": "ok",
       "latest": "2026-06-30",
       "age_days": 43,
       "max_age_days": 58,
-      "build_age_days": 0,
-      "note": "Census permits/starts ~day 18 (R~18).",
-      "wrote_this_run": true,
-      "consecutive_misses": 0
+      "build_age_days": null,
+      "note": "Census permits/starts ~day 18 (R~18)."
     },
     "industry_manufacturing.json": {
       "status": "ok",
       "latest": "2026-06-30",
       "age_days": 43,
       "max_age_days": 56,
-      "build_age_days": 0,
-      "note": "Fed G.17 industrial production ~day 16 (R~16).",
-      "wrote_this_run": true,
-      "consecutive_misses": 0
+      "build_age_days": null,
+      "note": "Fed G.17 industrial production ~day 16 (R~16)."
     },
     "industry_surveys.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-07-31",
       "age_days": 12,
       "max_age_days": 45,
-      "build_age_days": 0,
+      "build_age_days": null,
       "note": "ISM Mfg ~1st business day, ISM Svc ~3rd, NFIB 2nd Tuesday.",
-      "wrote_this_run": true,
-      "consecutive_misses": 0,
       "watch": {
         "cass_freight.index": {
-          "status": "STALE",
-          "latest": "2026-03-31",
-          "age_days": 134,
+          "status": "ok",
+          "latest": "2026-06-30",
+          "age_days": 43,
           "max_age_days": 62
         },
         "nfib_sbet.optimism": {
@@ -135,20 +111,16 @@
       "latest": "2026-07-31",
       "age_days": 12,
       "max_age_days": 55,
-      "build_age_days": 0,
-      "note": "CPI ~day 13 of the following month (R~13).",
-      "wrote_this_run": true,
-      "consecutive_misses": 0
+      "build_age_days": null,
+      "note": "CPI ~day 13 of the following month (R~13)."
     },
     "labor.json": {
       "status": "ok",
       "latest": "2026-07-31",
       "age_days": 12,
       "max_age_days": 45,
-      "build_age_days": 5,
+      "build_age_days": null,
       "note": "Employment Situation lands ~1st Friday (R~6). JOLTS runs 2 months behind and is checked separately below.",
-      "wrote_this_run": false,
-      "consecutive_misses": 1,
       "watch": {
         "jolts_openings": {
           "status": "ok",
@@ -163,10 +135,8 @@
       "latest": "2026-07-31",
       "age_days": 12,
       "max_age_days": 62,
-      "build_age_days": 0,
+      "build_age_days": null,
       "note": "Conference Board LEI ~day 20 (R~20). LCI is manual and lags a month by design.",
-      "wrote_this_run": true,
-      "consecutive_misses": 0,
       "watch": {
         "lei_level": {
           "status": "ok",
@@ -181,30 +151,24 @@
       "latest": "2026-06-30",
       "age_days": 43,
       "max_age_days": 70,
-      "build_age_days": 0,
-      "note": "BEA Personal Income & Outlays lands ~day 28 of the following month (R~28) -- the longest monthly lag on the site.",
-      "wrote_this_run": true,
-      "consecutive_misses": 0
+      "build_age_days": null,
+      "note": "BEA Personal Income & Outlays lands ~day 28 of the following month (R~28) -- the longest monthly lag on the site."
     },
     "ppi.json": {
       "status": "ok",
       "latest": "2026-06-30",
       "age_days": 43,
       "max_age_days": 58,
-      "build_age_days": 28,
-      "note": "PPI ~day 16 (R~16).",
-      "wrote_this_run": false,
-      "consecutive_misses": 1
+      "build_age_days": null,
+      "note": "PPI ~day 16 (R~16)."
     },
     "treasuries.json": {
       "status": "ok",
       "latest": "2026-08-12",
       "age_days": 0,
       "max_age_days": 6,
-      "build_age_days": 0,
-      "note": "Daily H.15 yields; 6d covers a long holiday weekend.",
-      "wrote_this_run": true,
-      "consecutive_misses": 0
+      "build_age_days": null,
+      "note": "Daily H.15 yields; 6d covers a long holiday weekend."
     }
   }
 }
