@@ -1,17 +1,11 @@
 {
-  "build_time": "2026-08-12T14:23:14.681003Z",
+  "build_time": "2026-08-12T15:49:07.840461Z",
   "checked_date": "2026-08-12",
-  "stale_count": 9,
+  "stale_count": 3,
   "stale": [
-    "consumer.json:debt.credit_card: newest observation 2025-12-31 is 224d old (tolerance 135d)",
-    "consumer.json:delinquency.credit_card: newest observation 2025-12-31 is 224d old (tolerance 135d)",
-    "housing_mortgage_activity.json:mba_refinance: newest observation 2026-05-22 is 82d old (tolerance 20d)",
-    "housing_mortgage_activity.json:mba_purchase: newest observation 2026-05-22 is 82d old (tolerance 20d)",
     "housing_mortgage_activity.json:affordability_index: newest observation 2026-04-30 is 104d old (tolerance 75d)",
-    "housing_mortgage_activity.json:eff_rate_outstanding: newest observation 2026-03-31 is 134d old (tolerance 75d)",
-    "housing_mortgage_activity.json:delinquency_rate: newest observation 2026-01-31 is 193d old (tolerance 135d)",
-    "labor.json: fetch step has failed to write 3 runs in a row (file on disk dates from 2026-08-07) -- check that step's log",
-    "ppi.json: fetch step has failed to write 3 runs in a row (file on disk dates from 2026-07-15) -- check that step's log"
+    "labor.json: fetch step has failed to write 4 runs in a row (file on disk dates from 2026-08-07) -- check that step's log",
+    "ppi.json: fetch step has failed to write 4 runs in a row (file on disk dates from 2026-07-15) -- check that step's log"
   ],
   "datasets": {
     "commodities.json": {
@@ -25,7 +19,7 @@
       "consecutive_misses": 0
     },
     "consumer.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-07-31",
       "age_days": 12,
       "max_age_days": 48,
@@ -35,15 +29,15 @@
       "consecutive_misses": 0,
       "watch": {
         "debt.credit_card": {
-          "status": "STALE",
-          "latest": "2025-12-31",
-          "age_days": 224,
+          "status": "ok",
+          "latest": "2026-06-30",
+          "age_days": 43,
           "max_age_days": 135
         },
         "delinquency.credit_card": {
-          "status": "STALE",
-          "latest": "2025-12-31",
-          "age_days": 224,
+          "status": "ok",
+          "latest": "2026-06-30",
+          "age_days": 43,
           "max_age_days": 135
         }
       }
@@ -99,16 +93,18 @@
       "consecutive_misses": 0,
       "watch": {
         "mba_refinance": {
-          "status": "STALE",
+          "status": "SNOOZED",
           "latest": "2026-05-22",
           "age_days": 82,
-          "max_age_days": 20
+          "max_age_days": 20,
+          "snoozed_until": "2026-09-15"
         },
         "mba_purchase": {
-          "status": "STALE",
+          "status": "SNOOZED",
           "latest": "2026-05-22",
           "age_days": 82,
-          "max_age_days": 20
+          "max_age_days": 20,
+          "snoozed_until": "2026-09-15"
         },
         "affordability_index": {
           "status": "STALE",
@@ -117,10 +113,11 @@
           "max_age_days": 75
         },
         "eff_rate_outstanding": {
-          "status": "STALE",
+          "status": "SNOOZED",
           "latest": "2026-03-31",
           "age_days": 134,
-          "max_age_days": 75
+          "max_age_days": 75,
+          "snoozed_until": "2026-09-15"
         },
         "mortgage_debt_out": {
           "status": "ok",
@@ -129,9 +126,9 @@
           "max_age_days": 135
         },
         "delinquency_rate": {
-          "status": "STALE",
-          "latest": "2026-01-31",
-          "age_days": 193,
+          "status": "ok",
+          "latest": "2026-03-31",
+          "age_days": 134,
           "max_age_days": 135
         }
       }
@@ -208,7 +205,7 @@
       "build_age_days": 5,
       "note": "Employment Situation lands ~1st Friday (R~6). JOLTS runs 2 months behind and is checked separately below.",
       "wrote_this_run": false,
-      "consecutive_misses": 3,
+      "consecutive_misses": 4,
       "watch": {
         "jolts_openings": {
           "status": "ok",
@@ -254,7 +251,7 @@
       "build_age_days": 28,
       "note": "PPI ~day 16 (R~16).",
       "wrote_this_run": false,
-      "consecutive_misses": 3
+      "consecutive_misses": 4
     },
     "treasuries.json": {
       "status": "ok",
