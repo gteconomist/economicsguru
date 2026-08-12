@@ -75,7 +75,18 @@ TOLERANCES = {
     "commodities.json":  dict(max_age_days=8,   note="Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier)."),
 
     # ---- weekly -----------------------------------------------------------
-    "housing_mortgage_activity.json": dict(max_age_days=16, note="MBA weekly applications, published Wednesdays."),
+    # The file-level check here is satisfied by the daily/weekly FRED rate
+    # series, which is how a 12-week MBA outage went unseen (found in the
+    # 2026-08-12 source audit). Everything on this page that moves on its own
+    # clock now gets watched individually.
+    "housing_mortgage_activity.json": dict(max_age_days=16,
+                              note="MBA weekly applications Wednesdays; FRED rate series daily/weekly.",
+                              watch={"mba_refinance":        20,   # MBA, weekly, Wednesdays
+                                     "mba_purchase":         20,
+                                     "affordability_index":  75,   # NAR HAI, monthly, ~day 25
+                                     "eff_rate_outstanding": 75,   # monthly, in-house seed
+                                     "mortgage_debt_out":   135,   # NY Fed HHDC, quarterly
+                                     "delinquency_rate":    135}), # Fed DRSFRMACBS, quarterly
 
     # ---- monthly ----------------------------------------------------------
     "labor.json":        dict(max_age_days=45,  note="Employment Situation lands ~1st Friday (R~6). JOLTS runs 2 months behind and is checked separately below.",
@@ -83,7 +94,13 @@ TOLERANCES = {
     "inflation.json":    dict(max_age_days=55,  note="CPI ~day 13 of the following month (R~13)."),
     "ppi.json":          dict(max_age_days=58,  note="PPI ~day 16 (R~16)."),
     "pce.json":          dict(max_age_days=70,  note="BEA Personal Income & Outlays lands ~day 28 of the following month (R~28) -- the longest monthly lag on the site."),
-    "consumer.json":     dict(max_age_days=48,  note="Conference Board confidence prints the last Tuesday of the SAME month; UMich mid-month."),
+    # Same hiding problem: the monthly retail/sentiment series keep this file
+    # looking current while the quarterly NY Fed household-debt panels sit two
+    # quarters behind.
+    "consumer.json":     dict(max_age_days=48,
+                              note="Conference Board confidence prints the last Tuesday of the SAME month; UMich mid-month.",
+                              watch={"debt.credit_card":        135,  # NY Fed HHDC, quarterly, ~6wk after quarter end
+                                     "delinquency.credit_card": 135}),
     "housing_existing.json": dict(max_age_days=62, note="NAR existing-home sales ~day 22 (R~22)."),
     "housing_new.json":  dict(max_age_days=66,  note="Census new residential sales ~day 25 (R~25)."),
     "housing_permits.json": dict(max_age_days=58, note="Census permits/starts ~day 18 (R~18)."),
