@@ -27,14 +27,20 @@ Three data families on this page:
                   re-uploaded quarterly). NY Fed HHDC has full Q1 2026
                   coverage where FRED's HHMSDODNS only has a 13-month
                   trailing window.
-   - FIXHAI       NAR Fixed-Rate Housing Affordability Index (monthly).
-                  FRED's NAR licence restricts it to a trailing ~13 months
-                  and FRED also runs several months behind the in-house seed.
-                  Chart sourced from data/historical/nar_affordability.csv
-                  (in-house dual-column SA + NSA seed). Trailing months
-                  come from a Tavily scrape of the NAR press release,
-                  seasonally adjusted in-fetcher using factors derived from
-                  the recent SA/NSA overlap.
+   - FIXHAI       NAR Housing Affordability Index (monthly). PRIMARY SOURCE
+                  as of 2026-08-12. The previous note here said FRED "runs
+                  several months behind the in-house seed" -- that was true
+                  once and stopped being true, which is how this column
+                  silently fell three months behind. FRED now leads.
+                  NAR's licence still restricts FRED to a trailing ~13 months,
+                  so data/historical/nar_affordability.csv remains the only
+                  archive and must keep being appended. The Tavily press-
+                  release scrape is now the FALLBACK, for the day or two
+                  around each release when it occasionally leads FRED.
+                  NAR discontinued the Composite and ARM variants in 2019, so
+                  the fixed-rate index is the only one that exists.
+                  SA column is derived in-fetcher (NAR publishes no SA series)
+                  using factors from the recent SA/NSA overlap.
    - Golden Handcuff: 30Y mortgage rate vs effective rate on outstanding
        mortgage debt -- MONTHLY cadence.
        Effective rate: data/historical/mortgage_eff_rate.csv (in-house seed
@@ -602,6 +608,20 @@ def scrape_nar_hai_latest(latest_in_csv):
 # index is the only one that exists now -- don't go looking for COMPHAI, it
 # froze at April 2019.
 HAI_FRED_SERIES = "FIXHAI"
+
+
+def _hai_source_label(hai_scraped):
+    """Describe where the fresh HAI readings came from, for the JSON metadata.
+
+    `hai_scraped` is a LIST of readings when FRED supplied them and a dict when
+    the press-release fallback did. Missing that distinction is what crashed the
+    2026-08-12 run with "'list' object has no attribute 'get'".
+    """
+    if not hai_scraped:
+        return None
+    if isinstance(hai_scraped, dict):
+        return hai_scraped.get("source_url")
+    return f"FRED {HAI_FRED_SERIES}"
 
 
 def fetch_hai_from_fred(latest_in_csv):
@@ -1205,7 +1225,7 @@ def main():
         "hai_csv_rows":               len(hai_csv),
         "hai_csv_rows_appended_this_run": hai_appended,
         "hai_scrape_succeeded":       bool(hai_scraped),
-        "hai_scrape_source":          hai_scraped.get("source_url") if hai_scraped else None,
+        "hai_scrape_source":          _hai_source_label(hai_scraped),
         "hai_factor_window_months":   HAI_FACTOR_WINDOW_MONTHS,
         "hai_basis":                  "NAR Housing Affordability Index, seasonally adjusted in-house using monthly factors derived from the historical SA/NSA overlap. Trailing months from the NAR press release via Tavily.",
         "price_income_ratio_rows":    len(price_income_ratio),

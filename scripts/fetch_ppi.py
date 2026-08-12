@@ -69,7 +69,12 @@ def fetch_chunk(seriesids, start_year, end_year):
     # stops being transient.
     _msgs = " ".join(str(m) for m in (payload.get("message") or []))
     _low  = _msgs.lower()
-    for _needle in ("is locked", "threshold", "no data available"):
+    # ONLY these two are fatal. "No Data Available for Series X Year: 2002" is
+    # a routine per-year notice BLS emits for years outside a series' range --
+    # it arrives alongside plenty of good data, and treating it as fatal broke
+    # PPI and labor for four runs on 2026-08-12. The real emptiness test is the
+    # one below, after the rows are parsed.
+    for _needle in ("is locked", "threshold"):
         if _needle in _low:
             raise RuntimeError(f"BLS returned no usable data: {_msgs}")
     out = {}
