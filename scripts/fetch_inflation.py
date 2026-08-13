@@ -15,6 +15,17 @@ from urllib import request, error
 NSA_IDS = [
     "CUUR0000SA0", "CUUR0000SA0L1E", "CUUR0000SAH1", "CUUR0000SAF1",
     "CUUR0000SA0E", "CUUR0000SETB01", "CUUR0000SAS", "CUUR0000SASL2RS",
+    # Detail components (added 2026-08-13) for the "Component Detail" chart.
+    # Two of these nest inside series already on the main components chart:
+    # medical care services and transportation services both sit inside
+    # SAS (Services), and motor vehicle insurance sits inside transportation
+    # services. That overlap is intentional -- the chart is about how the
+    # individual lines behave, not a clean partition of the index.
+    "CUUR0000SAM2",   # Medical care services
+    "CUUR0000SAM1",   # Medical care commodities (drugs, equipment, supplies)
+    "CUUR0000SETE",   # Motor vehicle insurance
+    "CUUR0000SAS4",   # Transportation services
+    "CUUR0000SAA",    # Apparel
 ]
 SA_IDS = [
     "CUSR0000SA0", "CUSR0000SA0L1E", "CUSR0000SAH1", "CUSR0000SAF1",
@@ -98,6 +109,24 @@ def yoy(rows):
     ]
 
 
+def align(yoy_rows, spine):
+    """Re-index a YoY series onto the headline date spine, filling None for
+    months the series doesn't have.
+
+    The frontend builds its x-axis labels from headline_yoy and then plots every
+    other series positionally (EG.val(tail(series, n))). That only works while
+    every series shares an identical date list. It does NOT for the detail
+    components: BLS never published motor vehicle insurance (CUUR0000SETE) for
+    November 2025, so an un-aligned SETE series would be one month short and
+    every point on it would render shifted left by a month from Dec 2025 back --
+    a silent, plausible-looking wrong chart. Aligning here keeps the positional
+    assumption on the frontend valid. Chart.js leaves a gap at a null, which is
+    the honest rendering of a month BLS did not publish.
+    """
+    by = dict(yoy_rows)
+    return [[d, by.get(d)] for d in spine]
+
+
 def mom_strict(rows):
     by = {(y, m): v for (y, m, v) in rows}
     out = []
@@ -179,6 +208,14 @@ def main():
     services_yoy  = yoy(nsa["CUUR0000SAS"])
     supercore_yoy = yoy(nsa["CUUR0000SASL2RS"])  # Services less rent of shelter
 
+    # Detail components -- aligned onto the headline date spine (see align()).
+    spine = [d for d, _ in headline_yoy]
+    med_services_yoy    = align(yoy(nsa["CUUR0000SAM2"]),  spine)
+    med_commodities_yoy = align(yoy(nsa["CUUR0000SAM1"]),  spine)
+    motor_ins_yoy       = align(yoy(nsa["CUUR0000SETE"]),  spine)
+    transport_svcs_yoy  = align(yoy(nsa["CUUR0000SAS4"]),  spine)
+    apparel_yoy         = align(yoy(nsa["CUUR0000SAA"]),   spine)
+
     # Long history of headline CPI for the 1970s-vs-now vintage chart.
     # BLS chunks at 20 yrs/request; fetch_long handles it.
     hist = fetch_long(["CUUR0000SA0"], years_back=57)
@@ -201,6 +238,11 @@ def main():
         "shelter_yoy":      shelter_yoy,
         "services_yoy":     services_yoy,
         "supercore_yoy":    supercore_yoy,
+        "med_services_yoy":    med_services_yoy,
+        "med_commodities_yoy": med_commodities_yoy,
+        "motor_ins_yoy":       motor_ins_yoy,
+        "transport_svcs_yoy":  transport_svcs_yoy,
+        "apparel_yoy":         apparel_yoy,
         "headline_mom_sa":  mom_strict(sa["CUSR0000SA0"]),
         "core_mom_sa":      mom_strict(sa["CUSR0000SA0L1E"]),
         # Raw level series — frontend rebases to "start of selected range = 100"

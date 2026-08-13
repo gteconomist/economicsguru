@@ -111,6 +111,22 @@ window.EG_PAGES.cpi = function (data, EG) {
       EG.line(EG.val(seriesTail('services_yoy', n)), T.services, { label:'Services' })
     ]}, options:EG.baseOpts(true) }, { pct:true, y1:false });
 
+    // Component detail YoY — sub-aggregates Alfie writes about individually.
+    // Deliberately a second card rather than five more lines on cComp: energy
+    // swings +/-40% YoY and would flatten apparel (which lives inside +/-3%)
+    // against a shared axis.
+    // Note these series are pre-aligned to the headline date spine in
+    // fetch_inflation.py, so positional plotting against `labels` is safe even
+    // though motor vehicle insurance has no Nov-2025 observation.
+    var CS = T.series;
+    EG.newChart('cComp2', { type:'line', data:{ labels:labels, datasets:[
+      EG.line(EG.val(seriesTail('med_services_yoy', n)),    CS[1], { label:'Medical care services' }),
+      EG.line(EG.val(seriesTail('med_commodities_yoy', n)), CS[7], { label:'Medical care commodities' }),
+      EG.line(EG.val(seriesTail('motor_ins_yoy', n)),       CS[2], { label:'Motor vehicle insurance' }),
+      EG.line(EG.val(seriesTail('transport_svcs_yoy', n)),  CS[0], { label:'Transportation services' }),
+      EG.line(EG.val(seriesTail('apparel_yoy', n)),         CS[5], { label:'Apparel' })
+    ]}, options:EG.baseOpts(true) }, { pct:true, y1:false });
+
     // Energy prices, indexed (start of range = 100)
     var gl = seriesTail('gasoline_level', n), el = seriesTail('energy_level', n);
     EG.newChart('cEnergy', { type:'line', data:{ labels:gl.map(function(p){return EG.lab(p[0]);}), datasets:[
