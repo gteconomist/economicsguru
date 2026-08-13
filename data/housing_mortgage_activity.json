@@ -15196,9 +15196,9 @@
     ]
   ],
   "mba_latest_week": "2026-05-22",
-  "mba_refi_share": 39.9,
+  "mba_refi_share": 40.7,
   "mba_arm_share": null,
-  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/08/05/mortgage-applications-decrease-in-latest-mba-weekly-survey",
+  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/08/12/mortgage-applications-increase-in-latest-mba-weekly-survey",
   "mortgage_30y": [
     [
       "1971-04-02",
@@ -68222,14 +68222,14 @@
       "label": "2026-05-22"
     },
     "refi_share": {
-      "value": 39.9,
+      "value": 40.7,
       "delta": null,
-      "label": "2026-07-31"
+      "label": "2026-08-07"
     },
     "arm_share": {
       "value": null,
       "delta": null,
-      "label": "2026-07-31"
+      "label": "2026-08-07"
     },
     "delinquency_rate": {
       "value": 1.89,
@@ -68253,7 +68253,7 @@
     }
   },
   "latest_label": "2026-05-22",
-  "build_time": "2026-08-13T16:46:05Z",
+  "build_time": "2026-08-13T18:22:38Z",
   "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
