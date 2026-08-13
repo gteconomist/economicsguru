@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-08-13T14:25:41.790443Z",
+  "build_time": "2026-08-13T16:46:47.323520Z",
   "checked_date": "2026-08-13",
   "stale_count": 0,
   "stale": [],
@@ -80,8 +80,8 @@
     },
     "housing_mortgage_activity.json": {
       "status": "ok",
-      "latest": "2026-08-06",
-      "age_days": 7,
+      "latest": "2026-08-13",
+      "age_days": 0,
       "max_age_days": 16,
       "build_age_days": 0,
       "note": "MBA weekly applications Wednesdays; FRED rate series daily/weekly.",
