@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-08-14T18:48:05.309028Z",
+  "build_time": "2026-08-14T19:25:16.269831Z",
   "checked_date": "2026-08-14",
   "stale_count": 0,
   "stale": [],
@@ -144,6 +144,16 @@
       "max_age_days": 58,
       "build_age_days": 0,
       "note": "Census permits/starts ~day 18 (R~18).",
+      "wrote_this_run": true,
+      "consecutive_misses": 0
+    },
+    "income_divide.json": {
+      "status": "ok",
+      "latest": "2026-04-30",
+      "age_days": 106,
+      "max_age_days": 160,
+      "build_age_days": 0,
+      "note": "NY Fed EHIs, released Feb/May/Sep; monthly data ~1 month behind at release. Longest inter-release gap is May->Sep (4 months).",
       "wrote_this_run": true,
       "consecutive_misses": 0
     },
