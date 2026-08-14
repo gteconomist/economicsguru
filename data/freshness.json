@@ -1,12 +1,14 @@
 {
-  "build_time": "2026-08-13T16:46:47.323520Z",
-  "checked_date": "2026-08-13",
-  "stale_count": 0,
-  "stale": [],
+  "build_time": "2026-08-14T12:52:39.533755Z",
+  "checked_date": "2026-08-14",
+  "stale_count": 1,
+  "stale": [
+    "housing_mortgage_activity.json:delinquency_rate: newest observation 2026-03-31 is 136d old (tolerance 135d)"
+  ],
   "datasets": {
     "commodities.json": {
       "status": "ok",
-      "latest": "2026-08-12",
+      "latest": "2026-08-13",
       "age_days": 1,
       "max_age_days": 8,
       "build_age_days": 0,
@@ -17,7 +19,7 @@
     "consumer.json": {
       "status": "ok",
       "latest": "2026-07-31",
-      "age_days": 13,
+      "age_days": 14,
       "max_age_days": 48,
       "build_age_days": 0,
       "note": "Conference Board confidence prints the last Tuesday of the SAME month; UMich mid-month.",
@@ -27,13 +29,13 @@
         "debt.credit_card": {
           "status": "ok",
           "latest": "2026-06-30",
-          "age_days": 44,
+          "age_days": 45,
           "max_age_days": 135
         },
         "delinquency.credit_card": {
           "status": "ok",
           "latest": "2026-06-30",
-          "age_days": 44,
+          "age_days": 45,
           "max_age_days": 135
         }
       }
@@ -41,7 +43,7 @@
     "equities.json": {
       "status": "ok",
       "latest": "2026-08-13",
-      "age_days": 0,
+      "age_days": 1,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily index closes.",
@@ -51,7 +53,7 @@
     "gdp.json": {
       "status": "ok",
       "latest": "2026-06-30",
-      "age_days": 44,
+      "age_days": 45,
       "max_age_days": 130,
       "build_age_days": 0,
       "note": "BEA advance estimate ~30d after quarter end; third estimate ~90d. 130 tolerates a delayed advance print.",
@@ -60,7 +62,7 @@
     },
     "government.json": {
       "status": "ok",
-      "latest": "2026-08-11",
+      "latest": "2026-08-12",
       "age_days": 2,
       "max_age_days": 20,
       "build_age_days": 0,
@@ -71,7 +73,7 @@
     "housing_existing.json": {
       "status": "ok",
       "latest": "2026-07-31",
-      "age_days": 13,
+      "age_days": 14,
       "max_age_days": 62,
       "build_age_days": 0,
       "note": "NAR existing-home sales ~day 22 (R~22).",
@@ -79,9 +81,9 @@
       "consecutive_misses": 0
     },
     "housing_mortgage_activity.json": {
-      "status": "ok",
+      "status": "STALE",
       "latest": "2026-08-13",
-      "age_days": 0,
+      "age_days": 1,
       "max_age_days": 16,
       "build_age_days": 0,
       "note": "MBA weekly applications Wednesdays; FRED rate series daily/weekly.",
@@ -91,40 +93,40 @@
         "mba_refinance": {
           "status": "SNOOZED",
           "latest": "2026-05-22",
-          "age_days": 83,
+          "age_days": 84,
           "max_age_days": 20,
           "snoozed_until": "2026-09-15"
         },
         "mba_purchase": {
           "status": "SNOOZED",
           "latest": "2026-05-22",
-          "age_days": 83,
+          "age_days": 84,
           "max_age_days": 20,
           "snoozed_until": "2026-09-15"
         },
         "affordability_index": {
           "status": "ok",
           "latest": "2026-07-31",
-          "age_days": 13,
+          "age_days": 14,
           "max_age_days": 75
         },
         "eff_rate_outstanding": {
           "status": "SNOOZED",
           "latest": "2026-03-31",
-          "age_days": 135,
+          "age_days": 136,
           "max_age_days": 75,
           "snoozed_until": "2026-09-15"
         },
         "mortgage_debt_out": {
           "status": "ok",
           "latest": "2026-06-30",
-          "age_days": 44,
+          "age_days": 45,
           "max_age_days": 135
         },
         "delinquency_rate": {
-          "status": "ok",
+          "status": "STALE",
           "latest": "2026-03-31",
-          "age_days": 135,
+          "age_days": 136,
           "max_age_days": 135
         }
       }
@@ -132,7 +134,7 @@
     "housing_new.json": {
       "status": "ok",
       "latest": "2026-07-31",
-      "age_days": 13,
+      "age_days": 14,
       "max_age_days": 66,
       "build_age_days": 0,
       "note": "Census new residential sales ~day 25 (R~25).",
@@ -142,7 +144,7 @@
     "housing_permits.json": {
       "status": "ok",
       "latest": "2026-06-30",
-      "age_days": 44,
+      "age_days": 45,
       "max_age_days": 58,
       "build_age_days": 0,
       "note": "Census permits/starts ~day 18 (R~18).",
@@ -152,7 +154,7 @@
     "industry_manufacturing.json": {
       "status": "ok",
       "latest": "2026-07-31",
-      "age_days": 13,
+      "age_days": 14,
       "max_age_days": 56,
       "build_age_days": 0,
       "note": "Fed G.17 industrial production ~day 16 (R~16).",
@@ -162,7 +164,7 @@
     "industry_surveys.json": {
       "status": "ok",
       "latest": "2026-07-31",
-      "age_days": 13,
+      "age_days": 14,
       "max_age_days": 45,
       "build_age_days": 0,
       "note": "ISM Mfg ~1st business day, ISM Svc ~3rd, NFIB 2nd Tuesday.",
@@ -172,13 +174,13 @@
         "cass_freight.index": {
           "status": "ok",
           "latest": "2026-06-30",
-          "age_days": 44,
+          "age_days": 45,
           "max_age_days": 62
         },
         "nfib_sbet.optimism": {
           "status": "ok",
           "latest": "2026-07-31",
-          "age_days": 13,
+          "age_days": 14,
           "max_age_days": 48
         }
       }
@@ -186,7 +188,7 @@
     "inflation.json": {
       "status": "ok",
       "latest": "2026-07-31",
-      "age_days": 13,
+      "age_days": 14,
       "max_age_days": 55,
       "build_age_days": 0,
       "note": "CPI ~day 13 of the following month (R~13).",
@@ -196,7 +198,7 @@
     "labor.json": {
       "status": "ok",
       "latest": "2026-07-31",
-      "age_days": 13,
+      "age_days": 14,
       "max_age_days": 45,
       "build_age_days": 0,
       "note": "Employment Situation lands ~1st Friday (R~6). JOLTS runs 2 months behind and is checked separately below.",
@@ -206,7 +208,7 @@
         "jolts_openings": {
           "status": "ok",
           "latest": "2026-06-30",
-          "age_days": 44,
+          "age_days": 45,
           "max_age_days": 100
         }
       }
@@ -214,7 +216,7 @@
     "leading.json": {
       "status": "ok",
       "latest": "2026-07-31",
-      "age_days": 13,
+      "age_days": 14,
       "max_age_days": 62,
       "build_age_days": 0,
       "note": "Conference Board LEI ~day 20 (R~20). LCI is manual and lags a month by design.",
@@ -224,7 +226,7 @@
         "lei_level": {
           "status": "ok",
           "latest": "2026-06-30",
-          "age_days": 44,
+          "age_days": 45,
           "max_age_days": 62
         }
       }
@@ -232,7 +234,7 @@
     "pce.json": {
       "status": "ok",
       "latest": "2026-06-30",
-      "age_days": 44,
+      "age_days": 45,
       "max_age_days": 70,
       "build_age_days": 0,
       "note": "BEA Personal Income & Outlays lands ~day 28 of the following month (R~28) -- the longest monthly lag on the site.",
@@ -242,7 +244,7 @@
     "ppi.json": {
       "status": "ok",
       "latest": "2026-07-31",
-      "age_days": 13,
+      "age_days": 14,
       "max_age_days": 58,
       "build_age_days": 0,
       "note": "PPI ~day 16 (R~16).",
@@ -251,7 +253,7 @@
     },
     "treasuries.json": {
       "status": "ok",
-      "latest": "2026-08-13",
+      "latest": "2026-08-14",
       "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
