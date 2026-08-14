@@ -1,10 +1,8 @@
 {
-  "build_time": "2026-08-14T12:52:39.533755Z",
+  "build_time": "2026-08-14T13:10:50.786589Z",
   "checked_date": "2026-08-14",
-  "stale_count": 1,
-  "stale": [
-    "housing_mortgage_activity.json:delinquency_rate: newest observation 2026-03-31 is 136d old (tolerance 135d)"
-  ],
+  "stale_count": 0,
+  "stale": [],
   "datasets": {
     "commodities.json": {
       "status": "ok",
@@ -30,13 +28,13 @@
           "status": "ok",
           "latest": "2026-06-30",
           "age_days": 45,
-          "max_age_days": 135
+          "max_age_days": 145
         },
         "delinquency.credit_card": {
           "status": "ok",
           "latest": "2026-06-30",
           "age_days": 45,
-          "max_age_days": 135
+          "max_age_days": 145
         }
       }
     },
@@ -81,7 +79,7 @@
       "consecutive_misses": 0
     },
     "housing_mortgage_activity.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-08-13",
       "age_days": 1,
       "max_age_days": 16,
@@ -121,13 +119,13 @@
           "status": "ok",
           "latest": "2026-06-30",
           "age_days": 45,
-          "max_age_days": 135
+          "max_age_days": 145
         },
         "delinquency_rate": {
-          "status": "STALE",
+          "status": "ok",
           "latest": "2026-03-31",
           "age_days": 136,
-          "max_age_days": 135
+          "max_age_days": 150
         }
       }
     },
