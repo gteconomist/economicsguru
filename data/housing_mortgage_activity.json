@@ -68341,7 +68341,7 @@
     }
   },
   "latest_label": "2026-08-07",
-  "build_time": "2026-08-14T12:51:49Z",
+  "build_time": "2026-08-14T18:47:09Z",
   "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
@@ -68349,7 +68349,7 @@
   "debt_csv_rows": 110,
   "debt_latest_quarter": "2026-06-30",
   "csv_baseline_loaded": true,
-  "mba_history_rows": 1899,
+  "mba_history_rows": 1910,
   "hai_csv_loaded": true,
   "hai_csv_rows": 547,
   "hai_csv_rows_appended_this_run": 0,
