@@ -270,9 +270,10 @@ MAX_CONSECUTIVE_MISSES = 3
 # and tracked in SOURCE-AUDIT.md.
 SNOOZE_UNTIL = {
     # NY Fed HHDC: FIXED 2026-08-12 by scripts/fetch_nyfed_hhdc.py -- no snooze.
-    # MBA weekly applications -- mba.org went JS-rendered; scraper needs rework.
-    "housing_mortgage_activity.json:mba_refinance":         "2026-09-15",
-    "housing_mortgage_activity.json:mba_purchase":          "2026-09-15",
+    # MBA weekly applications: FIXED 2026-08-14 -- mba.org had gone JS-rendered,
+    # so the scrape now reads a server-rendered mirror (newslink.mba.org first)
+    # and re-anchors the level instead of chaining percent changes forever.
+    # Snooze deliberately removed: the alarm is live again.
     # NAR affordability: FIXED 2026-08-12 -- now pulled from FRED FIXHAI.
     # Effective rate on outstanding mortgage debt: hand-fed, no free monthly
     # source exists (FHFA NMDB is quarterly and lags a further ~3 months).

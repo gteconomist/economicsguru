@@ -223,6 +223,37 @@ def tavily_extract(url):
     return results[0].get("raw_content", "")
 
 
+def _get_text_resilient(url, label=""):
+    """Fetch a page as stripped text, with a Tavily fallback.
+
+    Same helper as fetch_industry_surveys.py. Direct urllib fetches from
+    GitHub Actions runners get blocked by publisher bot protection, silently
+    and only after months of working. Try direct first (free, fast), then fall
+    back to Tavily extract, which egresses from a pool publishers accept.
+
+    Raises if BOTH paths fail, so the caller can record a visible notice.
+    """
+    direct_err = None
+    try:
+        text = _strip_html(_http_get_text(url))
+        if text and text.strip():
+            return text
+        direct_err = "direct fetch returned empty text"
+    except Exception as e:
+        direct_err = e
+    print(f"  {label} direct fetch unusable ({direct_err}); trying Tavily extract...",
+          file=sys.stderr)
+    try:
+        raw = tavily_extract(url)
+        if raw and raw.strip():
+            print(f"  {label} Tavily extract OK ({len(raw)} chars)", file=sys.stderr)
+            return _strip_html(raw)
+        raise RuntimeError("Tavily extract returned empty content")
+    except Exception as e:
+        raise RuntimeError(
+            f"{label} fetch failed both ways: direct={direct_err}; tavily={e}") from e
+
+
 # MBA press release week-ending date is one or two Fridays before publication.
 # We search for the latest release and parse:
 #   - the week-ending date (sentence: "for the week ending May 22, 2026")
@@ -238,41 +269,54 @@ MONTHS = {m: i for i, m in enumerate(
 _WEEK_ENDING_RX = re.compile(
     rf"week\s+ending\s+{_MONTH_RX}\s+(\d{{1,2}})\s*,\s*(\d{{4}})", re.IGNORECASE)
 
-# Seasonally Adjusted Market Index level. Example wording from MBA:
-# "The Market Composite Index ... increased 1.7 percent on a seasonally adjusted basis
-#  from one week earlier. ... The seasonally adjusted Purchase Index increased 4 percent ..."
-# Modern releases publish absolute index VALUES at the bottom of the press release
-# in a table; Tavily-extracted text preserves them. We grep for the standard
-# field labels.
-_INDEX_RX = {
-    "composite": re.compile(
-        r"Market\s+Composite\s+Index[^.]{0,300}?(?:decreased|increased)\s+[\d.]+\s*percent"
-        r"[^.]{0,400}?(?:to|at)\s+(\d{2,4}(?:\.\d+)?)", re.IGNORECASE),
-    "purchase": re.compile(
-        r"Purchase\s+Index[^.]{0,300}?(?:decreased|increased)\s+[\d.]+\s*percent"
-        r"[^.]{0,400}?(?:to|at)\s+(\d{2,4}(?:\.\d+)?)", re.IGNORECASE),
-    "refinance": re.compile(
-        r"Refinance\s+Index[^.]{0,300}?(?:decreased|increased)\s+[\d.]+\s*percent"
-        r"[^.]{0,400}?(?:to|at)\s+(\d{2,4}(?:\.\d+)?)", re.IGNORECASE),
-}
-# Fallback: percent-change pattern (we re-derive level from prior week if needed)
+# IMPORTANT: MBA's free press release NEVER publishes index levels -- only
+# percent changes. An earlier version of this file grepped for levels with an
+# `_INDEX_RX` table; it could not have matched, which is one reason the failure
+# went unnoticed. That table has been removed. Levels now come from the
+# re-anchor path below (scrape_mba_level), with the percent change used both to
+# advance the chain and to validate the anchor.
+#
+# This is the same lesson as Cass Freight: a chain built only from published
+# percent changes compounds rounding error and unanchors permanently the first
+# time a week is missed. See scrape_mba_level().
+# Standard MBA wording, week ending 2026-08-07 as the worked example:
+#   "The Market Composite Index ... increased 3.6 percent on a seasonally
+#    adjusted basis from one week earlier."
+#   "The seasonally adjusted Purchase Index increased 3 percent from one week
+#    earlier. The unadjusted Purchase Index increased 2 percent ..."
+#   "The Refinance Index increased 5 percent from the previous week and was
+#    22 percent lower than the same week one year ago."
+# The SA purchase sentence always precedes the unadjusted one, but we still
+# exclude "unadjusted" explicitly -- the CSV stores the SA purchase index, and
+# silently storing the NSA number would be invisible in the chart.
 _PCT_CHANGE_RX = {
     "composite": re.compile(
-        r"Market\s+Composite\s+Index[^.]{0,200}?(decreased|increased)\s+(\d+(?:\.\d+)?)\s*percent",
+        r"Market\s+Composite\s+Index[^.]{0,200}?(decreased|increased|remained\s+unchanged)"
+        r"(?:\s+(\d+(?:\.\d+)?)\s*percent)?",
         re.IGNORECASE),
     "purchase": re.compile(
-        r"Purchase\s+Index\s+(decreased|increased)\s+(\d+(?:\.\d+)?)\s*percent",
+        r"(?<!un)(?:seasonally\s+)?adjusted\s+Purchase\s+Index\s+"
+        r"(decreased|increased|remained\s+unchanged)(?:\s+(\d+(?:\.\d+)?)\s*percent)?",
         re.IGNORECASE),
     "refinance": re.compile(
-        r"Refinance\s+Index\s+(decreased|increased)\s+(\d+(?:\.\d+)?)\s*percent",
+        r"Refinance\s+Index\s+(decreased|increased|remained\s+unchanged)"
+        r"(?:\s+(\d+(?:\.\d+)?)\s*percent)?",
         re.IGNORECASE),
 }
+# Loosened fallback for the purchase index, used only if the strict SA pattern
+# above misses (wording drift). Logged when it fires so the drift is visible.
+_PURCHASE_PCT_LOOSE_RX = re.compile(
+    r"Purchase\s+Index\s+(decreased|increased|remained\s+unchanged)"
+    r"(?:\s+(\d+(?:\.\d+)?)\s*percent)?", re.IGNORECASE)
 _REFI_SHARE_RX = re.compile(
     r"refinance\s+share\s+of\s+mortgage\s+activity[^.]{0,200}?(?:increased|decreased|remained\s+unchanged)?[^.]{0,80}?"
     r"(\d+(?:\.\d+)?)\s*percent", re.IGNORECASE)
+# MBA writes "The adjustable-rate mortgage (ARM) share of activity remained
+# unchanged at 7.9 percent" -- the parenthetical sits between "mortgage" and
+# "share", which the previous pattern could not cross.
 _ARM_SHARE_RX = re.compile(
-    r"(?:adjustable[-\s]rate\s+mortgage|ARM)\s+share[^.]{0,200}?(\d+(?:\.\d+)?)\s*percent",
-    re.IGNORECASE)
+    r"(?:adjustable[-\s]rate\s+mortgage|ARM)\b[^.]{0,40}?\bshare[^.]{0,200}?"
+    r"(\d+(?:\.\d+)?)\s*percent", re.IGNORECASE)
 
 
 def scrape_mba_latest():
@@ -285,43 +329,83 @@ def scrape_mba_latest():
         print("  MBA scrape: TAVILY_API_KEY absent -- skipping live update", file=sys.stderr)
         return None
 
-    # Releases publish Wednesday mornings. We search the last 3 weeks worth of
-    # URL slugs ("Mortgage Applications [Increase|Decrease|...] in Latest MBA
-    # Weekly Survey") and pick the result whose URL date is most recent.
-    candidates = []
+    # Releases publish Wednesday mornings.
+    #
+    # www.mba.org went JavaScript-rendered around 2026-05, so Tavily extract
+    # started returning navigation chrome with no release body -- the scrape
+    # "succeeded" and parsed nothing, and the CSV silently stopped growing
+    # after the week ending 2026-05-22. Found in the 2026-08-12 source audit.
+    #
+    # Fix: search unrestricted, then read whichever SERVER-RENDERED mirror of
+    # the same release answers first. newslink.mba.org is MBA's own newsletter
+    # and is preferred; the trade republishers carry the release verbatim.
+    # www.mba.org stays last as a long shot in case it ever renders again.
+    MIRROR_RANK = [
+        ("newslink.mba.org",          0),   # MBA's own, server-rendered
+        ("redbooklumberdata.com",     1),   # verbatim republish
+        ("cutoday.info",              2),
+        ("floordaily.net",            3),
+        ("mortgagenewsdaily.com",     4),
+        ("housingwire.com",           5),
+        ("mpamag.com",                6),
+        ("www.mba.org",               9),   # JS-rendered; kept as a long shot
+    ]
+
+    def _rank(url):
+        for host, r in MIRROR_RANK:
+            if host in url:
+                return r
+        return 8
+
+    candidates = {}
     for query in [
+        "Mortgage Applications in Latest MBA Weekly Survey week ending",
+        "MBA Weekly Applications Survey Market Composite Index refinance purchase index percent",
         "Mortgage Applications Latest MBA Weekly Survey site:mba.org",
-        "MBA Weekly Applications Survey mortgage applications increase decrease",
     ]:
         try:
-            results = tavily_search(query, include_domains=["mba.org"], max_results=5)
+            results = tavily_search(query, max_results=8)
         except Exception as e:
             print(f"  MBA Tavily search failed for {query!r}: {e}", file=sys.stderr)
             continue
         for r in results:
             url = r.get("url", "")
-            # The release URLs look like:
-            #  https://www.mba.org/news-and-research/newsroom/news/YYYY/MM/DD/
-            #     mortgage-applications-<verb>-in-latest-mba-weekly-survey
-            m = re.search(
-                r"mba\.org/.*/news/(\d{4})/(\d{2})/(\d{2})/"
-                r"mortgage-applications-[a-z-]+-in-latest-mba-weekly-survey",
-                url)
-            if m:
-                pub_date = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
-                candidates.append((pub_date, url))
+            if not url:
+                continue
+            title = (r.get("title") or "") + " " + url
+            if not re.search(r"mortgage[-\s]applications", title, re.IGNORECASE):
+                continue
+            if not re.search(r"mba[-\s]weekly[-\s]survey|weekly[-\s]applications",
+                             title, re.IGNORECASE):
+                continue
+            # Prefer a dated URL when one is present; it lets us order by recency.
+            m = re.search(r"/(\d{4})[/-](\d{2})[/-](\d{2})/", url)
+            pub_date = f"{m.group(1)}-{m.group(2)}-{m.group(3)}" if m else ""
+            candidates[url] = (_rank(url), pub_date)
+
     if not candidates:
         print("  MBA scrape: no candidate URLs found in search results", file=sys.stderr)
         return None
-    candidates.sort(reverse=True)  # newest publication date first
 
-    for pub_date, url in candidates[:3]:
+    # Newest publication date first, then by mirror preference.
+    ordered = sorted(candidates.items(), key=lambda kv: (-_date_key(kv[1][1]), kv[1][0]))
+    print(f"  MBA: {len(ordered)} candidate release URLs; trying up to 5",
+          file=sys.stderr)
+
+    # Several mirrors serve a headline/URL for one week with a body for another
+    # (their caching, not ours). The URL date is therefore only a search-order
+    # hint -- the week we record always comes from the "week ending ..."
+    # sentence in the body. Because of that we read every candidate we can and
+    # keep the one whose BODY reports the newest week, rather than trusting the
+    # first page that happens to parse.
+    parsed = []
+
+    for url, (rank, pub_date) in ordered[:5]:
         try:
-            raw = tavily_extract(url)
+            text = _get_text_resilient(url, label=f"MBA({url.split('/')[2]})")
         except Exception as e:
-            print(f"  MBA Tavily extract failed for {url}: {e}", file=sys.stderr)
+            print(f"  MBA fetch failed for {url}: {e}", file=sys.stderr)
             continue
-        text = _strip_html(raw)
         # Week-ending date
         we = _WEEK_ENDING_RX.search(text)
         if not we:
@@ -332,27 +416,34 @@ def scrape_mba_latest():
         year  = int(we.group(3))
         week_end = f"{year:04d}-{month:02d}-{day:02d}"
 
-        # Index levels (absolute) -- preferred
-        levels = {}
-        for k, rx in _INDEX_RX.items():
-            m = rx.search(text)
-            if m:
-                try:
-                    levels[k] = float(m.group(1))
-                except ValueError:
-                    pass
+        # Percent changes. The release publishes no levels, so these are what
+        # advance the chain and what validate the re-anchor.
+        def _signed(m):
+            if not m:
+                return None
+            direction = m.group(1).lower()
+            if direction.startswith("remained"):
+                return 0.0
+            if m.group(2) is None:
+                return None
+            try:
+                v = float(m.group(2))
+            except ValueError:
+                return None
+            return -v if direction.startswith("decrease") else v
 
-        # Pct changes (fallback if level missing)
         pct = {}
         for k, rx in _PCT_CHANGE_RX.items():
-            m = rx.search(text)
-            if m:
-                direction = m.group(1).lower()
-                try:
-                    v = float(m.group(2))
-                    pct[k] = -v if direction.startswith("decrease") else v
-                except ValueError:
-                    pass
+            v = _signed(rx.search(text))
+            if v is not None:
+                pct[k] = v
+        if "purchase" not in pct:
+            v = _signed(_PURCHASE_PCT_LOOSE_RX.search(text))
+            if v is not None:
+                print("  MBA: strict seasonally-adjusted Purchase pattern missed; "
+                      "used the loose pattern -- check the release wording",
+                      file=sys.stderr)
+                pct["purchase"] = v
 
         # Shares
         refi_share = None
@@ -370,22 +461,197 @@ def scrape_mba_latest():
             except ValueError:
                 pass
 
+        if pct.get("purchase") is None and pct.get("refinance") is None:
+            print(f"  MBA {url}: week-ending date parsed but no percent changes "
+                  f"found -- treating as an unusable mirror", file=sys.stderr)
+            continue
+
         out = {
             "week_end":    week_end,
             "source_url":  url,
-            "composite":   levels.get("composite"),
-            "purchase":    levels.get("purchase"),
-            "refinance":   levels.get("refinance"),
             "purchase_pct_wow":  pct.get("purchase"),
             "refinance_pct_wow": pct.get("refinance"),
             "composite_pct_wow": pct.get("composite"),
             "refi_share":  refi_share,
             "arm_share":   arm_share,
         }
-        print(f"  MBA scraped: {out}", file=sys.stderr)
-        return out
+        print(f"  MBA candidate parsed: week_end={week_end} from {url}",
+              file=sys.stderr)
+        parsed.append(out)
 
-    return None
+    if not parsed:
+        return None
+    best = max(parsed, key=lambda o: o["week_end"])
+    if len(parsed) > 1:
+        weeks = sorted({o["week_end"] for o in parsed})
+        if len(weeks) > 1:
+            print(f"  MBA: mirrors reported different weeks {weeks}; "
+                  f"taking the newest ({best['week_end']})", file=sys.stderr)
+    print(f"  MBA scraped: {best}", file=sys.stderr)
+    return best
+
+
+# ============================================ MBA level re-anchor (Cass lesson)
+#
+# The press release gives direction and magnitude but never a level, so a
+# chain built from it alone drifts: each week is rounded to a whole percent
+# (sometimes one decimal), and one missed week unanchors every week after it
+# permanently. That is exactly how Cass Freight died.
+#
+# Trading Economics republishes the actual index level and states it in a
+# server-rendered summary sentence:
+#   "MBA Purchase Index in the United States increased to 157.90 points in
+#    August 7 from 154 points in the previous week."
+# We take the level from there and use the release's percent change to CHECK
+# it. If the two disagree by more than MBA_ANCHOR_TOL_PP, we distrust the
+# anchor and fall back to the chain, loudly.
+#
+# The anchor is strictly optional: if the page is stale, unreachable, or
+# unparseable, the chain still advances and the run still succeeds. It can
+# only improve accuracy, never block the build.
+
+MBA_LEVEL_URLS = {
+    "purchase":  "https://tradingeconomics.com/united-states/mba-purchase-index",
+    "refinance": "https://tradingeconomics.com/united-states/mba-mortgage-refinance-index",
+}
+MBA_ANCHOR_TOL_PP = 2.0   # percentage points of WoW disagreement tolerated
+
+_TE_LEVEL_RX = re.compile(
+    rf"(?:increased|decreased|remained\s+unchanged\s+at|was)\s+(?:to\s+)?"
+    rf"(\d[\d,]*(?:\.\d+)?)\s*points\s+in\s+{_MONTH_RX}\s+(\d{{1,2}})",
+    re.IGNORECASE)
+
+
+def _date_key(d):
+    """Sortable int for a 'YYYY-MM-DD' string; 0 when absent/malformed."""
+    try:
+        return int(d.replace("-", ""))
+    except (AttributeError, ValueError):
+        return 0
+
+
+def scrape_mba_level(kind, expect_week_end):
+    """Best-effort actual index level for `kind` ('purchase'|'refinance').
+
+    Returns the float level only if the page's stated date matches
+    `expect_week_end`; otherwise None (the aggregator lags at times, and an
+    off-week level would silently corrupt the series).
+    """
+    url = MBA_LEVEL_URLS.get(kind)
+    if not url:
+        return None
+    try:
+        text = _get_text_resilient(url, label=f"MBA level ({kind})")
+    except Exception as e:
+        print(f"  MBA level ({kind}): fetch failed, chain-only for this week: {e}",
+              file=sys.stderr)
+        return None
+
+    m = _TE_LEVEL_RX.search(text)
+    if not m:
+        print(f"  MBA level ({kind}): summary sentence not matched at {url}",
+              file=sys.stderr)
+        return None
+    try:
+        level = float(m.group(1).replace(",", ""))
+    except ValueError:
+        return None
+
+    # The sentence omits the year. Attach the year that puts the stated
+    # month/day nearest the week we are trying to fill.
+    month, day = MONTHS[m.group(2)], int(m.group(3))
+    try:
+        target = dt.date.fromisoformat(expect_week_end)
+    except ValueError:
+        return None
+    best = min((dt.date(y, month, day) for y in (target.year - 1, target.year, target.year + 1)
+                if _valid_date(y, month, day)),
+               key=lambda d: abs((d - target).days), default=None)
+    if best is None:
+        return None
+    if best != target:
+        print(f"  MBA level ({kind}): page reports {best} but we need "
+              f"{expect_week_end} -- aggregator is behind; chain-only this week",
+              file=sys.stderr)
+        return None
+    print(f"  MBA level ({kind}): anchor {level} for {expect_week_end}", file=sys.stderr)
+    return level
+
+
+def _valid_date(y, m, d):
+    try:
+        dt.date(y, m, d)
+        return True
+    except ValueError:
+        return False
+
+
+def resolve_mba_levels(scraped, mba_hist):
+    """Turn a scraped release into {'week_end', 'refinance', 'purchase'} levels.
+
+    Chains from the last CSV row using the release's percent change, then
+    re-anchors to the published level when one is available and agrees.
+    """
+    if not scraped or not scraped.get("week_end"):
+        return None
+    week_end = scraped["week_end"]
+    if not mba_hist:
+        print("  MBA: no CSV history to chain from; cannot derive levels",
+              file=sys.stderr)
+        return None
+
+    prev_date, prev_refi, prev_pur = mba_hist[-1]
+    if prev_date >= week_end:
+        return None   # nothing newer than what we already have
+
+    gap_days = (dt.date.fromisoformat(week_end) - dt.date.fromisoformat(prev_date)).days
+    contiguous = gap_days <= 14
+    if not contiguous:
+        # The chain is void across a gap, and so is the week-over-week check
+        # that normally validates the anchor -- the "previous week" on file is
+        # not the previous week. The anchor is then the ONLY way back to a
+        # correct level, so we accept it unvalidated rather than reject it.
+        # Rejecting it here is what would make a missed week permanent.
+        print(f"  MBA WARNING: {gap_days}d gap between {prev_date} and {week_end}. "
+              f"Chaining is invalid across a gap, so this row will be taken from "
+              f"the published level alone and the WoW cross-check is skipped. "
+              f"The intervening weeks remain missing -- backfill them.",
+              file=sys.stderr)
+
+    out = {"week_end": week_end, "refinance": None, "purchase": None,
+           "level_source": {}}
+    for kind, prev, pct in (("refinance", prev_refi, scraped.get("refinance_pct_wow")),
+                            ("purchase",  prev_pur,  scraped.get("purchase_pct_wow"))):
+        chained = None
+        if prev is not None and pct is not None and contiguous:
+            chained = round(prev * (1.0 + pct / 100.0), 1)
+
+        anchor = scrape_mba_level(kind, week_end)
+        if anchor is not None and contiguous and prev is not None and pct is not None:
+            implied = (anchor / prev - 1.0) * 100.0
+            if abs(implied - pct) > MBA_ANCHOR_TOL_PP:
+                print(f"  MBA {kind}: REJECTING anchor {anchor} -- implies "
+                      f"{implied:+.1f}% WoW but MBA reported {pct:+.1f}%. "
+                      f"Falling back to the chained value.", file=sys.stderr)
+                anchor = None
+        elif anchor is not None and not contiguous:
+            print(f"  MBA {kind}: accepting anchor {anchor} unvalidated "
+                  f"(gap recovery).", file=sys.stderr)
+
+        if anchor is not None:
+            out[kind] = anchor
+            out["level_source"][kind] = "anchor"
+        elif chained is not None:
+            out[kind] = chained
+            out["level_source"][kind] = "chained"
+        else:
+            out["level_source"][kind] = "unavailable"
+
+    if out["refinance"] is None and out["purchase"] is None:
+        print("  MBA: neither index could be resolved to a level", file=sys.stderr)
+        return None
+    print(f"  MBA resolved: {out}", file=sys.stderr)
+    return out
 
 
 # ======================================================== MBA CSV upsert
@@ -1039,9 +1305,24 @@ def main():
             mba_scraped = None
     appended = False
     if mba_scraped:
-        appended = append_mba_csv(mba_scraped)
-        if appended:
-            mba_hist = load_mba_csv()  # reload
+        mba_row = resolve_mba_levels(mba_scraped, mba_hist)
+        if mba_row:
+            appended = append_mba_csv(mba_row)
+            if appended:
+                mba_hist = load_mba_csv()  # reload
+
+    # A silent no-op here is what let this series sit 12 weeks stale. Say so.
+    if not appended:
+        last = mba_hist[-1][0] if mba_hist else "never"
+        age = ((dt.date.today() - dt.date.fromisoformat(last)).days
+               if mba_hist else None)
+        msg = f"  MBA: no new week appended (CSV still ends {last}"
+        msg += f", {age}d old)" if age is not None else ")"
+        print(msg, file=sys.stderr)
+        if age is not None and age > 14:
+            print("  MBA WARNING: more than two weeks behind. The weekly survey "
+                  "publishes every Wednesday, so this is a broken scrape, not a "
+                  "quiet source. check_freshness.py will flag it.", file=sys.stderr)
 
     # Build series
     mba_refi = [(d, refi) for d, refi, _ in mba_hist if refi is not None]
