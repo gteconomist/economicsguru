@@ -85,8 +85,9 @@ TOLERANCES = {
                                      "mba_purchase":         20,
                                      "affordability_index":  75,   # NAR HAI, monthly, ~day 25
                                      "eff_rate_outstanding": 75,   # monthly, in-house seed
-                                     "mortgage_debt_out":   135,   # NY Fed HHDC, quarterly
-                                     "delinquency_rate":    135}), # Fed DRSFRMACBS, quarterly
+                                     # Quarterly tolerances = 91 (one quarter) + release lag + ~8d slack.
+                                     "mortgage_debt_out":   145,   # NY Fed HHDC, quarterly, released ~6wk after quarter end (2026Q2 = Aug 11)
+                                     "delinquency_rate":    150}), # Fed DRSFRMACBS, quarterly, released ~7wk after quarter end (2026Q1 = May 19)
 
     # ---- monthly ----------------------------------------------------------
     "labor.json":        dict(max_age_days=45,  note="Employment Situation lands ~1st Friday (R~6). JOLTS runs 2 months behind and is checked separately below.",
@@ -99,8 +100,8 @@ TOLERANCES = {
     # quarters behind.
     "consumer.json":     dict(max_age_days=48,
                               note="Conference Board confidence prints the last Tuesday of the SAME month; UMich mid-month.",
-                              watch={"debt.credit_card":        135,  # NY Fed HHDC, quarterly, ~6wk after quarter end
-                                     "delinquency.credit_card": 135}),
+                              watch={"debt.credit_card":        145,  # NY Fed HHDC, quarterly, ~6wk after quarter end
+                                     "delinquency.credit_card": 145}),
     "housing_existing.json": dict(max_age_days=62, note="NAR existing-home sales ~day 22 (R~22)."),
     "housing_new.json":  dict(max_age_days=66,  note="Census new residential sales ~day 25 (R~25)."),
     "housing_permits.json": dict(max_age_days=58, note="Census permits/starts ~day 18 (R~18)."),
