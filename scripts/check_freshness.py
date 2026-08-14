@@ -102,6 +102,18 @@ TOLERANCES = {
                               note="Conference Board confidence prints the last Tuesday of the SAME month; UMich mid-month.",
                               watch={"debt.credit_card":        145,  # NY Fed HHDC, quarterly, ~6wk after quarter end
                                      "delinquency.credit_card": 145}),
+    # The EHIs do NOT follow the quarterly formula used elsewhere in this table.
+    # They are released three times a year -- February, May and September -- so
+    # the longest gap between releases is May->September, four months, not
+    # three. The binding case is the day before the September release: the
+    # newest observation is April, whose period-end is 2026-04-30, and if that
+    # release lands mid-September the data is ~138 days old and entirely
+    # healthy. 160 = that worst case plus slack. If this ever fires, check the
+    # EHI release schedule before touching the number -- the source is far more
+    # likely to be between releases than broken.
+    "income_divide.json": dict(max_age_days=160,
+                              note="NY Fed EHIs, released Feb/May/Sep; monthly data ~1 month behind at release. "
+                                   "Longest inter-release gap is May->Sep (4 months)."),
     "housing_existing.json": dict(max_age_days=62, note="NAR existing-home sales ~day 22 (R~22)."),
     "housing_new.json":  dict(max_age_days=66,  note="Census new residential sales ~day 25 (R~25)."),
     "housing_permits.json": dict(max_age_days=58, note="Census permits/starts ~day 18 (R~18)."),

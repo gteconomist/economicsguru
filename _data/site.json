@@ -282,6 +282,30 @@
             "conference board",
             "consumer confidence"
           ]
+        },
+        {
+          "slug": "income-divide",
+          "title": "The Income Divide",
+          "nav": "Income Divide",
+          "subtitle": "How spending, inflation and unemployment diverge across the income distribution — the public evidence on the “K-shaped” economy. Real retail and food spending by income tier, the high-income sub-brackets, inflation experienced by income group, and the college unemployment gap. Source: Federal Reserve Bank of New York, Economic Heterogeneity Indicators.",
+          "card": "Spending by income tier, the spending ratio to middle-income households, high-income sub-brackets, inflation by income group, education gap.",
+          "data": "/data/income_divide.json",
+          "module": "income_divide",
+          "page": "income-divide",
+          "status": "new",
+          "keywords": [
+            "k-shaped",
+            "income divide",
+            "inequality",
+            "spending by income",
+            "low income",
+            "high income",
+            "heterogeneity",
+            "numerator",
+            "ny fed",
+            "inflation by income",
+            "college unemployment gap"
+          ]
         }
       ]
     },

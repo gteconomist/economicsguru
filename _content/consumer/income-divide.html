@@ -1,0 +1,62 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m">12 mo</button>
+    <button data-r="5y" class="active">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+
+<div class="grid">
+  <div class="card span2">
+    <div class="top"><div><div class="ct">Spending Relative to Middle-Income Households</div><div class="cs">Ratio of real retail spending index to the middle-income index, 3-month average — left: lower income (&lt;$40k); right: higher income ($125k+)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIdRatio"></canvas></div>
+    <div class="src">Source: Federal Reserve Bank of New York, Economic Heterogeneity Indicators (Numerator panel). Ratios computed by Economics Guru from the published index levels. This is the same construction used on the widely circulated bank card-spending exhibits, but a different underlying panel — it is not a reproduction of them, and the two do not currently agree.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Real Retail Spending by Income Tier</div><div class="cs">Cumulative growth index, January 2020 = 100, monthly</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIdTiers"></canvas></div>
+    <div class="src">Source: Federal Reserve Bank of New York, Economic Heterogeneity Indicators — real retail spending, excluding autos.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Real Retail Spending — Year-over-Year</div><div class="cs">% change vs. the same month a year earlier, computed from the published index levels</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIdYoy"></canvas></div>
+    <div class="src">Source: Federal Reserve Bank of New York, Economic Heterogeneity Indicators. Year-over-year calculated by Economics Guru from the index, not taken from the workbook's own year-over-year columns.</div>
+  </div>
+  <div class="card span2">
+    <div class="top"><div><div class="ct">Inside the Top — Spending by High-Income Bracket</div><div class="cs">Cumulative growth index, January 2023 = 100 — the only base on which the sub-brackets are published, so these series begin in 2023</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIdTop"></canvas></div>
+    <div class="src">Source: Federal Reserve Bank of New York, Economic Heterogeneity Indicators — real retail spending by household income bracket.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Staples — Real Food &amp; Beverage Spending by Income Tier</div><div class="cs">Cumulative growth index, January 2020 = 100 — the necessities counterweight to the retail series</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIdFoodBev"></canvas></div>
+    <div class="src">Source: Federal Reserve Bank of New York, Economic Heterogeneity Indicators — real food and beverage spending.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Inflation Actually Experienced, by Income Group</div><div class="cs">Year-over-year %, reconstructed as the headline rate plus each group's published inflation gap</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIdInflation"></canvas></div>
+    <div class="src">Source: Federal Reserve Bank of New York, Economic Heterogeneity Indicators — headline inflation and inflation gaps by income group. Group rates are the sum of the two, computed by Economics Guru.</div>
+  </div>
+  <div class="card span2">
+    <div class="top"><div><div class="ct">The Education Divide — Unemployment Gap</div><div class="cs">College minus non-college unemployment rate, percentage points; more negative = a wider advantage for college graduates</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cIdEdu"></canvas></div>
+    <div class="src">Source: Federal Reserve Bank of New York, Economic Heterogeneity Indicators — unemployment gaps by educational attainment.</div>
+  </div>
+</div>
+
+<div class="notice" style="margin-top:18px">
+  <strong>About this data.</strong> The Economic Heterogeneity Indicators are built from a
+  200,000-household consumer panel maintained by Numerator and are published by the Federal
+  Reserve Bank of New York three times a year — in February, May and September — so this page
+  updates on that schedule rather than nightly. The EHIs are not official estimates of the
+  Federal Reserve Bank of New York, its President, the Federal Reserve System, or the FOMC.
+  Cite as: Federal Reserve Bank of New York, Economic Heterogeneity Indicators,
+  <a href="https://www.newyorkfed.org/research/economic-heterogeneity-indicators">newyorkfed.org</a>.
+</div>

@@ -39,7 +39,7 @@ jobs:
       # yesterday's committed JSON rides through to deploy -- the corresponding
       # page shows yesterday's numbers for one day instead of going blank.
 
-      - name: Install openpyxl (for NY Fed HHDC .xlsx parsing)
+      - name: Install openpyxl (for NY Fed .xlsx parsing — HHDC and EHI)
         run: pip install "openpyxl>=3.1"
 
       # Must run BEFORE fetch_consumer.py and fetch_housing_mortgage_activity.py,
@@ -134,6 +134,14 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         continue-on-error: true
         run: python scripts/fetch_consumer.py
+
+      # NY Fed Economic Heterogeneity Indicators. Published only three times a
+      # year (Feb / May / Sep), so on most runs this is a no-op that re-reads
+      # the same workbook and rewrites nothing. No API key: the .xlsx sits at a
+      # stable public URL.
+      - name: Refresh Income Divide data from the NY Fed EHIs
+        continue-on-error: true
+        run: python scripts/fetch_income_divide.py
 
       - name: Refresh Treasuries / Rates data from FRED
         env:
