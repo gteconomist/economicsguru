@@ -41,6 +41,16 @@
     <div class="src">Source: US Census Bureau via FRED — HOUST, HOUST1F (and derived multi-family).</div>
   </div>
   <div class="card">
+    <div class="top"><div><div class="ct">Housing Completions</div><div class="cs">Privately-owned units completed — SAAR; total, single- and multi-family</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsCompletions"></canvas></div>
+    <div class="src">Source: US Census Bureau, Survey of Construction via FRED — COMPUTSA, COMPU1USA; multi-family derived as total minus single-family. History from January 1968.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Starts vs. Completions</div><div class="cs">Total SAAR (left) and the pipeline gap, starts minus completions (right)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cPsStartsVsComp"></canvas></div>
+    <div class="src">Source: US Census Bureau via FRED — HOUST and COMPUTSA. A positive gap means units are accumulating in the under-construction backlog; negative means the backlog is draining.</div>
+  </div>
+  <div class="card">
     <div class="top"><div><div class="ct">Permits vs. Starts</div><div class="cs">Total SAAR — permits lead starts by ~1 month</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
     <div class="plot"><canvas id="cPsPvsS"></canvas></div>
     <div class="src">Source: US Census Bureau via FRED — PERMIT and HOUST, both SAAR.</div>

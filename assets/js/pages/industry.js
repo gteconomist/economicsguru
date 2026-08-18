@@ -36,7 +36,14 @@ window.EG_PAGES.manufacturing = function (data, EG) {
     var ip = data.ip || {}, cu = data.capacity_utilization || {}, fo = data.factory_orders || {},
         sh = data.shipments || {}, ad = data.advance_durable || {}, el = data.electricity || {};
 
-    // 1. Industrial production monthly — MoM bars (3) + Total YoY line + 0% line
+    // 1. Industrial production — index LEVEL, total + manufacturing
+    var ipx = EG.tail(ip.total_index || [], n);
+    EG.newChart('cIndMfgIpIndex', { type:'line', data:{ labels:ipx.map(function(r){return EG.lab(r[0]);}), datasets:[
+      EG.line(ipx.map(function(r){return r[1];}), GOLD, { label:'Total industrial production', borderWidth:2.5 }),
+      EG.line(indAlign(ipx, ip.mfg_index), YELLOW, { label:'Manufacturing', borderWidth:2.2, spanGaps:false })
+    ]}, options:EG.singleOpts(EG.fmtIdx) });
+
+    // 2. Industrial production monthly — MoM bars (3) + Total YoY line + 0% line
     var ipm = EG.tail(ip.ip_total_mom || [], n);
     var lab1 = ipm.map(function(r){ return EG.lab(r[0]); });
     EG.newChart('cIndMfgIpMom', { type:'bar', data:{ labels:lab1, datasets:[
@@ -47,7 +54,7 @@ window.EG_PAGES.manufacturing = function (data, EG) {
       indZero(lab1)
     ]}, options:indHideZero(EG.singleOpts(EG.fmtPct1s)) });
 
-    // 2. IP long-run — YoY line (left) + MoM bars (right), dual axis
+    // 3. IP long-run — YoY line (left) + MoM bars (right), dual axis
     var ipy = EG.tail(ip.ip_total_yoy || [], n);
     var lab2 = ipy.map(function(r){ return EG.lab(r[0]); });
     var o2 = EG.dualOpts(EG.fmtPct1s, 'YoY %', EG.fmtPct1s, 'MoM %');
@@ -57,14 +64,14 @@ window.EG_PAGES.manufacturing = function (data, EG) {
       indZero(lab2, 'y')
     ]}, options:indHideZero(o2) });
 
-    // 3. Capacity utilization — Total + Mfg, line (%)
+    // 4. Capacity utilization — Total + Mfg, line (%)
     var cut = EG.tail(cu.total || [], n);
     EG.newChart('cIndMfgCapUtil', { type:'line', data:{ labels:cut.map(function(r){return EG.lab(r[0]);}), datasets:[
       EG.line(cut.map(function(r){return r[1];}), GOLD, { label:'Total index', borderWidth:2.4 }),
       EG.line(indAlign(cut, cu.mfg), YELLOW, { label:'Manufacturing', borderWidth:2.2, spanGaps:true })
     ]}, options:EG.singleOpts(EG.fmtPct1) });
 
-    // 4. Factory orders — MoM bars (6) + 0% line
+    // 5. Factory orders — MoM bars (6) + 0% line
     var fot = EG.tail(fo.total_mom || [], n);
     var lab4 = fot.map(function(r){ return EG.lab(r[0]); });
     EG.newChart('cIndMfgFactoryOrders', { type:'bar', data:{ labels:lab4, datasets:[

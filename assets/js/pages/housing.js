@@ -286,14 +286,34 @@ window.EG_PAGES['permits-starts'] = function (data, EG) {
       zeroLine(labels5)
     ]}, options:EG.singleOpts(EG.fmtPct1s) });
 
-    // 6. Permits vs Starts (totals) — line (units)
+    // 6. Completions: total / SF / MF — line (units)
+    var ct = st('completions_total', n);
+    EG.newChart('cPsCompletions', { type:'line', data:{ labels:ct.map(function(r){return EG.lab(r[0]);}), datasets:[
+      EG.line(ct.map(function(r){return r[1];}), C[0], { label:'Total completions (SAAR)', borderWidth:2.5 }),
+      EG.line(alignTo(ct, data.completions_sf), C[6], { label:'Single-family', borderWidth:2.2, spanGaps:false }),
+      EG.line(alignTo(ct, data.completions_mf), C[1], { label:'Multi-family (2+ units)', borderWidth:2.2, spanGaps:false })
+    ]}, options:EG.singleOpts(EG.fmtUnitsK) });
+
+    // 7. Starts vs Completions + pipeline gap — lines (left) / bars (right)
+    var sc = st('starts_total', n);
+    var labelsSC = sc.map(function(r){ return EG.lab(r[0]); });
+    var oSC = EG.dualOpts(EG.fmtUnitsK, 'Units (SAAR)', EG.fmtUnitsK, 'Starts − completions');
+    oSC.plugins.legend.labels.filter = function(it){ return it.text.indexOf('0 line') === -1; };
+    EG.newChart('cPsStartsVsComp', { type:'bar', data:{ labels:labelsSC, datasets:[
+      { type:'line', label:'Total starts (SAAR, left)', data:sc.map(function(r){return r[1];}), borderColor:C[0], backgroundColor:C[0], borderWidth:2.5, pointRadius:0, tension:.2, fill:false, yAxisID:'y' },
+      { type:'line', label:'Total completions (SAAR, left)', data:alignTo(sc, data.completions_total), borderColor:C[2], backgroundColor:C[2], borderWidth:2.5, pointRadius:0, tension:.2, fill:false, spanGaps:false, yAxisID:'y' },
+      { label:'Pipeline gap: starts − completions (right)', data:alignTo(sc, data.starts_completions_gap), backgroundColor:C[7], borderColor:C[7], borderWidth:1, yAxisID:'y1' },
+      { type:'line', label:'0 line', data:labelsSC.map(function(){return 0;}), borderColor:SILVER, borderWidth:1.2, borderDash:[4,4], pointRadius:0, fill:false, yAxisID:'y1' }
+    ]}, options:oSC });
+
+    // 8. Permits vs Starts (totals) — line (units)
     var pv = st('permits_total', n);
     EG.newChart('cPsPvsS', { type:'line', data:{ labels:pv.map(function(r){return EG.lab(r[0]);}), datasets:[
       EG.line(pv.map(function(r){return r[1];}), C[0], { label:'Total permits (SAAR)', borderWidth:2.5 }),
       EG.line(alignTo(pv, data.starts_total), C[2], { label:'Total starts (SAAR)', borderWidth:2.2, spanGaps:false })
     ]}, options:EG.singleOpts(EG.fmtUnitsK) });
 
-    // 7. YoY % — permits & starts + 0% line
+    // 9. YoY % — permits & starts + 0% line
     var py = st('permits_total_yoy', n);
     var labels7 = py.map(function(r){ return EG.lab(r[0]); });
     EG.newChart('cPsYoy', { type:'line', data:{ labels:labels7, datasets:[
@@ -302,7 +322,7 @@ window.EG_PAGES['permits-starts'] = function (data, EG) {
       zeroLine(labels7)
     ]}, options:EG.singleOpts(EG.fmtPct1s) });
 
-    // 8. Permits ÷ Starts ratio + equilibrium 1.0 — line (ratio)
+    // 10. Permits ÷ Starts ratio + equilibrium 1.0 — line (ratio)
     var rt = st('permits_starts_ratio', n);
     var labels8 = rt.map(function(r){ return EG.lab(r[0]); });
     EG.newChart('cPsRatio', { type:'line', data:{ labels:labels8, datasets:[

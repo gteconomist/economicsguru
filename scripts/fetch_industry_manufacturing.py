@@ -28,6 +28,7 @@ absolute generation level the chart shows, so we go to the source. Sector 99
 
 Computed series
 ---------------
+- total_index / mfg_index / mfg_ex_mv_index   index levels (2017=100, SA)
 - ip_total_mom / ip_total_yoy   percent changes computed from INDPRO levels
 - ip_mfg_mom / ip_mfg_ex_mv_mom percent changes from IPMAN / IPXXX001S
 - factory_orders M-M%           from AMTMNO / AMXTNO / ADXTNO levels
@@ -370,6 +371,8 @@ def main():
         # Industrial Production
         "ip": {
             "total_index":      to_label_pairs(indpro, decimals=2),
+            "mfg_index":        to_label_pairs(ipman,  decimals=2),
+            "mfg_ex_mv_index":  to_label_pairs(ipxmv,  decimals=2),
             "ip_total_mom":     to_label_pairs(ip_total_mom, decimals=2),
             "ip_total_yoy":     to_label_pairs(ip_total_yoy, decimals=2),
             "ip_mfg_mom":       to_label_pairs(ip_mfg_mom, decimals=2),

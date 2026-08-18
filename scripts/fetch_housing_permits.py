@@ -21,7 +21,11 @@ Why FRED and not Census EITS directly:
     HOUST1F    1-unit starts (single-family),     SAAR thousands, 1959-
     HOUST2F    2-4 unit starts,                   SAAR thousands, 1959-
     HOUST5F    5+ unit starts,                    SAAR thousands, 1959-
-  All eight are sourced from Census; using FRED gives a single consistent
+    COMPUTSA   Total housing completions,         SAAR thousands, 1968-
+    COMPU1USA  1-unit completions (single-family),SAAR thousands, 1968-
+    COMPU24USA 2-4 unit completions,              SAAR thousands, 1968-
+    COMPU5MUSA 5+ unit completions,               SAAR thousands, 1968-
+  All twelve are sourced from Census; using FRED gives a single consistent
   call pattern plus the unit-size detail Census's API doesn't expose.
 
   We also pull NSA companions (PERMITNSA, PERMIT1NSA, PERMIT24NSA, PERMIT5NSA,
@@ -35,8 +39,16 @@ both month-over-month delta (level) and year-over-year % change, plus
 derived series:
   - permits_mf_saar = PERMIT24 + PERMIT5  (full multi-family, 2+ units)
   - starts_mf_saar  = HOUST2F  + HOUST5F
-  - permits_yoy / starts_yoy           (YoY % on totals)
+  - completions_mf  = COMPUTSA - COMPU1USA  (see note below)
+  - permits_yoy / starts_yoy / completions_yoy   (YoY % on totals)
   - permits_starts_ratio               (PERMIT / HOUST, SAAR)
+  - starts_completions_gap             (HOUST - COMPUTSA, the pipeline gap)
+
+Note on multi-family completions: COMPU24USA (2-4 units) publishes on a lag
+behind the total and 1-unit series, so summing COMPU24USA + COMPU5MUSA would
+truncate the multi-family line by a month or two. We derive multi-family
+completions as TOTAL minus 1-UNIT instead, which is identically defined by
+Census (total = 1 unit + 2-4 units + 5+ units) and always current.
 
 Environment variables
 ---------------------
@@ -114,6 +126,12 @@ def sum_pairs(a, b, decimals=0):
     return out
 
 
+def diff_pairs(a, b, decimals=0):
+    """a - b on date-aligned series; only emit dates present in both."""
+    by_a = dict(a); by_b = dict(b)
+    return [(d, round(by_a[d] - by_b[d], decimals)) for d in sorted(set(by_a) & set(by_b))]
+
+
 def yoy(pairs, decimals=2):
     """Year-over-year % change as [[YYYY-MM, pct], ...]."""
     by = {d[:7]: v for d, v in pairs}
@@ -166,6 +184,11 @@ SERIES = {
     "starts_sf_saar":       "HOUST1F",
     "starts_24_saar":       "HOUST2F",
     "starts_5plus_saar":    "HOUST5F",
+    # Completions (SAAR) — Census Survey of Construction via FRED
+    "completions_total_saar":  "COMPUTSA",
+    "completions_sf_saar":     "COMPU1USA",
+    "completions_24_saar":     "COMPU24USA",
+    "completions_5plus_saar":  "COMPU5MUSA",
     # NSA (download / context)
     "permits_total_nsa":    "PERMITNSA",
     "permits_sf_nsa":       "PERMIT1NSA",
@@ -179,10 +202,20 @@ SERIES = {
 
 
 def main():
-    print("Fetching FRED permits & starts series...", file=sys.stderr)
+    print("Fetching FRED permits, starts & completions series...", file=sys.stderr)
     raw = {}
     for col, sid in SERIES.items():
-        raw[col] = fetch_fred(sid)
+        # Completions were added after the original build; if one of those IDs
+        # ever goes away upstream, degrade to an empty series rather than
+        # failing the whole run and stalling permits/starts too.
+        if col.startswith("completions_"):
+            try:
+                raw[col] = fetch_fred(sid)
+            except Exception as _e:
+                print(f"  WARN {col} ({sid}) failed: {_e}", file=sys.stderr)
+                raw[col] = []
+        else:
+            raw[col] = fetch_fred(sid)
         print(f"  {col:25} ({sid:12}) {len(raw[col])} rows "
               f"({raw[col][0][0] if raw[col] else 'n/a'} -> "
               f"{raw[col][-1][0] if raw[col] else 'n/a'})",
@@ -193,6 +226,10 @@ def main():
     permits_mf_nsa   = sum_pairs(raw["permits_24_nsa"],   raw["permits_5plus_nsa"],  1)
     starts_mf_saar   = sum_pairs(raw["starts_24_saar"],   raw["starts_5plus_saar"],  0)
     starts_mf_nsa    = sum_pairs(raw["starts_24_nsa"],    raw["starts_5plus_nsa"],   1)
+
+    # Completions multi-family = TOTAL - 1 UNIT (not 2-4 + 5+, which lags).
+    completions_mf_saar = diff_pairs(raw["completions_total_saar"],
+                                     raw["completions_sf_saar"], 0)
 
     # Chart-ready label pairs
     permits_total       = to_label_pairs(raw["permits_total_saar"],  0)
@@ -205,6 +242,11 @@ def main():
     starts_24           = to_label_pairs(raw["starts_24_saar"],      0)
     starts_5plus        = to_label_pairs(raw["starts_5plus_saar"],   0)
     starts_mf           = to_label_pairs(starts_mf_saar,             0)
+    completions_total   = to_label_pairs(raw["completions_total_saar"],  0)
+    completions_sf      = to_label_pairs(raw["completions_sf_saar"],     0)
+    completions_24      = to_label_pairs(raw["completions_24_saar"],     0)
+    completions_5plus   = to_label_pairs(raw["completions_5plus_saar"],  0)
+    completions_mf      = to_label_pairs(completions_mf_saar,            0)
 
     # NSA pairs (for CSV download)
     permits_total_nsa   = to_label_pairs(raw["permits_total_nsa"],   1)
@@ -226,8 +268,17 @@ def main():
     starts_sf_yoy       = yoy(raw["starts_sf_saar"],     2)
     starts_mf_yoy       = yoy(starts_mf_saar,            2)
 
+    completions_total_yoy = yoy(raw["completions_total_saar"], 2)
+    completions_sf_yoy    = yoy(raw["completions_sf_saar"],    2)
+    completions_mf_yoy    = yoy(completions_mf_saar,           2)
+
     # Permits-to-starts ratio (SAAR totals)
     p_s_ratio           = ratio_pairs(raw["permits_total_saar"], raw["starts_total_saar"], 3)
+
+    # Pipeline gap: starts above completions = units piling into the
+    # under-construction backlog; below = the backlog is draining.
+    starts_completions_gap = to_label_pairs(
+        diff_pairs(raw["starts_total_saar"], raw["completions_total_saar"], 0), 0)
 
     # Latest month label (max across SAAR series — they should all match)
     latest_label = max(
@@ -248,6 +299,12 @@ def main():
         "starts_mf":          starts_mf,
         "starts_24":          starts_24,
         "starts_5plus":       starts_5plus,
+        # ---- Completions (SAAR thousands) ----
+        "completions_total":  completions_total,
+        "completions_sf":     completions_sf,
+        "completions_mf":     completions_mf,      # total - 1 unit
+        "completions_24":     completions_24,
+        "completions_5plus":  completions_5plus,
         # ---- NSA companions (CSV download) ----
         "permits_total_nsa":  permits_total_nsa,
         "permits_sf_nsa":     permits_sf_nsa,
@@ -266,7 +323,11 @@ def main():
         "starts_total_yoy":   starts_total_yoy,
         "starts_sf_yoy":      starts_sf_yoy,
         "starts_mf_yoy":      starts_mf_yoy,
+        "completions_total_yoy": completions_total_yoy,
+        "completions_sf_yoy":    completions_sf_yoy,
+        "completions_mf_yoy":    completions_mf_yoy,
         "permits_starts_ratio": p_s_ratio,
+        "starts_completions_gap": starts_completions_gap,
         # ---- KPIs (level + MoM + YoY %) ----
         "kpis": {
             "permits_total":  kpi_full(permits_total,  0),
@@ -275,6 +336,9 @@ def main():
             "starts_total":   kpi_full(starts_total,   0),
             "starts_sf":      kpi_full(starts_sf,      0),
             "starts_mf":      kpi_full(starts_mf,      0),
+            "completions_total": kpi_full(completions_total, 0),
+            "completions_sf":    kpi_full(completions_sf,    0),
+            "completions_mf":    kpi_full(completions_mf,    0),
         },
         "latest_label":   latest_label,
         "build_time":     dt.datetime.utcnow().isoformat(timespec="seconds") + "Z",
