@@ -15286,7 +15286,7 @@
   "mba_latest_week": "2026-08-07",
   "mba_refi_share": 40.7,
   "mba_arm_share": 7.9,
-  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/08/12/mortgage-applications-increase-in-latest-mba-weekly-survey",
+  "mba_latest_source": "https://www.redbooklumberdata.com/2026/08/12/mortgage-applications-increase-in-latest-mba-weekly-survey-51",
   "mortgage_30y": [
     [
       "1971-04-02",
@@ -68341,7 +68341,7 @@
     }
   },
   "latest_label": "2026-08-07",
-  "build_time": "2026-08-18T19:45:46Z",
+  "build_time": "2026-08-19T13:26:46Z",
   "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
