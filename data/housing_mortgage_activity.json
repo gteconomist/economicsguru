@@ -7639,6 +7639,10 @@
     [
       "2026-08-07",
       157.9
+    ],
+    [
+      "2026-08-14",
+      154.8
     ]
   ],
   "mba_refinance": [
@@ -15281,12 +15285,16 @@
     [
       "2026-08-07",
       744.4
+    ],
+    [
+      "2026-08-14",
+      755.9
     ]
   ],
-  "mba_latest_week": "2026-08-07",
-  "mba_refi_share": 43.2,
-  "mba_arm_share": 7.1,
-  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/07/15/mortgage-applications-decrease-in-latest-mba-weekly-survey",
+  "mba_latest_week": "2026-08-14",
+  "mba_refi_share": 41.9,
+  "mba_arm_share": 7.7,
+  "mba_latest_source": "https://www.redbooklumberdata.com/2026/08/19/mortgage-applications-decrease-in-latest-mba-weekly-survey-63",
   "mortgage_30y": [
     [
       "1971-04-02",
@@ -68312,28 +68320,28 @@
     },
     "spread_30y_10y": {
       "value": 1.97,
-      "delta": -0.03,
+      "delta": -0.02,
       "label": "2026-08-20"
     },
     "purchase_index": {
-      "value": 157.9,
-      "delta": 3.9,
-      "label": "2026-08-07"
+      "value": 154.8,
+      "delta": -3.1,
+      "label": "2026-08-14"
     },
     "refinance_index": {
-      "value": 744.4,
-      "delta": 35.3,
-      "label": "2026-08-07"
+      "value": 755.9,
+      "delta": 11.5,
+      "label": "2026-08-14"
     },
     "refi_share": {
-      "value": 43.2,
+      "value": 41.9,
       "delta": null,
-      "label": "2026-07-10"
+      "label": "2026-08-14"
     },
     "arm_share": {
-      "value": 7.1,
+      "value": 7.7,
       "delta": null,
-      "label": "2026-07-10"
+      "label": "2026-08-14"
     },
     "delinquency_rate": {
       "value": 1.89,
@@ -68356,16 +68364,16 @@
       "label": "2024-12-31"
     }
   },
-  "latest_label": "2026-08-07",
-  "build_time": "2026-08-20T18:10:59Z",
-  "csv_rows_appended_this_run": 0,
+  "latest_label": "2026-08-14",
+  "build_time": "2026-08-21T13:25:07Z",
+  "csv_rows_appended_this_run": 1,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
   "eff_rate_rows": 591,
   "debt_csv_rows": 110,
   "debt_latest_quarter": "2026-06-30",
   "csv_baseline_loaded": true,
-  "mba_history_rows": 1910,
+  "mba_history_rows": 1911,
   "hai_csv_loaded": true,
   "hai_csv_rows": 547,
   "hai_csv_rows_appended_this_run": 0,
