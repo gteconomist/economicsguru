@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-08-25T13:56:11.600585Z",
+  "build_time": "2026-08-25T18:12:15.683909Z",
   "checked_date": "2026-08-25",
   "stale_count": 0,
   "stale": [],
@@ -196,20 +196,20 @@
       "latest": "2026-07-31",
       "age_days": 25,
       "max_age_days": 55,
-      "build_age_days": 0,
+      "build_age_days": 12,
       "note": "CPI ~day 13 of the following month (R~13).",
-      "wrote_this_run": true,
-      "consecutive_misses": 0
+      "wrote_this_run": false,
+      "consecutive_misses": 1
     },
     "labor.json": {
       "status": "ok",
       "latest": "2026-07-31",
       "age_days": 25,
       "max_age_days": 45,
-      "build_age_days": 0,
+      "build_age_days": 18,
       "note": "Employment Situation lands ~1st Friday (R~6). JOLTS runs 2 months behind and is checked separately below.",
-      "wrote_this_run": true,
-      "consecutive_misses": 0,
+      "wrote_this_run": false,
+      "consecutive_misses": 1,
       "watch": {
         "jolts_openings": {
           "status": "ok",
@@ -252,10 +252,10 @@
       "latest": "2026-07-31",
       "age_days": 25,
       "max_age_days": 58,
-      "build_age_days": 0,
+      "build_age_days": 12,
       "note": "PPI ~day 16 (R~16).",
-      "wrote_this_run": true,
-      "consecutive_misses": 0
+      "wrote_this_run": false,
+      "consecutive_misses": 1
     },
     "treasuries.json": {
       "status": "ok",
