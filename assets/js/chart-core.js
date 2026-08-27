@@ -36,6 +36,69 @@ window.EG = (function () {
         });
       }
     });
+    // ---- x-axis labels: anchor on the LATEST point, work backwards ----
+    // Chart.js' autoSkip thins tick labels forward from the FIRST point, so the
+    // most recent period often ends up unlabeled (Jun reading as the last label
+    // when Jul is the last bar). This replaces it for every category x axis,
+    // site-wide, on screen and in the PNG exports:
+    //   1. if every label fits, label every point (a 12-month chart gets 12
+    //      labels) — shrinking the tick font a little, never below MIN_FONT,
+    //      rather than dropping a label on a narrow card;
+    //   2. only when that fails, thin them at a round stride (2, 3, 4, 6, 12 ...
+    //      periods; quarterly axes get a quarter-friendly set) sized to leave
+    //      comfortable whitespace, walking BACKWARDS from the last point — so
+    //      the latest period is always labeled and the cadence lands on the same
+    //      month/quarter each year.
+    // Skipped labels are blanked, not removed, so gridlines and the vertical
+    // event-line / shading plugins still see every index.
+    var STRIDES_M = [1,2,3,4,6,12,18,24,36,48,60,120,180,240,360,600,1200];
+    var STRIDES_Q = [1,2,4,8,12,20,40,60,80,120,200,400];
+    var MIN_FONT = 9;    // smallest tick font we'll shrink to in order to keep every label
+    var FIT_MAX  = 14;   // ...and the most labels we'll shrink to fit (about a year of months)
+    function anchorXTicks(scale){
+      try{
+        if(!scale || typeof scale.isHorizontal !== 'function' || !scale.isHorizontal()) return;
+        var ticks = scale.ticks; if(!ticks || ticks.length < 3) return;
+        var o = scale.options && scale.options.ticks; if(!o) return;
+        if(o.autoSkip !== false) o.autoSkip = false;               // we do the thinning
+        // maxTicksLimit also drives Chart.js' label-measuring sample; left set, it
+        // reads the last label as 0-wide and clips it off the right edge.
+        if(o.maxTicksLimit != null) o.maxTicksLimit = undefined;
+        var avail = scale.width; if(!avail) return;
+        var n = ticks.length, i;
+        var f = o.font, size = (f && f.size) || Chart.defaults.font.size || 12;
+        if(f && typeof f.size === 'number'){                       // undo any earlier shrink
+          if(scale.$xFont == null) scale.$xFont = f.size;
+          size = scale.$xFont; if(f.size !== size) f.size = size;
+        }
+        var txt = [];
+        for(i=0;i<n;i++){ var L = ticks[i].label; if(L == null) L = '';
+          txt.push(Array.isArray(L) ? L.join(' ') : String(L)); }
+        var ctx = scale.ctx, prev = ctx.font, wide = 0;
+        ctx.font = (f && f.weight ? f.weight+' ' : '') + size + 'px ' +
+                   ((f && f.family) || Chart.defaults.font.family || 'sans-serif');
+        for(i=0;i<n;i++){ var m = ctx.measureText(txt[i]).width; if(m > wide) wide = m; }
+        ctx.font = prev;
+        if(!wide) return;
+        var per = wide/size;                                       // label width per px of font
+        if(n * (wide + Math.max(5, size*0.6)) <= avail) return;    // 1. everything fits as-is
+        if(n <= FIT_MAX && f && typeof f.size === 'number'){        //    ...or fits a bit smaller
+          var fit = Math.floor((avail / (n * (per + 0.55))) * 2) / 2;
+          if(fit > size) fit = size;
+          if(fit >= MIN_FONT){ f.size = fit; return; }
+        }
+        var budget = Math.max(2, Math.floor(avail / (wide*1.9)));  // 2. thin, comfortably
+        var need = Math.ceil(n / budget);
+        var nice = /^Q[1-4]/.test(txt[n-1]) ? STRIDES_Q : STRIDES_M, stride = 0;
+        for(i=0;i<nice.length;i++){ if(nice[i] >= need){ stride = nice[i]; break; } }
+        if(!stride) stride = need;
+        var keep = {};
+        for(i = n-1; i >= 0; i -= stride) keep[i] = 1;             // <- newest first, walk back
+        for(i = 0; i < n; i++){ if(!keep[i]) ticks[i].label = ''; }
+      }catch(e){ /* tick cosmetics must never break a chart */ }
+    }
+    Chart.defaults.scales.category.afterTickToLabelConversion = anchorXTicks;
+
     // Vertical event lines at named dates (e.g. debt-trillion crossings, QE/QT).
     // Per-chart config via options.plugins.verticalEventLines = {events, origDates}.
     Chart.register({
@@ -119,6 +182,8 @@ window.EG = (function () {
   }
   function baseScales(pct){
     return {
+      // autoSkip/maxTicksLimit are a fallback only: anchorXTicks() turns them off
+      // at build time and thins the labels backwards from the latest point instead.
       x:{ grid:{display:false}, ticks:{ maxRotation:0, autoSkip:true, maxTicksLimit:8, font:{size:11} } },
       y:{ grid:grid, border:{display:false}, ticks:{ font:{size:11}, callback:function(v){return pct?fmtPctAxis(v):v;} } }
     };
