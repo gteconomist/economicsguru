@@ -1,20 +1,18 @@
 {
-  "build_time": "2026-08-27T18:12:19.262727Z",
+  "build_time": "2026-08-27T22:55:38.098979Z",
   "checked_date": "2026-08-27",
-  "stale_count": 1,
-  "stale": [
-    "commodities.json: fetch step has failed to write 3 runs in a row (file on disk dates from 2026-08-26) -- check that step's log"
-  ],
+  "stale_count": 0,
+  "stale": [],
   "datasets": {
     "commodities.json": {
-      "status": "STALE",
-      "latest": "2026-08-25",
-      "age_days": 2,
+      "status": "ok",
+      "latest": "2026-08-26",
+      "age_days": 1,
       "max_age_days": 8,
-      "build_age_days": 1,
+      "build_age_days": 0,
       "note": "Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier).",
-      "wrote_this_run": false,
-      "consecutive_misses": 3
+      "wrote_this_run": true,
+      "consecutive_misses": 0
     },
     "consumer.json": {
       "status": "ok",
@@ -62,8 +60,8 @@
     },
     "government.json": {
       "status": "ok",
-      "latest": "2026-08-25",
-      "age_days": 2,
+      "latest": "2026-08-26",
+      "age_days": 1,
       "max_age_days": 20,
       "build_age_days": 0,
       "note": "Treasury Fiscal Data updates near-daily; Monthly Treasury Statement ~day 8.",
