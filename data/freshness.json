@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-08-27T11:56:35.256401Z",
+  "build_time": "2026-08-27T13:28:03.109975Z",
   "checked_date": "2026-08-27",
   "stale_count": 0,
   "stale": [],
@@ -12,7 +12,7 @@
       "build_age_days": 1,
       "note": "Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier).",
       "wrote_this_run": false,
-      "consecutive_misses": 1
+      "consecutive_misses": 2
     },
     "consumer.json": {
       "status": "ok",
@@ -259,8 +259,8 @@
     },
     "treasuries.json": {
       "status": "ok",
-      "latest": "2026-08-26",
-      "age_days": 1,
+      "latest": "2026-08-27",
+      "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily H.15 yields; 6d covers a long holiday weekend.",

@@ -68377,8 +68377,8 @@
     }
   },
   "latest_label": "2026-08-21",
-  "build_time": "2026-08-27T11:55:49Z",
-  "csv_rows_appended_this_run": 1,
+  "build_time": "2026-08-27T13:27:12Z",
+  "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
   "eff_rate_rows": 591,
