@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+           xsi:type="TaskPaneApp">
+  <Id>73a31667-da05-48f3-94c6-ad9af454b07e</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>Economic Impact Group</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Economics Guru PowerTools"/>
+  <Description DefaultValue="Insert live Economics Guru charts into your slides and refresh them all to the latest data with one click."/>
+  <IconUrl DefaultValue="https://economicsguru.com/powertools/assets/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://economicsguru.com/powertools/assets/icon-80.png"/>
+  <SupportUrl DefaultValue="https://economicsguru.com/about/"/>
+  <AppDomains>
+    <AppDomain>https://economicsguru.com</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Presentation"/>
+  </Hosts>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://economicsguru.com/powertools/taskpane.html"/>
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Presentation">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="EG.Group">
+                <Label resid="EG.GroupLabel"/>
+                <Icon>
+                  <bt:Image size="16" resid="EG.Icon16"/>
+                  <bt:Image size="32" resid="EG.Icon32"/>
+                  <bt:Image size="80" resid="EG.Icon80"/>
+                </Icon>
+                <Control xsi:type="Button" id="EG.TaskpaneButton">
+                  <Label resid="EG.ButtonLabel"/>
+                  <Supertip>
+                    <Title resid="EG.ButtonLabel"/>
+                    <Description resid="EG.ButtonTip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="EG.Icon16"/>
+                    <bt:Image size="32" resid="EG.Icon32"/>
+                    <bt:Image size="80" resid="EG.Icon80"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>EG.Taskpane</TaskpaneId>
+                    <SourceLocation resid="EG.TaskpaneUrl"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="EG.Icon16" DefaultValue="https://economicsguru.com/powertools/assets/icon-16.png"/>
+        <bt:Image id="EG.Icon32" DefaultValue="https://economicsguru.com/powertools/assets/icon-32.png"/>
+        <bt:Image id="EG.Icon80" DefaultValue="https://economicsguru.com/powertools/assets/icon-80.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="EG.TaskpaneUrl" DefaultValue="https://economicsguru.com/powertools/taskpane.html"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="EG.GroupLabel" DefaultValue="Economics Guru"/>
+        <bt:String id="EG.ButtonLabel" DefaultValue="Chart Panel"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="EG.ButtonTip" DefaultValue="Open the Economics Guru chart panel: insert live charts and refresh every chart in this deck to the latest data."/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>
