@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PowerTools — Economics Guru</title>
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;900&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+  :root{ --bg:#04263f; --bg2:#062f4f; --ink:#e8eef4; --muted:#9fb1c2; --brand:#B3A369; --line:rgba(255,255,255,.12); }
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:"Source Sans Pro",sans-serif; color:var(--ink); background:var(--bg); line-height:1.55; }
+  .wrap{ max-width:760px; margin:0 auto; padding:44px 22px 80px; }
+  h1{ font-family:"Source Serif 4",Georgia,serif; font-size:34px; margin:0 0 6px; color:#fff; }
+  h1 .g{ color:var(--brand); }
+  .lede{ color:var(--muted); font-size:16px; margin:0 0 34px; }
+  h2{ font-family:"Source Serif 4",Georgia,serif; font-size:21px; color:#fff; margin:38px 0 10px; }
+  p{ margin:10px 0; color:#dbe5ee; }
+  a{ color:var(--brand); }
+  ol{ padding-left:22px; } li{ margin:8px 0; color:#dbe5ee; }
+  code, pre{ font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:13px; }
+  code{ background:var(--bg2); border:1px solid var(--line); border-radius:5px; padding:1px 6px; }
+  pre{ background:var(--bg2); border:1px solid var(--line); border-radius:10px; padding:14px 16px; overflow-x:auto; color:#e8eef4; }
+  .card{ border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.03); padding:18px 20px; margin:16px 0; }
+  .btn{ display:inline-block; font-weight:700; font-size:14px; border-radius:8px; padding:10px 16px; text-decoration:none;
+    border:1px solid var(--brand); background:var(--brand); color:var(--bg); }
+  .btn.ghost{ background:transparent; color:var(--brand); margin-left:8px; }
+  .note{ color:var(--muted); font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Economics <span class="g">Guru</span> PowerTools</h1>
+  <p class="lede">Live charts inside PowerPoint. Insert any chart from this site onto a slide, and refresh every chart in a deck to the latest data with one click — no more cut-and-paste.</p>
+
+  <p>
+    <a class="btn" href="/powertools/manifest.xml" download="economicsguru-powertools.xml">Download the add-in file</a>
+    <a class="btn ghost" href="/refresh/">Or use the Deck Refresher →</a>
+  </p>
+
+  <h2>Install on your Mac (one time, ~1 minute)</h2>
+  <div class="card">
+    <p>Open <b>Terminal</b> (Cmd-Space, type “Terminal”, Enter) and paste these three lines:</p>
+<pre>cd ~/Library/Containers/com.microsoft.Powerpoint/Data/Documents
+mkdir -p wef
+curl -o wef/economicsguru-powertools.xml https://economicsguru.com/powertools/manifest.xml</pre>
+    <p>Then quit PowerPoint fully (Cmd-Q) and reopen it. If the <b>Chart Panel</b> button doesn’t appear on the <b>Home</b> tab, open <b>Insert&nbsp;→&nbsp;Add-ins&nbsp;→&nbsp;My Add-ins</b> and pick <b>Economics Guru PowerTools</b>.</p>
+    <p class="note">This “sideloads” the add-in for your machine only — nothing goes through Microsoft, and there is nothing to pay for or approve.</p>
+  </div>
+
+  <h2>Using it</h2>
+  <ol>
+    <li><b>Insert a chart:</b> on any slide, open the Chart Panel (Home tab), find your chart, pick range / light-or-dark / series, and click <b>Insert on Current Slide</b>. The chart drops in as a crisp branded image, invisibly tagged with its own recipe.</li>
+    <li><b>Before a talk:</b> open the deck, open the Chart Panel, click <b>Refresh All Charts</b>. Every tagged chart is redrawn with the site’s latest data — positions, sizes, and slide layouts untouched.</li>
+    <li><b>Hands-free:</b> tick <b>Auto-refresh when this deck opens</b> and save the deck. From then on, opening that file reopens the panel and updates every chart automatically.</li>
+  </ol>
+
+  <h2>No add-in handy? Use the Deck Refresher</h2>
+  <p>On any computer with a browser, drop a .pptx onto the <a href="/refresh/">Deck Refresher</a> and download it back with every tagged chart updated. Nothing is uploaded — it all happens in your browser.</p>
+
+  <p class="note">Charts update nightly from BLS, BEA, Census, Federal Reserve, and other public sources — see <a href="/about/">methodology</a>.</p>
+</div>
+</body>
+</html>
