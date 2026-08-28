@@ -1,19 +1,17 @@
 {
-  "build_time": "2026-08-28T20:56:13.285608Z",
+  "build_time": "2026-08-28T21:08:14.793613Z",
   "checked_date": "2026-08-28",
-  "stale_count": 1,
-  "stale": [
-    "commodities.json: fetch step has failed to write 4 runs in a row (file on disk dates from 2026-08-27) -- check that step's log"
-  ],
+  "stale_count": 0,
+  "stale": [],
   "datasets": {
     "commodities.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-08-26",
       "age_days": 2,
       "max_age_days": 8,
-      "build_age_days": 1,
+      "build_age_days": null,
       "note": "Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier).",
-      "wrote_this_run": false,
+      "wrote_this_run": null,
       "consecutive_misses": 4
     },
     "consumer.json": {
