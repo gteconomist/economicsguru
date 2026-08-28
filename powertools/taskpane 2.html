@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Economics Guru PowerTools</title>
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;900&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<!--
+  Economics Guru PowerTools — PowerPoint task pane (/powertools/taskpane.html)
+
+  Runs inside PowerPoint (sideloaded via powertools/manifest.xml).
+  - Library of every chart in the shared registry (assets/js/chart-registry.js)
+    with range / theme / series options; Insert renders the branded PNG
+    offscreen (assets/js/powertools-render.js) and places it on the slide.
+  - Every inserted picture carries a shape tag EGCHART = "EGCHART|<embed URL>",
+    so "Refresh All" (here) and the Deck Refresher page (/refresh/) can redraw
+    it with the latest data at any time.
+  - "Auto-refresh when this deck opens" stores a flag in the document +
+    Office's auto-show-taskpane setting, replicating the Moody's Power Tools
+    open-and-update behavior.
+-->
+<script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+<style>
+  :root{ --bg:#04263f; --bg2:#062f4f; --ink:#e8eef4; --muted:#9fb1c2; --brand:#B3A369; --line:rgba(255,255,255,.12); --err:#e04f39; --ok:#7fbf7f; }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{ font-family:"Source Sans Pro",sans-serif; font-size:13px; color:var(--ink); background:var(--bg); display:flex; flex-direction:column; }
+  header{ padding:12px 14px 10px; border-bottom:1px solid var(--line); }
+  h1{ font-family:"Source Serif 4",Georgia,serif; font-size:17px; margin:0; color:#fff; }
+  h1 .g{ color:var(--brand); }
+  .lede{ margin:2px 0 0; color:var(--muted); font-size:11.5px; }
+
+  .refreshbar{ padding:10px 14px; border-bottom:1px solid var(--line); display:flex; flex-direction:column; gap:8px; }
+  .btn{ font:inherit; font-weight:700; font-size:13px; cursor:pointer; border-radius:8px; padding:9px 12px;
+    border:1px solid var(--brand); background:var(--brand); color:var(--bg); width:100%; }
+  .btn.ghost{ background:transparent; color:var(--brand); }
+  .btn:disabled{ opacity:.45; cursor:default; }
+  .btn:not(:disabled):active{ transform:translateY(1px); }
+  .auto{ display:flex; align-items:flex-start; gap:7px; color:var(--muted); font-size:11.5px; line-height:1.35; cursor:pointer; }
+  .auto input{ accent-color:var(--brand); margin-top:1px; }
+
+  #status{ padding:8px 14px; font-size:11.5px; color:var(--muted); border-bottom:1px solid var(--line);
+    max-height:110px; overflow:auto; display:none; white-space:pre-wrap; line-height:1.45; }
+  #status.show{ display:block; }
+  #status .ok{ color:var(--ok); } #status .err{ color:var(--err); }
+
+  .search{ margin:10px 14px 8px; display:flex; align-items:center; gap:8px; background:var(--bg2);
+    border:1px solid rgba(255,255,255,.18); border-radius:8px; padding:6px 9px; }
+  .search input{ flex:1; background:transparent; border:0; color:var(--ink); font:inherit; font-size:12.5px; outline:none; }
+
+  #library{ flex:1 1 auto; overflow:auto; padding:0 8px 30px; }
+  .grp{ margin:2px 0; }
+  .ghdr{ display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; font-size:11px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:7px 6px; }
+  .ghdr .car{ width:9px; color:#7f93a6; transition:transform .12s; }
+  .ghdr.col .car{ transform:rotate(-90deg); }
+  .ghdr .gc{ margin-left:auto; color:#6f859b; font-weight:600; }
+  .chart{ border-radius:8px; margin:1px 0; }
+  .chart > .row{ display:flex; align-items:flex-start; gap:8px; padding:6px 8px; cursor:pointer; border-radius:8px; }
+  .chart > .row:hover{ background:rgba(255,255,255,.05); }
+  .chart.open > .row{ background:rgba(255,255,255,.06); }
+  .chart .t{ font-size:12.5px; color:#dbe5ee; line-height:1.3; }
+  .chart.open .t{ color:#fff; font-weight:600; }
+  .opts{ display:none; padding:4px 8px 10px; border-left:2px solid var(--brand); margin:0 0 4px 10px; }
+  .chart.open .opts{ display:block; }
+  .optrow{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin:6px 0; }
+  .optrow .l{ font-size:11px; color:var(--muted); min-width:38px; }
+  select{ font:inherit; font-size:12px; background:var(--bg2); color:var(--ink); border:1px solid rgba(255,255,255,.18); border-radius:6px; padding:4px 6px; }
+  .seg2{ display:inline-flex; border:1px solid rgba(255,255,255,.18); border-radius:6px; overflow:hidden; }
+  .seg2 button{ font:inherit; font-size:11.5px; font-weight:700; padding:4px 9px; background:transparent; color:var(--muted); border:0; cursor:pointer; }
+  .seg2 button.on{ background:var(--brand); color:var(--bg); }
+  .series{ display:flex; flex-direction:column; gap:3px; margin:4px 0 8px; }
+  .series label{ font-size:11.5px; color:#cdd8e2; display:flex; align-items:flex-start; gap:6px; cursor:pointer; line-height:1.3; }
+  .series input{ accent-color:var(--brand); margin-top:1px; }
+  .insbtn{ padding:7px 10px; font-size:12px; }
+  #notppt{ display:none; padding:26px 18px; color:var(--muted); font-size:13px; line-height:1.5; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Economics <span class="g">Guru</span> PowerTools</h1>
+  <p class="lede">Insert live charts. Refresh them all before every talk.</p>
+</header>
+
+<div class="refreshbar">
+  <button class="btn" id="refreshBtn" disabled>Refresh All Charts</button>
+  <label class="auto"><input type="checkbox" id="autoChk">
+    <span>Auto-refresh when this deck opens <span style="opacity:.75">(also reopens this panel with the deck)</span></span></label>
+</div>
+
+<div id="status"></div>
+
+<div class="search">
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9fb1c2" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+  <input id="search" placeholder="Search charts…" autocomplete="off">
+</div>
+<div id="library"></div>
+
+<div id="notppt">This panel runs inside PowerPoint. Open it from the <b>Home</b> tab → <b>Chart Panel</b> button after installing the Economics Guru PowerTools add-in.</div>
+
+<script src="/assets/js/chart-registry.js"></script>
+<script src="/assets/js/powertools-render.js"></script>
+<script>
+(function () {
+  'use strict';
+  var REG = window.EG_CHART_REGISTRY;
+  var PT = window.EG_POWERTOOLS;
+  var TAG = PT.TAG_NAME;                       // "EGCHART"
+  var AUTO_KEY = 'EG_AutoRefreshOnOpen';
+  var busy = false;
+
+  // ---------------- status log ----------------
+  var statusEl = document.getElementById('status');
+  function log(msg, cls) {
+    statusEl.classList.add('show');
+    var line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.textContent = msg;
+    statusEl.appendChild(line);
+    statusEl.scrollTop = statusEl.scrollHeight;
+  }
+  function clearLog(){ statusEl.innerHTML=''; }
+
+  // ---------------- library UI ----------------
+  var state = {};  // chartKey -> {range, theme, series[]}
+  function st(chart){
+    return state[chart.key] || (state[chart.key] = {
+      range:'max', theme:'light',
+      series: chart.series.filter(function(s){return !s.off;}).map(function(s){return s.key;})
+    });
+  }
+  function embedUrl(group, chart, s){
+    var qs = ['chart='+chart.key, 'range='+s.range, 'theme='+s.theme];
+    if (s.series.length && s.series.length < chart.series.length) qs.push('series='+s.series.join(','));
+    return group.embed.replace(/\/$/,'') + '/?' + qs.join('&');
+  }
+
+  function esc(x){ var d=document.createElement('div'); d.textContent=x==null?'':x; return d.innerHTML; }
+
+  function buildLibrary(){
+    var lib = document.getElementById('library');
+    REG.groups.forEach(function(group){
+      var sec = document.createElement('div'); sec.className='grp';
+      var rows = group.charts.map(function(chart){
+        return '<div class="chart" data-key="'+chart.key+'" data-text="'+esc((chart.title+' '+group.label).toLowerCase())+'">'+
+          '<div class="row"><span class="t">'+esc(chart.title)+'</span></div>'+
+          '<div class="opts"></div></div>';
+      }).join('');
+      sec.innerHTML = '<div class="ghdr col"><span class="car">▾</span>'+esc(group.label)+
+        '<span class="gc">'+group.charts.length+'</span></div>'+
+        '<div class="rows" style="display:none">'+rows+'</div>';
+      lib.appendChild(sec);
+
+      sec.querySelector('.ghdr').addEventListener('click', function(){
+        var rowsEl = sec.querySelector('.rows'), open = rowsEl.style.display==='none';
+        rowsEl.style.display = open ? '' : 'none';
+        sec.querySelector('.ghdr').classList.toggle('col', !open);
+      });
+      group.charts.forEach(function(chart){
+        var el = sec.querySelector('.chart[data-key="'+chart.key+'"]');
+        el.querySelector('.row').addEventListener('click', function(){
+          var was = el.classList.contains('open');
+          document.querySelectorAll('.chart.open').forEach(function(x){ x.classList.remove('open'); });
+          if (!was){ el.classList.add('open'); renderOpts(el, group, chart); }
+        });
+      });
+    });
+
+    document.getElementById('search').addEventListener('input', function(e){
+      var q = e.target.value.trim().toLowerCase();
+      document.querySelectorAll('.grp').forEach(function(sec){
+        var any=false;
+        sec.querySelectorAll('.chart').forEach(function(c){
+          var hit = !q || c.dataset.text.indexOf(q) > -1;
+          c.style.display = hit ? '' : 'none'; if(hit) any=true;
+        });
+        sec.style.display = any ? '' : 'none';
+        if (q && any){ sec.querySelector('.rows').style.display=''; sec.querySelector('.ghdr').classList.remove('col'); }
+      });
+    });
+  }
+
+  function renderOpts(el, group, chart){
+    var s = st(chart), box = el.querySelector('.opts');
+    var ranges = (REG.ranges||['6m','12m','5y','10y','20y','max']).map(function(r){
+      return '<option'+(r===s.range?' selected':'')+'>'+r+'</option>';
+    }).join('');
+    var series = chart.series.map(function(ser){
+      var on = s.series.indexOf(ser.key)!==-1;
+      return '<label><input type="checkbox" data-series="'+ser.key+'"'+(on?' checked':'')+'>'+esc(ser.label)+'</label>';
+    }).join('');
+    box.innerHTML =
+      '<div class="optrow"><span class="l">Range</span><select data-ctl="range">'+ranges+'</select>'+
+      '<span class="seg2"><button data-theme="light"'+(s.theme==='light'?' class="on"':'')+'>Light</button>'+
+      '<button data-theme="dark"'+(s.theme==='dark'?' class="on"':'')+'>Dark</button></span></div>'+
+      '<div class="series">'+series+'</div>'+
+      '<button class="btn insbtn" data-ins>Insert on Current Slide</button>';
+
+    box.querySelector('[data-ctl="range"]').addEventListener('change', function(e){ s.range=e.target.value; });
+    box.querySelectorAll('.seg2 button').forEach(function(b){
+      b.addEventListener('click', function(){
+        s.theme = b.dataset.theme;
+        box.querySelectorAll('.seg2 button').forEach(function(x){ x.classList.toggle('on', x===b); });
+      });
+    });
+    box.querySelectorAll('input[data-series]').forEach(function(cb){
+      cb.addEventListener('change', function(){
+        s.series = Array.prototype.map.call(box.querySelectorAll('input[data-series]:checked'), function(x){ return x.dataset.series; });
+        if (!s.series.length){ cb.checked=true; s.series=[cb.dataset.series]; }
+      });
+    });
+    box.querySelector('[data-ins]').addEventListener('click', function(){
+      insertChart(group, chart, s, box.querySelector('[data-ins]'));
+    });
+  }
+
+  // ---------------- Office plumbing ----------------
+  function setSelectedImage(base64, opts){
+    return new Promise(function(res, rej){
+      var o = Object.assign({ coercionType: Office.CoercionType.Image }, opts || {});
+      Office.context.document.setSelectedDataAsync(base64, o, function(r){
+        if (r.status === Office.AsyncResultStatus.Succeeded) res();
+        else rej(new Error(r.error ? r.error.message : 'Insert failed'));
+      });
+    });
+  }
+  function goToSlideIndex(index1){          // 1-based slide index
+    return new Promise(function(res){
+      Office.context.document.goToByIdAsync(index1, Office.GoToType.Index, function(){ res(); });
+    });
+  }
+  function tagSelectedShape(tagValue){
+    return PowerPoint.run(function(ctx){
+      var sel = ctx.presentation.getSelectedShapes();
+      sel.load('items');
+      return ctx.sync().then(function(){
+        if (!sel.items.length) throw new Error('Inserted, but could not find the new shape to tag.');
+        var sh = sel.items[sel.items.length-1];
+        sh.tags.add(TAG, PT.makeTag(tagValue.url));
+        try { sh.name = 'EG Chart — ' + tagValue.title; } catch(e){}
+        return ctx.sync();
+      });
+    });
+  }
+
+  // ---------------- insert ----------------
+  function insertChart(group, chart, s, btn){
+    if (busy) return;
+    busy = true; btn.disabled = true; btn.textContent = 'Rendering…';
+    var url = embedUrl(group, chart, s);
+    PT.renderChartPng(url).then(function(png){
+      btn.textContent = 'Inserting…';
+      return setSelectedImage(png.base64, { imageWidth: 660 });   // points; ~9.2in wide
+    }).then(function(){
+      return tagSelectedShape({ url:url, title:chart.title }).catch(function(e){
+        log('Inserted, but tagging failed ('+e.message+'). Set the picture’s alt text to: ' + PT.makeTag(url), 'err');
+      });
+    }).then(function(){
+      log('Inserted: ' + chart.title, 'ok');
+      countTagged();
+    }).catch(function(e){
+      log('Insert failed: ' + e.message, 'err');
+    }).then(function(){
+      busy = false; btn.disabled = false; btn.textContent = 'Insert on Current Slide';
+    });
+  }
+
+  // ---------------- scan + refresh all ----------------
+  function scanTagged(){
+    return PowerPoint.run(function(ctx){
+      var slides = ctx.presentation.slides;
+      slides.load('items/id');
+      return ctx.sync().then(function(){
+        slides.items.forEach(function(sl){
+          sl.shapes.load('items/id,items/left,items/top,items/width,items/height');
+        });
+        return ctx.sync();
+      }).then(function(){
+        var holders = [];
+        slides.items.forEach(function(sl, si){
+          sl.shapes.items.forEach(function(sh){
+            sh.tags.load('key,value');
+            holders.push({ slideIndex: si, slideId: sl.id, shape: sh });
+          });
+        });
+        return ctx.sync().then(function(){
+          var found = [];
+          holders.forEach(function(h){
+            var items = h.shape.tags.items || [];
+            for (var i=0;i<items.length;i++){
+              if (String(items[i].key).toUpperCase() !== TAG) continue;
+              var url = PT.parseTag(items[i].value) ||
+                        (items[i].value && items[i].value.charAt(0)==='/' ? items[i].value : null);
+              if (url) found.push({
+                slideIndex: h.slideIndex, slideId: h.slideId, shapeId: h.shape.id,
+                left: h.shape.left, top: h.shape.top, width: h.shape.width, height: h.shape.height,
+                url: url
+              });
+            }
+          });
+          return found;
+        });
+      });
+    });
+  }
+
+  function replaceViaAddPicture(entry, png){
+    return Promise.resolve().then(function(){ return PowerPoint.run(function(ctx){
+      var slide = ctx.presentation.slides.getItem(entry.slideId);
+      if (typeof slide.shapes.addPicture !== 'function') { var e=new Error('nofn'); e.egFallback=true; throw e; }
+      var nu = slide.shapes.addPicture(png.base64,
+        { left: entry.left, top: entry.top, width: entry.width, height: entry.height });
+      nu.tags.add(TAG, PT.makeTag(entry.url));
+      slide.shapes.getItem(entry.shapeId).delete();
+      return ctx.sync();
+    }); }).catch(function(e){
+      if (e && (e.egFallback || e.code === 'ApiNotFound' || e.code === 'NotImplemented')) { e.egFallback = true; }
+      throw e;
+    });
+  }
+
+  function replaceViaSelection(entry, png){
+    // GA-only path: jump to the slide, delete the old picture, insert at the
+    // exact same geometry (points), then tag the new selection.
+    return goToSlideIndex(entry.slideIndex + 1).then(function(){
+      return PowerPoint.run(function(ctx){
+        ctx.presentation.slides.getItem(entry.slideId).shapes.getItem(entry.shapeId).delete();
+        return ctx.sync();
+      });
+    }).then(function(){
+      return setSelectedImage(png.base64, {
+        imageLeft: entry.left, imageTop: entry.top,
+        imageWidth: entry.width, imageHeight: entry.height
+      });
+    }).then(function(){
+      return tagSelectedShape({ url: entry.url, title: 'refreshed chart' })
+        .catch(function(){ log('Refreshed a chart but could not re-tag it; set its alt text to: '+PT.makeTag(entry.url), 'err'); });
+    });
+  }
+
+  function refreshAll(){
+    if (busy) return;
+    busy = true;
+    var btn = document.getElementById('refreshBtn');
+    btn.disabled = true; btn.textContent = 'Refreshing…';
+    clearLog();
+    var okCount = 0, failCount = 0;
+    scanTagged().then(function(found){
+      if (!found.length){
+        log('No Economics Guru charts found in this deck. Insert charts from the library below, then Refresh will update them.', '');
+        return null;
+      }
+      log('Found '+found.length+' chart'+(found.length===1?'':'s')+' to refresh…');
+      // de-dupe renders across identical configs
+      var renders = {};
+      function renderOnce(url){
+        if (!renders[url]) renders[url] = PT.renderChartPng(url);
+        return renders[url];
+      }
+      var chain = Promise.resolve();
+      found.forEach(function(entry, i){
+        chain = chain.then(function(){
+          return renderOnce(entry.url).then(function(png){
+            return replaceViaAddPicture(entry, png).catch(function(e){
+              if (e && e.egFallback) return replaceViaSelection(entry, png);
+              throw e;
+            });
+          }).then(function(){
+            okCount++; log((i+1)+'/'+found.length+' updated (slide '+(entry.slideIndex+1)+')', 'ok');
+          }).catch(function(e){
+            failCount++; log((i+1)+'/'+found.length+' FAILED (slide '+(entry.slideIndex+1)+'): '+e.message, 'err');
+          });
+        });
+      });
+      return chain;
+    }).then(function(){
+      if (okCount || failCount){
+        log('Done — '+okCount+' updated'+(failCount?(', '+failCount+' failed'):'')+'.', failCount?'err':'ok');
+      }
+    }).catch(function(e){
+      log('Refresh failed: '+e.message, 'err');
+    }).then(function(){
+      busy = false; btn.disabled = false; btn.textContent = 'Refresh All Charts';
+      countTagged();
+    });
+  }
+
+  function countTagged(){
+    scanTagged().then(function(found){
+      var btn = document.getElementById('refreshBtn');
+      btn.disabled = false;
+      btn.textContent = found.length ? ('Refresh All Charts ('+found.length+')') : 'Refresh All Charts';
+    }).catch(function(){ document.getElementById('refreshBtn').disabled = false; });
+  }
+
+  // ---------------- auto-refresh on open ----------------
+  function initAuto(){
+    var chk = document.getElementById('autoChk');
+    var settings = Office.context.document.settings;
+    chk.checked = settings.get(AUTO_KEY) === true;
+    chk.addEventListener('change', function(){
+      settings.set(AUTO_KEY, chk.checked);
+      settings.set('Office.AutoShowTaskpaneWithDocument', chk.checked);
+      settings.saveAsync(function(r){
+        if (r.status !== Office.AsyncResultStatus.Succeeded) log('Could not save the auto-refresh setting: '+(r.error&&r.error.message), 'err');
+        else log(chk.checked ? 'Auto-refresh is ON for this deck — save the file to keep it.' : 'Auto-refresh is off for this deck.', 'ok');
+      });
+    });
+    if (chk.checked){
+      log('Auto-refresh is on for this deck — updating charts…');
+      setTimeout(refreshAll, 800);
+    }
+  }
+
+  // ---------------- boot ----------------
+  Office.onReady(function(info){
+    if (info.host !== Office.HostType.PowerPoint){
+      document.getElementById('notppt').style.display = 'block';
+      document.getElementById('library').style.display = 'none';
+      document.querySelector('.refreshbar').style.display = 'none';
+      document.querySelector('.search').style.display = 'none';
+      return;
+    }
+    buildLibrary();
+    document.getElementById('refreshBtn').addEventListener('click', refreshAll);
+    initAuto();
+    countTagged();
+  });
+})();
+</script>
+</body>
+</html>

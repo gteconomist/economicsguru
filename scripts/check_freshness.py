@@ -72,7 +72,8 @@ TOLERANCES = {
     # ---- daily market data ------------------------------------------------
     "treasuries.json":   dict(max_age_days=6,   note="Daily H.15 yields; 6d covers a long holiday weekend."),
     "equities.json":     dict(max_age_days=6,   note="Daily index closes."),
-    "commodities.json":  dict(max_age_days=8,   note="Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier)."),
+    "commodities.json":  dict(max_age_days=8,   cron_only=True,
+                              note="Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier)."),
 
     # ---- weekly -----------------------------------------------------------
     # The file-level check here is satisfied by the daily/weekly FRED rate
@@ -380,9 +381,20 @@ def check_all(today=None):
         # database for the ~30 minutes before an embargoed release, so any
         # refresh firing inside that window legitimately comes back empty.
         # Only a run of consecutive misses means something is actually broken.
+        # cron_only datasets: their fetch step is gated in refresh.yml to
+        # schedule/workflow_dispatch runs (quota protection), so on push-event
+        # runs the step is SKIPPED by design. Counting those skips as misses
+        # false-alarmed on 2026-08-28 after four push-triggered refreshes in
+        # one day. Carry the counter forward unchanged on runs where the step
+        # never had a chance to write.
+        step_gated_off = bool(cfg.get("cron_only")) and \
+            os.environ.get("GITHUB_EVENT_NAME", "") == "push"
         bt = data.get("build_time") if isinstance(data, dict) else None
         prev_misses = (previous.get(name) or {}).get("consecutive_misses", 0)
-        if isinstance(bt, str) and IN_CI:
+        if step_gated_off and IN_CI:
+            entry["wrote_this_run"] = None          # step skipped: no signal
+            entry["consecutive_misses"] = prev_misses
+        elif isinstance(bt, str) and IN_CI:
             try:
                 built = dt.datetime.fromisoformat(bt.replace("Z", "+00:00")).date()
                 entry["build_age_days"] = (today - built).days

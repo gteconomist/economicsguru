@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Deck Refresher — Economics Guru</title>
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700;900&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<!--
+  Deck Refresher (/refresh/) — drop a .pptx, find every EGCHART-tagged picture
+  (alt-text tag or shape-tag part), re-render each chart client-side with the
+  latest data via EG_POWERTOOLS.renderChartPng, and swap the image bytes
+  inside the .pptx (as a new media part + relationship — never overwriting an
+  existing media part, since it may be shared). Fully client-side; no server.
+-->
+<style>
+  *{box-sizing:border-box;}
+  body{ font-family:var(--sans); }
+  main.wrap{ padding:40px 28px 80px; max-width:880px; }
+
+  h1{ font-family:var(--serif); font-weight:700; font-size:34px; letter-spacing:-.015em; margin:0 0 8px; color:#fff; }
+  h1 .g{ color:var(--gold); }
+  .lede{ color:var(--muted); font-size:15.5px; max-width:620px; margin:0 0 30px; line-height:1.55; }
+
+  /* ---------- drop zone ---------- */
+  .drop{ border:2px dashed rgba(255,255,255,.22); border-radius:18px; padding:56px 24px; text-align:center;
+    background:rgba(255,255,255,.025); cursor:pointer; transition:.15s; }
+  .drop:hover, .drop.drag{ border-color:var(--gold); background:rgba(179,163,105,.08); }
+  .drop .ic{ width:46px; height:46px; margin:0 auto 16px; opacity:.8; }
+  .drop .t1{ font-weight:700; font-size:16.5px; color:#fff; margin-bottom:6px; }
+  .drop .t2{ color:var(--muted); font-size:13.5px; }
+  .drop .t2 b{ color:var(--gold); }
+  input[type=file]{ display:none; }
+
+  .err{ margin-top:14px; background:rgba(224,79,57,.10); border:1px solid rgba(224,79,57,.4); color:#ffb7ab;
+    border-radius:10px; padding:12px 15px; font-size:13.5px; display:none; }
+  .err.show{ display:block; }
+
+  /* ---------- results ---------- */
+  .panel{ display:none; }
+  .panel.show{ display:block; }
+  .fileline{ display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+    background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:14px 18px; margin-bottom:18px; }
+  .fileline .fn{ font-weight:700; color:#fff; font-size:14.5px; word-break:break-all; }
+  .fileline .fmeta{ color:var(--muted); font-size:12.5px; margin-top:2px; }
+  .btn{ font:inherit; font-weight:700; font-size:13px; cursor:pointer; border-radius:9px; padding:9px 16px;
+    border:1px solid var(--gold); background:var(--gold); color:#04263f; white-space:nowrap; }
+  .btn.ghost{ background:transparent; color:var(--gold); }
+  .btn[disabled]{ opacity:.5; cursor:default; }
+  .btn:active:not([disabled]){ transform:translateY(1px); }
+
+  table.rows{ width:100%; border-collapse:collapse; font-size:13.5px; margin-bottom:8px; }
+  table.rows th{ text-align:left; color:var(--slate); font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+    font-weight:700; padding:0 10px 8px; border-bottom:1px solid var(--line); }
+  table.rows td{ padding:10px; border-bottom:1px solid var(--line); vertical-align:top; color:var(--ink); }
+  table.rows tr:last-child td{ border-bottom:0; }
+  .slidebadge{ display:inline-block; min-width:24px; text-align:center; background:rgba(255,255,255,.08);
+    border:1px solid var(--line); border-radius:6px; padding:2px 7px; font-weight:700; font-size:12px; color:var(--ink); }
+  .ctitle{ font-weight:700; color:#fff; }
+  .ctitle .fb{ font-weight:400; color:var(--muted); font-style:italic; }
+  .cmeta{ color:var(--muted); font-size:12px; margin-top:2px; }
+  .status{ display:inline-flex; align-items:center; gap:6px; font-weight:700; font-size:12.5px; }
+  .status .dot{ width:8px; height:8px; border-radius:50%; background:var(--slate); flex:none; }
+  .status.queued{ color:var(--slate); }
+  .status.rendering{ color:#ffd76a; }
+  .status.rendering .dot{ background:#ffd76a; animation:pulse 1s infinite ease-in-out; }
+  .status.done{ color:#7fd9a5; }
+  .status.done .dot{ background:#7fd9a5; }
+  .status.failed{ color:#ff8f7c; }
+  .status.failed .dot{ background:#e04f39; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  .failreason{ color:#ff8f7c; font-size:11.5px; margin-top:2px; max-width:220px; }
+
+  .progressline{ color:var(--muted); font-size:13.5px; margin:14px 0 0; }
+  .progressbar{ height:6px; border-radius:4px; background:rgba(255,255,255,.08); overflow:hidden; margin:8px 0 0; }
+  .progressbar > i{ display:block; height:100%; width:0%; background:var(--gold); transition:width .25s ease; }
+
+  .done-panel{ display:none; margin-top:22px; background:var(--card); border:1px solid var(--line);
+    border-top:4px solid var(--gold); border-radius:var(--radius); box-shadow:var(--shadow); padding:20px 22px; }
+  .done-panel.show{ display:block; }
+  .done-panel .sum{ font-weight:700; color:#fff; font-size:16px; margin-bottom:4px; }
+  .done-panel .subline{ color:var(--muted); font-size:13px; margin-bottom:16px; }
+  .done-actions{ display:flex; gap:10px; flex-wrap:wrap; }
+
+  .empty-panel{ display:none; margin-top:22px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:22px 24px; color:var(--muted); font-size:14px; line-height:1.6; }
+  .empty-panel.show{ display:block; }
+  .empty-panel h3{ font-family:var(--serif); color:#fff; font-size:18px; margin:0 0 8px; }
+  .empty-panel code{ display:block; background:#03192b; border:1px solid var(--line); border-radius:8px; padding:9px 12px;
+    color:#d7e6d0; font-size:12.5px; margin:10px 0; overflow-x:auto; white-space:pre; }
+  .empty-panel a{ color:var(--gold); font-weight:700; }
+  .empty-panel ol{ margin:8px 0 0; padding-left:20px; }
+  .empty-panel li{ margin-bottom:6px; }
+
+  .again{ margin-top:26px; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <h1>Deck <span class="g">Refresher</span></h1>
+  <p class="lede">Drop a PowerPoint deck. Every Economics Guru chart in it is redrawn with the latest data. Nothing leaves your browser.</p>
+
+  <div class="drop" id="drop" tabindex="0" role="button" aria-label="Drop a PowerPoint file or click to browse">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#B3A369" stroke-width="1.6"><path d="M12 3v12"/><path d="m6.5 9.5 5.5 5.5 5.5-5.5"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+    <div class="t1">Drop your .pptx here</div>
+    <div class="t2">or click to browse &nbsp;·&nbsp; <b>.pptx</b> files only</div>
+  </div>
+  <input type="file" id="fileInput" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation">
+  <div class="err" id="err"></div>
+
+  <div class="panel" id="panel">
+    <div class="fileline">
+      <div>
+        <div class="fn" id="fname"></div>
+        <div class="fmeta" id="fmeta"></div>
+      </div>
+      <button class="btn ghost" id="startOverTop">Start over</button>
+    </div>
+
+    <table class="rows" id="rowsTable">
+      <thead><tr><th>Slide</th><th>Chart</th><th>Range / Theme</th><th>Status</th></tr></thead>
+      <tbody id="rowsBody"></tbody>
+    </table>
+    <div class="progressline" id="progressLine"></div>
+    <div class="progressbar"><i id="progressBar"></i></div>
+
+    <div class="done-panel" id="donePanel">
+      <div class="sum" id="doneSum"></div>
+      <div class="subline" id="doneSub"></div>
+      <div class="done-actions">
+        <button class="btn" id="dlBtn">↓ Download refreshed deck</button>
+        <button class="btn ghost" id="startOverBottom">Start over</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-panel" id="emptyPanel">
+    <h3>No Economics Guru charts found in this deck</h3>
+    <p>This file parsed fine, but none of its pictures are tagged as Economics Guru charts. Charts get tagged one of two ways:</p>
+    <ol>
+      <li>Inserted through the Economics Guru PowerPoint add-in at <a href="/powertools/">/powertools/</a> — every chart it drops onto a slide is tagged automatically.</li>
+      <li>Tagged by hand — set a picture's <b>alt text</b> to <code>EGCHART|&lt;chart embed URL&gt;</code>, for example:
+        <code>EGCHART|/inflation/cpi/embed/?chart=yoy&amp;range=10y&amp;theme=light</code>
+        You can copy a chart's embed URL straight out of the <a href="/deck/">Deck Chart Studio</a>.</li>
+    </ol>
+    <div class="again"><button class="btn ghost" id="startOverEmpty">Start over</button></div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="/assets/js/chart-registry.js"></script>
+<script src="/assets/js/powertools-render.js"></script>
+<script>
+(function () {
+  'use strict';
+  var REG = window.EG_CHART_REGISTRY;
+  var PT  = window.EG_POWERTOOLS;
+
+  // ---- OOXML namespace constants ----
+  var P_NS   = 'http://schemas.openxmlformats.org/presentationml/2006/main';
+  var A_NS   = 'http://schemas.openxmlformats.org/drawingml/2006/main';
+  var R_NS   = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+  var PKR_NS = 'http://schemas.openxmlformats.org/package/2006/relationships';
+  var CT_NS  = 'http://schemas.openxmlformats.org/package/2006/content-types';
+  var IMG_REL_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image';
+
+  // ---------------- DOM refs ----------------
+  var dropEl = document.getElementById('drop');
+  var fileInput = document.getElementById('fileInput');
+  var errEl = document.getElementById('err');
+  var panelEl = document.getElementById('panel');
+  var fnameEl = document.getElementById('fname');
+  var fmetaEl = document.getElementById('fmeta');
+  var rowsBody = document.getElementById('rowsBody');
+  var progressLine = document.getElementById('progressLine');
+  var progressBar = document.getElementById('progressBar');
+  var donePanel = document.getElementById('donePanel');
+  var doneSum = document.getElementById('doneSum');
+  var doneSub = document.getElementById('doneSub');
+  var dlBtn = document.getElementById('dlBtn');
+  var emptyPanel = document.getElementById('emptyPanel');
+
+  function esc(s){ var d=document.createElement('div'); d.textContent = s==null ? '' : s; return d.innerHTML; }
+
+  // ---------------- drop-zone wiring ----------------
+  dropEl.addEventListener('click', function(){ fileInput.click(); });
+  dropEl.addEventListener('keydown', function(e){ if (e.key==='Enter' || e.key===' ') { e.preventDefault(); fileInput.click(); } });
+  ['dragenter','dragover'].forEach(function(ev){
+    dropEl.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); dropEl.classList.add('drag'); });
+  });
+  ['dragleave','drop'].forEach(function(ev){
+    dropEl.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); dropEl.classList.remove('drag'); });
+  });
+  dropEl.addEventListener('drop', function(e){
+    var files = e.dataTransfer && e.dataTransfer.files;
+    if (files && files.length) handleFile(files[0]);
+  });
+  fileInput.addEventListener('change', function(e){
+    if (e.target.files && e.target.files.length) handleFile(e.target.files[0]);
+  });
+
+  function showErr(msg){ errEl.textContent = msg; errEl.classList.add('show'); }
+  function clearErr(){ errEl.textContent = ''; errEl.classList.remove('show'); }
+
+  function resetAll(){
+    clearErr();
+    panelEl.classList.remove('show');
+    emptyPanel.classList.remove('show');
+    donePanel.classList.remove('show');
+    rowsBody.innerHTML = '';
+    progressLine.textContent = '';
+    progressBar.style.width = '0%';
+    fileInput.value = '';
+    dropEl.style.display = '';
+  }
+  document.getElementById('startOverTop').addEventListener('click', resetAll);
+  document.getElementById('startOverBottom').addEventListener('click', resetAll);
+  document.getElementById('startOverEmpty').addEventListener('click', resetAll);
+
+  function fmtBytes(n){
+    if (n < 1024) return n + ' B';
+    if (n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+    return (n/(1024*1024)).toFixed(1) + ' MB';
+  }
+
+  function handleFile(file){
+    clearErr();
+    var name = file.name || 'deck.pptx';
+    if (!/\.pptx$/i.test(name)) {
+      showErr('“' + name + '” doesn’t look like a PowerPoint file. Please drop a .pptx file.');
+      return;
+    }
+    fnameEl.textContent = name;
+    fmetaEl.textContent = fmtBytes(file.size) + ' · parsing…';
+    dropEl.style.display = 'none';
+    panelEl.classList.add('show');
+    rowsBody.innerHTML = '';
+    donePanel.classList.remove('show');
+    emptyPanel.classList.remove('show');
+    progressLine.textContent = 'Reading file…';
+    progressBar.style.width = '0%';
+
+    var baseName = name.replace(/\.pptx$/i, '');
+
+    file.arrayBuffer().then(function(buf){
+      return JSZip.loadAsync(buf);
+    }).then(function(zip){
+      return processDeck(zip, baseName);
+    }).catch(function(err){
+      console.error(err);
+      fmetaEl.textContent = fmtBytes(file.size);
+      progressLine.textContent = '';
+      showErr('Could not read this file: ' + (err && err.message ? err.message : err) + '. Is it a valid, un-password-protected .pptx?');
+    });
+  }
+
+  // ---------------- XML helpers ----------------
+  function parseXml(text){
+    var doc = new DOMParser().parseFromString(text, 'application/xml');
+    if (doc.getElementsByTagName('parsererror').length) return null;
+    return doc;
+  }
+  function serializeXml(doc, hadDecl){
+    var s = new XMLSerializer().serializeToString(doc);
+    if (hadDecl && s.indexOf('<?xml') !== 0) {
+      s = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' + s;
+    }
+    return s;
+  }
+  function resolvePath(baseDir, target){
+    if (!target) return null;
+    if (target.charAt(0) === '/') return target.slice(1);
+    var baseParts = baseDir.split('/').filter(Boolean);
+    target.split('/').forEach(function(part){
+      if (part === '..') baseParts.pop();
+      else if (part === '.' || part === '') { /* skip */ }
+      else baseParts.push(part);
+    });
+    return baseParts.join('/');
+  }
+  function relTarget(relsDoc, id){
+    var rels = relsDoc.getElementsByTagNameNS(PKR_NS, 'Relationship');
+    for (var i=0; i<rels.length; i++){
+      if (rels[i].getAttribute('Id') === id) return rels[i].getAttribute('Target');
+    }
+    return null;
+  }
+  function parseTagOrRaw(value){
+    if (!value) return null;
+    var url = PT.parseTag(value);
+    if (url) return url;
+    var v = String(value).trim();
+    if (v.charAt(0) === '/' && v.toLowerCase().indexOf('embed') !== -1) return v;
+    return null;
+  }
+
+  // ---------------- registry lookup ----------------
+  function stripSlash(s){ return (s||'').replace(/\/+$/, ''); }
+  function describeChart(embedUrl){
+    var qIdx = embedUrl.indexOf('?');
+    var pathPart = qIdx === -1 ? embedUrl : embedUrl.slice(0, qIdx);
+    var qs = new URLSearchParams(qIdx === -1 ? '' : embedUrl.slice(qIdx+1));
+    var chartKey = (qs.get('chart') || '').toLowerCase();
+    var range = qs.get('range') || '—';
+    var theme = qs.get('theme') || '—';
+    var group = null, chart = null;
+    for (var i=0; i<REG.groups.length; i++){
+      var g = REG.groups[i];
+      if (stripSlash(g.embed) === stripSlash(pathPart)) {
+        group = g;
+        for (var j=0; j<g.charts.length; j++){ if (g.charts[j].key === chartKey) { chart = g.charts[j]; break; } }
+        break;
+      }
+    }
+    return {
+      title: chart ? chart.title : (chartKey || '(unknown chart)'),
+      resolved: !!chart,
+      groupLabel: group ? group.label : null,
+      range: range,
+      theme: theme
+    };
+  }
+
+  // ---------------- per-run state (reset for every dropped file) ----------------
+  // These live at module scope (not nested in processDeck) so both the scan
+  // step and the later patch/serialize step share the exact same cache
+  // entries — no re-parsing, no lost mutations.
+  var slideCache;  // path -> { doc, hadDecl, touched }
+  var relsCache;   // path -> { doc, hadDecl, touched, exists }
+  var tagsCache;   // path -> doc | null   (read-only)
+
+  function loadSlide(zip, path){
+    if (slideCache[path]) return Promise.resolve(slideCache[path]);
+    return zip.file(path).async('string').then(function(text){
+      var entry = { doc: parseXml(text), hadDecl: /^\s*<\?xml/i.test(text), touched: false };
+      slideCache[path] = entry;
+      return entry;
+    });
+  }
+  function relsPathFor(slidePath){
+    var fname = slidePath.split('/').pop();
+    return 'ppt/slides/_rels/' + fname + '.rels';
+  }
+  function loadRels(zip, relsPath){
+    if (relsCache[relsPath]) return Promise.resolve(relsCache[relsPath]);
+    var f = zip.file(relsPath);
+    if (!f) {
+      var missing = { doc: null, hadDecl: false, touched: false, exists: false };
+      relsCache[relsPath] = missing;
+      return Promise.resolve(missing);
+    }
+    return f.async('string').then(function(text){
+      var entry = { doc: parseXml(text), hadDecl: /^\s*<\?xml/i.test(text), touched: false, exists: true };
+      relsCache[relsPath] = entry;
+      return entry;
+    });
+  }
+  function loadTags(zip, path){
+    if (tagsCache.hasOwnProperty(path)) return Promise.resolve(tagsCache[path]);
+    var f = zip.file(path);
+    if (!f) { tagsCache[path] = null; return Promise.resolve(null); }
+    return f.async('string').then(function(text){
+      var doc = parseXml(text);
+      tagsCache[path] = doc;
+      return doc;
+    });
+  }
+
+  function resolvePicTag(zip, pic, relsEntry, slidePath){
+    var cNvPr = pic.getElementsByTagNameNS(P_NS, 'cNvPr')[0];
+    var descr = cNvPr ? cNvPr.getAttribute('descr') : null;
+    var fromAlt = parseTagOrRaw(descr);
+    if (fromAlt) return Promise.resolve(fromAlt);
+
+    var tagsEl = pic.getElementsByTagNameNS(P_NS, 'tags')[0];
+    if (!tagsEl || !relsEntry || !relsEntry.exists) return Promise.resolve(null);
+    var rid = tagsEl.getAttributeNS(R_NS, 'id') || tagsEl.getAttribute('r:id');
+    if (!rid) return Promise.resolve(null);
+    var target = relTarget(relsEntry.doc, rid);
+    if (!target) return Promise.resolve(null);
+    var baseDir = slidePath.split('/').slice(0, -1).join('/'); // ppt/slides
+    var tagsPath = resolvePath(baseDir, target);
+    return loadTags(zip, tagsPath).then(function(tagsDoc){
+      if (!tagsDoc) return null;
+      var tagEls = tagsDoc.getElementsByTagNameNS(P_NS, 'tag');
+      for (var i=0; i<tagEls.length; i++){
+        var nm = tagEls[i].getAttribute('name') || '';
+        if (nm.toUpperCase() === 'EGCHART') {
+          return parseTagOrRaw(tagEls[i].getAttribute('val'));
+        }
+      }
+      return null;
+    });
+  }
+
+  function scanSlide(zip, entryInfo, tasks){
+    var slidePath = entryInfo.path, slideNum = entryInfo.num;
+    return loadSlide(zip, slidePath).then(function(slideEntry){
+      if (!slideEntry.doc) return; // malformed slide XML, skip
+      var relsPath = relsPathFor(slidePath);
+      return loadRels(zip, relsPath).then(function(relsEntry){
+        var pics = slideEntry.doc.getElementsByTagNameNS(P_NS, 'pic');
+        var chain = Promise.resolve();
+        Array.prototype.forEach.call(pics, function(pic){
+          chain = chain.then(function(){ return resolvePicTag(zip, pic, relsEntry, slidePath); })
+            .then(function(embedUrl){
+              if (!embedUrl) return;
+              var blip = pic.getElementsByTagNameNS(A_NS, 'blip')[0];
+              if (!blip) return;
+              tasks.push({
+                slidePath: slidePath,
+                slideNum: slideNum,
+                relsPath: relsPath,
+                pic: pic,
+                blip: blip,
+                embedUrl: embedUrl,
+                info: describeChart(embedUrl)
+              });
+            });
+        });
+        return chain;
+      });
+    });
+  }
+
+  // ---------------- deck processing ----------------
+  function processDeck(zip, baseName){
+    if (!zip.file('[Content_Types].xml') || !zip.file('ppt/presentation.xml')) {
+      throw new Error('This doesn’t look like a valid .pptx package');
+    }
+    slideCache = {}; relsCache = {}; tagsCache = {};
+
+    // enumerate slides in numeric filename order
+    var slidePaths = [];
+    zip.forEach(function(relPath){
+      var m = /^ppt\/slides\/slide(\d+)\.xml$/i.exec(relPath);
+      if (m) slidePaths.push({ path: relPath, num: parseInt(m[1], 10) });
+    });
+    slidePaths.sort(function(a,b){ return a.num - b.num; });
+
+    var tasks = []; // { slidePath, slideNum, relsPath, pic, blip, embedUrl, info }
+    var scanChain = Promise.resolve();
+    slidePaths.forEach(function(sp){
+      scanChain = scanChain.then(function(){ return scanSlide(zip, sp, tasks); });
+    });
+
+    return scanChain.then(function(){
+      if (!tasks.length) {
+        panelEl.classList.remove('show');
+        emptyPanel.classList.add('show');
+        return;
+      }
+      return runRefresh(zip, tasks, baseName);
+    });
+  }
+
+  // ---------------- row rendering ----------------
+  function buildRows(tasks){
+    rowsBody.innerHTML = '';
+    tasks.forEach(function(t, idx){
+      var tr = document.createElement('tr');
+      var titleHtml = t.info.resolved
+        ? esc(t.info.title)
+        : esc(t.info.title) + ' <span class="fb">(raw key)</span>';
+      var metaBits = [];
+      if (t.info.groupLabel) metaBits.push(t.info.groupLabel);
+      tr.innerHTML =
+        '<td><span class="slidebadge">' + t.slideNum + '</span></td>' +
+        '<td><div class="ctitle">' + titleHtml + '</div>' + (metaBits.length ? '<div class="cmeta">' + esc(metaBits.join(' · ')) + '</div>' : '') + '</td>' +
+        '<td>' + esc(t.info.range) + ' / ' + esc(t.info.theme) + '</td>' +
+        '<td><span class="status queued" data-row="' + idx + '"><span class="dot"></span><span class="txt">Queued</span></span><div class="failreason" data-reason="' + idx + '"></div></td>';
+      rowsBody.appendChild(tr);
+    });
+  }
+  function setRowStatus(idx, cls, text, reason){
+    var el = rowsBody.querySelector('.status[data-row="' + idx + '"]');
+    if (!el) return;
+    el.className = 'status ' + cls;
+    el.querySelector('.txt').textContent = text;
+    var rEl = rowsBody.querySelector('.failreason[data-reason="' + idx + '"]');
+    if (rEl) rEl.textContent = reason || '';
+  }
+
+  // ---------------- refresh + patch ----------------
+  function runRefresh(zip, tasks, baseName){
+    buildRows(tasks);
+    fmetaEl.textContent = tasks.length + ' chart' + (tasks.length===1?'':'s') + ' found — refreshing…';
+
+    // group tasks by embed URL so identical charts render once and share bytes
+    var order = [];  // unique embed URLs, first-seen order
+    var byUrl = {};  // url -> [task indices]
+    tasks.forEach(function(t, idx){
+      if (!byUrl[t.embedUrl]) { byUrl[t.embedUrl] = []; order.push(t.embedUrl); }
+      byUrl[t.embedUrl].push(idx);
+    });
+
+    var mediaCounter = 0, successCount = 0, doneCount = 0;
+    function freshMediaIndex(){
+      var n;
+      do { mediaCounter++; n = mediaCounter; } while (zip.file('ppt/media/imageEGR' + n + '.png'));
+      return n;
+    }
+    function updateProgress(done, total){
+      progressLine.textContent = 'Refreshing ' + done + ' of ' + total + ' chart' + (total===1?'':'s') + '…';
+      progressBar.style.width = Math.round(100 * done / total) + '%';
+    }
+    updateProgress(0, tasks.length);
+
+    var chain = Promise.resolve();
+    order.forEach(function(url){
+      chain = chain.then(function(){
+        var idxs = byUrl[url];
+        idxs.forEach(function(i){ setRowStatus(i, 'rendering', 'Rendering…'); });
+        return PT.renderChartPng(url).then(function(result){
+          idxs.forEach(function(i){
+            try {
+              patchTask(zip, tasks[i], result, freshMediaIndex());
+              setRowStatus(i, 'done', 'Done');
+              successCount++;
+            } catch (e) {
+              console.error(e);
+              setRowStatus(i, 'failed', 'Failed', (e && e.message) ? e.message : String(e));
+            }
+            doneCount++; updateProgress(doneCount, tasks.length);
+          });
+        }).catch(function(err){
+          var msg = (err && err.message) ? err.message : String(err);
+          idxs.forEach(function(i){
+            setRowStatus(i, 'failed', 'Failed', msg);
+            doneCount++; updateProgress(doneCount, tasks.length);
+          });
+        });
+      });
+    });
+
+    return chain.then(function(){
+      progressLine.textContent = 'Packaging refreshed file…';
+      return finalizeZip(zip, tasks, successCount, baseName);
+    });
+  }
+
+  function patchTask(zip, task, renderResult, n){
+    var mediaPath = 'ppt/media/imageEGR' + n + '.png';
+    zip.file(mediaPath, renderResult.base64, { base64: true });
+
+    var relsEntry = relsCache[task.relsPath];
+    if (!relsEntry || !relsEntry.doc) throw new Error('Missing relationships part for this slide');
+    var relEl = relsEntry.doc.createElementNS(PKR_NS, 'Relationship');
+    var rid = 'rIdEGR' + n;
+    relEl.setAttribute('Id', rid);
+    relEl.setAttribute('Type', IMG_REL_TYPE);
+    relEl.setAttribute('Target', '../media/imageEGR' + n + '.png');
+    relsEntry.doc.documentElement.appendChild(relEl);
+    relsEntry.touched = true;
+
+    var embedAttr = task.blip.getAttributeNodeNS(R_NS, 'embed');
+    if (embedAttr) embedAttr.value = rid;
+    else task.blip.setAttributeNS(R_NS, 'r:embed', rid);
+
+    var slideEntry = slideCache[task.slidePath];
+    if (slideEntry) slideEntry.touched = true;
+  }
+
+  function finalizeZip(zip, tasks, successCount, baseName){
+    // content types: ensure a png Default exists
+    return zip.file('[Content_Types].xml').async('string').then(function(ctText){
+      var ctDoc = parseXml(ctText);
+      var hadDecl = /^\s*<\?xml/i.test(ctText);
+      var defaults = ctDoc.getElementsByTagNameNS(CT_NS, 'Default');
+      var hasPng = false;
+      for (var i=0; i<defaults.length; i++){
+        if ((defaults[i].getAttribute('Extension')||'').toLowerCase() === 'png') { hasPng = true; break; }
+      }
+      if (!hasPng) {
+        var def = ctDoc.createElementNS(CT_NS, 'Default');
+        def.setAttribute('Extension', 'png');
+        def.setAttribute('ContentType', 'image/png');
+        var root = ctDoc.documentElement;
+        var firstOverride = ctDoc.getElementsByTagNameNS(CT_NS, 'Override')[0];
+        if (firstOverride) root.insertBefore(def, firstOverride); else root.appendChild(def);
+        zip.file('[Content_Types].xml', serializeXml(ctDoc, hadDecl));
+      }
+
+      // write back every touched slide + rels doc
+      Object.keys(slideCache).forEach(function(path){
+        var e = slideCache[path];
+        if (e.touched && e.doc) zip.file(path, serializeXml(e.doc, e.hadDecl));
+      });
+      Object.keys(relsCache).forEach(function(path){
+        var e = relsCache[path];
+        if (e.touched && e.doc) zip.file(path, serializeXml(e.doc, e.hadDecl));
+      });
+
+      return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+    }).then(function(blob){
+      finishUp(blob, tasks.length, successCount, baseName);
+    });
+  }
+
+  function finishUp(blob, total, successCount, baseName){
+    var url = URL.createObjectURL(blob);
+    var outName = baseName + ' refreshed.pptx';
+    progressLine.textContent = '';
+    progressBar.style.width = '100%';
+    fmetaEl.textContent = total + ' chart' + (total===1?'':'s') + ' found — done';
+
+    var dateStr = new Date().toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+    doneSum.textContent = 'Updated ' + successCount + ' of ' + total + ' chart' + (total===1?'':'s') + ' · ' + dateStr;
+    doneSub.textContent = successCount === total
+      ? 'Your refreshed deck is ready.'
+      : 'Some charts couldn’t be refreshed — see the failed rows above. Everything else was updated.';
+    donePanel.classList.add('show');
+
+    dlBtn.onclick = function(){ triggerDownload(url, outName); };
+    // auto-download once (some browsers block this — the button above always works)
+    triggerDownload(url, outName);
+  }
+
+  function triggerDownload(url, name){
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+})();
+</script>
+</body>
+</html>
