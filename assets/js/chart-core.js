@@ -374,7 +374,10 @@ window.EG = (function () {
     if(sp && sp.politicalShading)  o.plugins.politicalShading  = sp.politicalShading;
     return o;
   }
-  function exportImg(card, ch, theme){
+  // Compose the branded export canvas (title bar, plot, source line + wordmark).
+  // Shared by the click-to-download exports AND the PowerTools pipeline
+  // (PowerPoint add-in + /refresh/), which need the pixels rather than a file.
+  function composeExportCanvas(card, ch, theme){
     var sc=2, W=1100*sc, H=500*sc;
     var padL=44*sc, padR=44*sc, headerH=96*sc, footerH=48*sc;
     var q=function(s){ var e=card.querySelector(s); return e?e.textContent.replace(/\s+/g,' ').trim():''; };
@@ -396,10 +399,24 @@ window.EG = (function () {
     var fy=H-19*sc;
     x.textAlign='left'; x.fillStyle=theme.muted; x.font=(12*sc)+'px '+EXF; x.fillText(src, padL, fy);
     x.textAlign='right'; x.fillStyle=theme.brand; x.font='700 '+(13*sc)+'px '+EXF; x.fillText('economicsguru.com', W-padR, fy);
-    out.toBlob(function(b){ saveBlob(slug(title)+theme.suffix+'.png', b); }, 'image/png');
+    return out;
+  }
+  function exportImg(card, ch, theme){
+    var title=(card.querySelector('.ct')||{textContent:'chart'}).textContent.replace(/\s+/g,' ').trim();
+    composeExportCanvas(card, ch, theme).toBlob(function(b){ saveBlob(slug(title)+theme.suffix+'.png', b); }, 'image/png');
   }
   function exportPng(card, ch){ exportImg(card, ch, EXPORT_DARK); }
   function exportPngLight(card, ch){ exportImg(card, ch, EXPORT_LIGHT); }
+  // PowerTools hook: return the branded export as a PNG data URL (no download).
+  // themeName: 'light' | 'dark'. Finds the page's single chart card (embed pages).
+  function exportPngDataUrl(themeName){
+    var theme = (themeName === 'light') ? EXPORT_LIGHT : EXPORT_DARK;
+    var card = document.querySelector('.card,.hero-card');
+    var ch = card && chartInCard(card);
+    if(!ch) return null;
+    var out = composeExportCanvas(card, ch, theme);
+    return { dataUrl: out.toDataURL('image/png'), width: out.width, height: out.height };
+  }
   function exportCsv(card, ch){
     var title=(card.querySelector('.ct')||{textContent:'chart'}).textContent.trim();
     var L=ch.data.labels, ds=ch.data.datasets;
@@ -459,6 +476,6 @@ window.EG = (function () {
     reset:reset, newChart:newChart, baseOpts:baseOpts, baseScales:baseScales, grid:grid, line:line,
     fmtBig:fmtBig, fmtUsd:fmtUsd, fmtPctAxis:fmtPctAxis, fmtPct1:fmtPct1, fmtPct1s:fmtPct1s, fmtPct2:fmtPct2, fmtIdx:fmtIdx, fmtMonths:fmtMonths, fmtMillions:fmtMillions, fmtUnitsK:fmtUnitsK, fmtRatio:fmtRatio,
     singleOpts:singleOpts, dualOpts:dualOpts,
-    renderKpis:renderKpis, boot:boot };
+    renderKpis:renderKpis, boot:boot, exportPngDataUrl:exportPngDataUrl };
   return EG;
 })();
