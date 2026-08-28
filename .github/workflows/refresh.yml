@@ -66,6 +66,20 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_labor.py
 
+      # Georgia county data (LAUS + QCEW + Census PEP/BPS + FRED income) for
+      # the Georgia Counties chart group. The script self-gates: county
+      # sources move monthly, so it exits immediately unless the last
+      # successful run (data/counties/_meta.json, committed below) is 6+
+      # days old. The first-ever run backfills the QCEW cache (2001+) for
+      # all 159 counties and takes ~an hour; steady-state weekly runs are
+      # a few minutes.
+      - name: Refresh Georgia county data (BLS + Census + FRED)
+        env:
+          BLS_API_KEY:  ${{ secrets.BLS_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        continue-on-error: true
+        run: python scripts/fetch_ga_counties.py
+
       - name: Refresh PCE data from BEA
         env:
           BEA_API_KEY: ${{ secrets.BEA_API_KEY }}
@@ -295,6 +309,13 @@ jobs:
               changed="$changed $f"
             fi
           done
+
+          # County data (data/counties/) -- the county fetcher self-gates to
+          # ~weekly runs, so when it did run, commit everything it rewrote
+          # (159 county JSONs, _index.json, _meta.json, QCEW/BPS caches).
+          if [[ -n "$(git status --porcelain data/counties)" ]]; then
+            changed="$changed data/counties"
+          fi
 
           # CSV baselines -- commit on any change (they're append-only / hand-edited)
           for f in \

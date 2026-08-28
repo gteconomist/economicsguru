@@ -140,9 +140,15 @@
     if(!Array.isArray(s.series))s.series=d.series; if(s.slide==null)s.slide=''; if(s.inDeck==null)s.inDeck=false;
     return s;
   }
+  function countyName(fips){
+    var rows=REG.counties||[];
+    for(var i=0;i<rows.length;i++){ if(rows[i].fips===fips) return rows[i].name; }
+    return fips;
+  }
   function embedUrl(group,chart,s,abs){
     var base=(abs?ORIGIN:'')+group.embed.replace(/\/$/,'')+'/';
     var qs=['chart='+chart.key,'range='+s.range,'theme='+s.theme];
+    if(group.county) qs.push('county='+(s.county||'13135'));
     if(s.series.length && s.series.length<chart.series.length) qs.push('series='+s.series.join(','));
     return base+'?'+qs.join('&');
   }
@@ -207,17 +213,25 @@
 
   function buildCard(key){
     var g=byKey[key].group, chart=byKey[key].chart, s=st(chart);
+    if(g.county && !s.county) s.county='13135';
     var card=document.createElement('div'); card.className='ccard'; card.dataset.key=key;
     var seriesHtml=chart.series.map(function(ser){
       var on=s.series.indexOf(ser.key)!==-1;
       return '<label><input type="checkbox" data-series="'+ser.key+'"'+(on?' checked':'')+'>'+esc(ser.label)+'</label>';
     }).join('');
     var rangeOpts=REG.ranges.map(function(r){ return '<option'+(r===s.range?' selected':'')+'>'+r+'</option>'; }).join('');
+    var countyRow='';
+    if(g.county){
+      countyRow='<div class="row"><label class="l">County</label><select data-ctl="county">'+
+        (REG.counties||[]).map(function(c){ return '<option value="'+c.fips+'"'+(c.fips===s.county?' selected':'')+'>'+esc(c.name)+'</option>'; }).join('')+
+        '</select></div>';
+    }
     card.innerHTML=
       '<div class="hd"><div><div class="ttl">'+esc(chart.title)+'</div><div class="tp">'+esc(g.label)+'</div></div>'+
         '<button class="rm" title="Remove from deck">✕</button></div>'+
       '<iframe class="frame" loading="lazy"></iframe>'+
       '<div class="ctrls">'+
+        countyRow+
         '<div class="row"><label class="l">Range</label><select data-ctl="range">'+rangeOpts+'</select>'+
           '<span class="seg2" data-ctl="theme"><button data-theme="dark"'+(s.theme==='dark'?' class="on"':'')+'>Dark</button><button data-theme="light"'+(s.theme==='light'?' class="on"':'')+'>Light</button></span>'+
           '<span class="slidebox'+(s.slide===''?' unset':'')+'"><label class="l">Slide #</label><input type="number" min="1" data-ctl="slide" value="'+esc(s.slide)+'" placeholder="—"></span>'+
@@ -227,6 +241,8 @@
     var iframe=card.querySelector('iframe');
     function reload(){ iframe.src=embedUrl(g,chart,s,false); }
     reload();
+    var ctySel=card.querySelector('[data-ctl="county"]');
+    if(ctySel) ctySel.addEventListener('change',function(e){ s.county=e.target.value; reload(); save(); });
     card.querySelector('[data-ctl="range"]').addEventListener('change',function(e){ s.range=e.target.value; reload(); save(); });
     card.querySelectorAll('[data-ctl="theme"] button').forEach(function(b){ b.addEventListener('click',function(){ s.theme=b.dataset.theme; card.querySelectorAll('[data-ctl="theme"] button').forEach(function(x){x.classList.toggle('on',x===b);}); reload(); save(); }); });
     card.querySelector('[data-ctl="slide"]').addEventListener('input',function(e){ s.slide=e.target.value.replace(/[^0-9]/g,''); card.querySelector('.slidebox').classList.toggle('unset',s.slide===''); save(); renderCount(); });
@@ -262,6 +278,7 @@
       lines.push('    topic: '+group.topic);
       lines.push('    embed_base: '+yamlStr(ORIGIN+group.embed));
       lines.push('    chart: '+chart.key);
+      if(group.county) lines.push('    county: '+(s.county||'13135')+'   # '+countyName(s.county||'13135'));
       lines.push('    range: '+s.range);
       lines.push('    theme: '+s.theme);
       lines.push('    series: ['+s.series.join(', ')+']');

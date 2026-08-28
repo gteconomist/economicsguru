@@ -316,8 +316,13 @@
         break;
       }
     }
+    var title = chart ? chart.title : (chartKey || '(unknown chart)');
+    if (group && group.county) {
+      var fips = qs.get('county') || '13135', rows = REG.counties || [];
+      for (var k=0; k<rows.length; k++){ if (rows[k].fips === fips){ title = rows[k].name + ' County — ' + title; break; } }
+    }
     return {
-      title: chart ? chart.title : (chartKey || '(unknown chart)'),
+      title: title,
       resolved: !!chart,
       groupLabel: group ? group.label : null,
       range: range,

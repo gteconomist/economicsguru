@@ -369,6 +369,8 @@ window.EG = (function () {
       scales: circ ? {} : exScales(srcOptions && srcOptions.scales, sc, theme.axis, theme.grid)
     };
     if(circ && srcOptions && srcOptions.cutout != null) o.cutout = srcOptions.cutout;
+    // horizontal bar charts (county sector charts): keep orientation in exports
+    if(srcOptions && srcOptions.indexAxis) o.indexAxis = srcOptions.indexAxis;
     var sp = srcOptions && srcOptions.plugins;   // preserve event lines / shading in exports
     if(sp && sp.verticalEventLines) o.plugins.verticalEventLines = sp.verticalEventLines;
     if(sp && sp.politicalShading)  o.plugins.politicalShading  = sp.politicalShading;
