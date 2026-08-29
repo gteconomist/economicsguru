@@ -102,9 +102,19 @@
     <div class="src">Source: U.S. Bureau of Economic Analysis via FRED.</div>
   </div>
   <div class="card">
-    <div class="top"><div><div class="ct">Residential Building Permits</div><div class="cs">Total housing units authorized per year, all structure types</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="top"><div><div class="ct">Home Value vs. Income — the 30% Rule</div><div class="cs">Median home value vs. the price affordable at 30% of median income; income on the right axis</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCtyHomeValue"></canvas></div>
+    <div class="src">Source: Census ACS 5-yr; Freddie Mac 30-yr rate. Affordable price = P&amp;I on a 30-yr loan, 20% down, at that year's average rate — taxes/insurance excluded.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Gross Rent vs. the 30% Rule</div><div class="cs">Median gross rent vs. rent affordable at 30% of median income; rent burden on the right axis</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cCtyRent"></canvas></div>
+    <div class="src">Source: Census ACS 5-yr — median gross rent, household income, and median rent as % of income (B25071).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Residential Building Permits</div><div class="cs">Housing units authorized per year — single-family vs. multi-family, stacked</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
     <div class="plot"><canvas id="cCtyPermits"></canvas></div>
-    <div class="src">Source: U.S. Census Bureau — Building Permits Survey.</div>
+    <div class="src">Source: U.S. Census Bureau — Building Permits Survey, annual county totals by structure type.</div>
   </div>
 </div>
 

@@ -344,6 +344,7 @@ window.EG = (function () {
       if(isX){ ns.ticks.maxRotation = 0; ns.ticks.autoSkip = true; ns.ticks.maxTicksLimit = 9; }
       if(s.min != null) ns.min = s.min;        // preserve fixed axis bounds (e.g. 3:1 locked axes)
       if(s.max != null) ns.max = s.max;
+      if(s.stacked != null) ns.stacked = s.stacked;   // keep stacked bars stacked in exports
       if(s.title && s.title.text){ ns.title = {display:true, text:s.title.text, color:axis, font:{size:15*sc, weight:'700'}}; }
       out[k] = ns;
     });
@@ -399,8 +400,17 @@ window.EG = (function () {
     x.drawImage(pc, padL, headerH);
     ec.destroy();
     var fy=H-19*sc;
-    x.textAlign='left'; x.fillStyle=theme.muted; x.font=(12*sc)+'px '+EXF; x.fillText(src, padL, fy);
-    x.textAlign='right'; x.fillStyle=theme.brand; x.font='700 '+(13*sc)+'px '+EXF; x.fillText('economicsguru.com', W-padR, fy);
+    x.textAlign='right'; x.fillStyle=theme.brand; x.font='700 '+(13*sc)+'px '+EXF;
+    var brandW = x.measureText('economicsguru.com').width;
+    x.fillText('economicsguru.com', W-padR, fy);
+    // ellipsize the source line so a long footnote never runs under the wordmark
+    x.textAlign='left'; x.fillStyle=theme.muted; x.font=(12*sc)+'px '+EXF;
+    var srcMax = W - padL - padR - brandW - 24*sc, srcTxt = src;
+    if (x.measureText(srcTxt).width > srcMax){
+      while (srcTxt.length > 1 && x.measureText(srcTxt + '…').width > srcMax) srcTxt = srcTxt.slice(0, -1);
+      srcTxt = srcTxt.replace(/[\s.,;—-]+$/, '') + '…';
+    }
+    x.fillText(srcTxt, padL, fy);
     return out;
   }
   function exportImg(card, ch, theme){

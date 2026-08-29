@@ -901,12 +901,35 @@ window.EG_CHART_REGISTRY = {
           ]
         },
         {
+          key:'cty-home-value', canvas:'cCtyHomeValue',
+          title:'Home Value vs. Income — the 30% Rule',
+          subtitle:'Median home value vs. the price affordable at 30% of median household income; income on the right axis',
+          source:'Source: Census ACS 5-yr (B25077 value, B19013 income); Freddie Mac 30-yr rate. Affordable price = P&I on a 30-yr loan, 20% down, at that year\'s average rate — taxes/insurance excluded.',
+          series:[
+            {key:'home',   label:'Median home value'},
+            {key:'afford', label:'Affordable @ 30% of income'},
+            {key:'income', label:'Median HH income (right)'}
+          ]
+        },
+        {
+          key:'cty-rent', canvas:'cCtyRent',
+          title:'Gross Rent vs. the 30% Rule',
+          subtitle:'Median gross rent vs. rent affordable at 30% of median household income; median rent burden on the right axis',
+          source:'Source: Census ACS 5-yr — B25064 (median gross rent), B19013 (income), B25071 (median rent as % of household income). Affordable rent = 30% of median household income / 12.',
+          series:[
+            {key:'rent',   label:'Median gross rent'},
+            {key:'afford', label:'Affordable @ 30% of income'},
+            {key:'burden', label:'Rent burden % (right)'}
+          ]
+        },
+        {
           key:'cty-permits', canvas:'cCtyPermits',
           title:'Residential Building Permits',
-          subtitle:'Total housing units authorized per year, all structure types',
-          source:'Source: U.S. Census Bureau — Building Permits Survey, annual county totals.',
+          subtitle:'Housing units authorized per year — single-family vs. multi-family (2+ units), stacked',
+          source:'Source: U.S. Census Bureau — Building Permits Survey, annual county totals by structure type.',
           series:[
-            {key:'units', label:'Units authorized'}
+            {key:'sf', label:'Single-family (1 unit)'},
+            {key:'mf', label:'Multi-family (2+ units)'}
           ]
         }
       ]

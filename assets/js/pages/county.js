@@ -12,6 +12,7 @@ window.EG_PAGES = window.EG_PAGES || {};
 window.EG_PAGES.county = function (data, EG) {
   var C = EG.T.series; // [gold, electric, orange, blue, lime, purple, yellow, teal]
   var q = data.qcew || {};
+  var acs = data.acs || {};
 
   function fmtCount(v){ return v==null ? 'n/a' : EG.fmtBig(Math.round(v)); }
   function fmtUsdComma(v){ return v==null ? 'n/a' : '$' + Math.round(v).toLocaleString('en-US'); }
@@ -24,6 +25,8 @@ window.EG_PAGES.county = function (data, EG) {
       deltaFmt:fmtCount, goodDir:'up', cap:'vs. year ago' },
     { key:'wage', label:'Avg weekly wage', valueFmt:fmtUsdComma, deltaKey:'yoy',
       deltaFmt:pctFmt(1), goodDir:'up', cap:'y/y, latest annual' },
+    { key:'home_value', label:'Median home value', valueFmt:fmtUsdComma, deltaKey:'yoy',
+      deltaFmt:pctFmt(1), goodDir:'up', neutral:true, cap:'y/y, ACS 5-yr' },
     { key:'population', label:'Population', valueFmt:fmtCount, deltaKey:'yoy',
       deltaFmt:pctFmt(1), goodDir:'up', cap:'y/y' },
     { key:'pcpi', label:'Income per capita', valueFmt:fmtUsdComma, deltaKey:'yoy',
@@ -178,13 +181,55 @@ window.EG_PAGES.county = function (data, EG) {
         EG.line(align(incDates, data.pcpi_us), C[3], { label:'United States' })
       ]}, options:EG.singleOpts(fmtUsdComma) });
 
-    // 9. Residential building permits (annual bars)
-    var perm = ann(data.permits, range);
-    EG.newChart('cCtyPermits', { type:'bar', data:{
-      labels: perm.map(function(p){ return yearLab(p[0]); }),
-      datasets:[{ label:'Units authorized', data:EG.val(perm),
-        backgroundColor:C[0], borderRadius:3, barPercentage:.95, categoryPercentage:.8 }]
-      }, options:EG.singleOpts(fmtCount) });
+    // 9. Home value vs. income — the 30% rule (annual, ACS)
+    toggleCard('cCtyHomeValue', !!(acs.home_value && acs.home_value.length));
+    var hv = ann(acs.home_value, range);
+    var hvDates = hv.map(function(p){ return p[0]; });
+    EG.newChart('cCtyHomeValue', { type:'line', data:{
+      labels: hvDates.map(yearLab),
+      datasets:[
+        EG.line(EG.val(hv), C[0], { label:'Median home value' }),
+        EG.line(align(hvDates, acs.afford_price), C[2], { label:'Affordable @ 30% of income', borderDash:[6,4] }),
+        EG.line(align(hvDates, acs.income), C[1], { label:'Median HH income (right)', yAxisID:'y1' })
+      ]}, options:dual(fmtUsdComma, 'Home value $', fmtUsdComma, 'Income $') });
+
+    // 10. Gross rent vs. the 30% rule (annual, ACS)
+    toggleCard('cCtyRent', !!(acs.rent && acs.rent.length));
+    var rn = ann(acs.rent, range);
+    var rnDates = rn.map(function(p){ return p[0]; });
+    EG.newChart('cCtyRent', { type:'line', data:{
+      labels: rnDates.map(yearLab),
+      datasets:[
+        EG.line(EG.val(rn), C[0], { label:'Median gross rent' }),
+        EG.line(align(rnDates, acs.afford_rent), C[2], { label:'Affordable @ 30% of income', borderDash:[6,4] }),
+        EG.line(align(rnDates, acs.rent_burden), C[1], { label:'Rent burden % (right)', yAxisID:'y1' })
+      ]}, options:dual(fmtUsdComma, '$ / month', pctFmt(1), 'Rent burden %') });
+
+    // 11. Residential building permits — SF vs MF stacked (falls back to a
+    // single total series for county files written before the SF/MF split)
+    var hasSplit = (data.permits_sf || []).length > 0;
+    var permOpts = EG.singleOpts(fmtCount);
+    if (hasSplit){
+      permOpts.scales.x.stacked = true;
+      permOpts.scales.y.stacked = true;
+      var psf = ann(data.permits_sf, range);
+      var pmf = ann(data.permits_mf, range);
+      EG.newChart('cCtyPermits', { type:'bar', data:{
+        labels: psf.map(function(p){ return yearLab(p[0]); }),
+        datasets:[
+          { label:'Single-family', data:EG.val(psf),
+            backgroundColor:C[0], borderRadius:2, barPercentage:.95, categoryPercentage:.8 },
+          { label:'Multi-family (2+)', data:align(psf.map(function(p){return p[0];}), pmf),
+            backgroundColor:C[1], borderRadius:2, barPercentage:.95, categoryPercentage:.8 }
+        ]}, options:permOpts });
+    } else {
+      var perm = ann(data.permits, range);
+      EG.newChart('cCtyPermits', { type:'bar', data:{
+        labels: perm.map(function(p){ return yearLab(p[0]); }),
+        datasets:[{ label:'Units authorized', data:EG.val(perm),
+          backgroundColor:C[0], borderRadius:3, barPercentage:.95, categoryPercentage:.8 }]
+        }, options:permOpts });
+    }
   }
 
   return draw;

@@ -20,6 +20,10 @@ Sources
              units authorized) per county, annual, 1990+. Cached extract.
   FRED       (api.stlouisfed.org, FRED_API_KEY)  per-capita personal income
              per county (PCPI<fips>), GA (GAPCPI) and US benchmarks, annual.
+  Census ACS (api.census.gov, CENSUS_API_KEY)  5-yr median home value,
+             household income, gross rent, rent burden per county, 2010+.
+             Ownership affordability line computed against the annual avg
+             30-yr mortgage rate already in data/housing_mortgage_activity.json.
 
 Self-gating: county data moves monthly at most, so on scheduled runs the
 script exits quietly if the last successful run is under MIN_AGE_DAYS old.
@@ -385,11 +389,20 @@ def fetch_population():
 
 # ------------------------------------------------------------- Census BPS
 def fetch_permits():
-    """Annual total housing units authorized per county. Cached extract keeps
-    old years from being refetched; only missing + current-ish years hit Census.
-    -> {fips: {year: units}}"""
+    """Annual housing units authorized per county, split single-family (1-unit)
+    vs multi-family (2+ units). Cached extract keeps old years from being
+    refetched; only missing + current-ish years hit Census.
+    Cache format v2: {"_v": 2, "years": {year: {fips: [sf, mf]}}} — a v1 cache
+    (totals only) is discarded and rebuilt once (~36 small fetches).
+    -> {fips: {year: [sf, mf]}}"""
     cache = CACHE_DIR / "bps_ga.json"
-    data = json.loads(cache.read_text()) if cache.exists() else {}
+    data = {}
+    if cache.exists():
+        loaded = json.loads(cache.read_text())
+        if isinstance(loaded, dict) and loaded.get("_v") == 2:
+            data = loaded["years"]
+        else:
+            log("BPS: v1 cache (totals only) found — rebuilding with the SF/MF split")
     this_year = dt.date.today().year
     for year in range(BPS_START, this_year + 1):
         y = str(year)
@@ -406,21 +419,117 @@ def fetch_permits():
             if len(parts) < 18 or parts[1] != "13" or not parts[2].isdigit():
                 continue
             try:  # units columns: 1-unit, 2-units, 3-4 units, 5+ units
-                units = int(parts[7]) + int(parts[10]) + int(parts[13]) + int(parts[16])
+                sf = int(parts[7])
+                mf = int(parts[10]) + int(parts[13]) + int(parts[16])
             except (ValueError, IndexError):
                 continue
-            rows["13" + parts[2].zfill(3)] = units
+            rows["13" + parts[2].zfill(3)] = [sf, mf]
         if rows:
             data[y] = rows
         time.sleep(0.2)
     if data:
         cache.parent.mkdir(parents=True, exist_ok=True)
-        cache.write_text(json.dumps(data))
+        cache.write_text(json.dumps({"_v": 2, "years": data}))
     out = {}
     for y, rows in data.items():
         for f, units in rows.items():
             out.setdefault(f, {})[int(y)] = units
     return out
+
+
+# ------------------------------------------------------- Census ACS housing
+ACS_START = 2010
+ACS_VARS = "B25077_001E,B19013_001E,B25064_001E,B25071_001E"
+#            median home value | median HH income | median gross rent |
+#            median gross rent as % of household income
+
+
+def fetch_acs(this_year=None):
+    """ACS 5-year housing medians for every GA county, one call per year,
+    cached per year (a published vintage never changes). Requires
+    CENSUS_API_KEY (the data API rejects keyless requests since 2026).
+    -> {fips: {year: {"hv":v, "inc":v, "rent":v, "burden":v}}}"""
+    key = os.environ.get("CENSUS_API_KEY")
+    if not key:
+        log("ACS: CENSUS_API_KEY not set — skipping housing block")
+        return {}
+    this_year = this_year or dt.date.today().year
+    out = {}
+    for year in range(ACS_START, this_year):
+        cache = CACHE_DIR / f"acs_{year}.json"
+        if cache.exists():
+            rows = json.loads(cache.read_text())
+        else:
+            url = (f"https://api.census.gov/data/{year}/acs/acs5?get={ACS_VARS}"
+                   f"&for=county:*&in=state:13&key={key}")
+            try:
+                rows = json.loads(http_get(url, retries=2))
+            except Exception as e:
+                # newest vintage not published yet (404) or transient failure
+                log(f"ACS: {year} unavailable ({type(e).__name__}) — skipping")
+                continue
+            if not (isinstance(rows, list) and len(rows) > 1):
+                log(f"ACS: {year} returned no rows — skipping")
+                continue
+            cache.parent.mkdir(parents=True, exist_ok=True)
+            cache.write_text(json.dumps(rows))
+            time.sleep(0.5)
+        hdr = rows[0]
+        idx = {name: hdr.index(name) for name in
+               ("B25077_001E", "B19013_001E", "B25064_001E", "B25071_001E",
+                "state", "county")}
+
+        def val(row, name):
+            v = row[idx[name]]
+            try:
+                v = float(v)
+            except (TypeError, ValueError):
+                return None
+            return v if v > 0 else None   # negative sentinels = suppressed
+
+        for row in rows[1:]:
+            fips = row[idx["state"]] + row[idx["county"]]
+            out.setdefault(fips, {})[year] = {
+                "hv":     val(row, "B25077_001E"),
+                "inc":    val(row, "B19013_001E"),
+                "rent":   val(row, "B25064_001E"),
+                "burden": val(row, "B25071_001E"),
+            }
+    if out:
+        log(f"ACS: {len(out)} counties through {max(y for c in out.values() for y in c)}")
+    return out
+
+
+def mortgage_annual():
+    """Annual average 30-year mortgage rate, from the repo's own
+    data/housing_mortgage_activity.json (Freddie Mac weekly via FRED).
+    No network. -> {year: rate_pct}"""
+    try:
+        d = json.loads((REPO_ROOT / "data" / "housing_mortgage_activity.json").read_text())
+        weekly = d.get("mortgage_30y") or []
+    except Exception:
+        weekly = []
+    by_year = {}
+    for date, rate in weekly:
+        try:
+            by_year.setdefault(int(str(date)[:4]), []).append(float(rate))
+        except (TypeError, ValueError):
+            continue
+    return {y: sum(v) / len(v) for y, v in by_year.items() if v}
+
+
+def affordable_price(income, rate_pct):
+    """Max home price where P&I on a 30-yr loan with 20% down equals 30% of
+    monthly median household income. P&I only — no taxes/insurance/HOA."""
+    if not income or rate_pct is None:
+        return None
+    budget = 0.30 * income / 12.0
+    r = rate_pct / 100.0 / 12.0
+    if r <= 0:
+        loan = budget * 360.0
+    else:
+        loan = budget * (1.0 - (1.0 + r) ** -360.0) / r
+    return round(loan / 0.80)
 
 
 # ---------------------------------------------------------------- FRED
@@ -476,7 +585,7 @@ def yoy_from_annual(series):
 
 
 def build_county(fips, name, laus, ur_ga, ur_us, qcew, pop, permits,
-                 pcpi, pcpi_ga, pcpi_us):
+                 pcpi, pcpi_ga, pcpi_us, acs, rates):
     ur = laus.get(laus_series_id(fips, 3), [])
     emp = laus.get(laus_series_id(fips, 5), [])
     lf = laus.get(laus_series_id(fips, 6), [])
@@ -506,10 +615,40 @@ def build_county(fips, name, laus, ur_ga, ur_us, qcew, pop, permits,
     inc = pcpi.get(fips, [])
     if inc:
         kpis["pcpi"] = {"value": inc[-1][1], "yoy": yoy_from_annual(inc), "label": inc[-1][0]}
-    perm_series = [[str(y), v] for y, v in sorted(permits.get(fips, {}).items())]
+    perm = sorted(permits.get(fips, {}).items())
+    perm_series = [[str(y), v[0] + v[1]] for y, v in perm]
+    perm_sf = [[str(y), v[0]] for y, v in perm]
+    perm_mf = [[str(y), v[1]] for y, v in perm]
     if perm_series:
         kpis["permits"] = {"value": perm_series[-1][1], "yoy": yoy_from_annual(perm_series),
                            "label": perm_series[-1][0] + " total"}
+
+    # ACS housing medians + 30%-rule affordability
+    acs_block = {}
+    a = acs.get(fips)
+    if a:
+        a_hv, a_inc, a_rent, a_burden, a_affp, a_affr = [], [], [], [], [], []
+        for y in sorted(a):
+            row = a[y]
+            ys = str(y)
+            if row["hv"] is not None:
+                a_hv.append([ys, row["hv"]])
+            if row["inc"] is not None:
+                a_inc.append([ys, row["inc"]])
+                a_affr.append([ys, round(0.30 * row["inc"] / 12.0)])
+                ap = affordable_price(row["inc"], rates.get(y))
+                if ap is not None:
+                    a_affp.append([ys, ap])
+            if row["rent"] is not None:
+                a_rent.append([ys, row["rent"]])
+            if row["burden"] is not None:
+                a_burden.append([ys, row["burden"]])
+        if a_hv or a_rent:
+            acs_block = {"home_value": a_hv, "income": a_inc, "afford_price": a_affp,
+                         "rent": a_rent, "afford_rent": a_affr, "rent_burden": a_burden}
+            if a_hv:
+                kpis["home_value"] = {"value": a_hv[-1][1], "yoy": yoy_from_annual(a_hv),
+                                      "label": a_hv[-1][0] + " ACS"}
 
     out = {
         "fips": fips,
@@ -526,7 +665,11 @@ def build_county(fips, name, laus, ur_ga, ur_us, qcew, pop, permits,
         "components": comp_series,   # [year, births, deaths, netmig]
         "pcpi": inc, "pcpi_ga": pcpi_ga, "pcpi_us": pcpi_us,
         "permits": perm_series,
+        "permits_sf": perm_sf,
+        "permits_mf": perm_mf,
     }
+    if acs_block:
+        out["acs"] = acs_block
     if q:
         out["qcew"] = q
     return out
@@ -536,7 +679,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--force", action="store_true", help="ignore the freshness self-gate")
     ap.add_argument("--counties", help="comma-separated FIPS subset (e.g. 13135,13121)")
-    ap.add_argument("--skip", default="", help="comma-separated sources to skip: laus,qcew,pop,bps,fred")
+    ap.add_argument("--skip", default="", help="comma-separated sources to skip: laus,qcew,pop,bps,fred,acs")
     args = ap.parse_args()
     skip = {s.strip() for s in args.skip.split(",") if s.strip()}
 
@@ -567,10 +710,12 @@ def main():
     pop = {} if "pop" in skip else fetch_population()
     permits = {} if "bps" in skip else fetch_permits()
     pcpi, pcpi_ga, pcpi_us = ({}, [], []) if "fred" in skip else fetch_income(fips_list)
+    acs = {} if "acs" in skip else fetch_acs()
+    rates = mortgage_annual()
 
     for f in fips_list:
         entry = build_county(f, GA_COUNTIES[f], laus, ur_ga, ur_us, qcew, pop,
-                             permits, pcpi, pcpi_ga, pcpi_us)
+                             permits, pcpi, pcpi_ga, pcpi_us, acs, rates)
         if entry.get("qcew"):
             entry["qcew"]["wage_ga"] = wage_ga
             entry["qcew"]["wage_us"] = wage_us
