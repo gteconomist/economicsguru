@@ -1,17 +1,17 @@
 {
-  "build_time": "2026-09-01T13:35:47.966329Z",
+  "build_time": "2026-09-01T17:19:01.735138Z",
   "checked_date": "2026-09-01",
   "stale_count": 0,
   "stale": [],
   "datasets": {
     "commodities.json": {
       "status": "ok",
-      "latest": "2026-08-30",
-      "age_days": 2,
+      "latest": "2026-08-31",
+      "age_days": 1,
       "max_age_days": 8,
-      "build_age_days": null,
+      "build_age_days": 0,
       "note": "Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier).",
-      "wrote_this_run": null,
+      "wrote_this_run": true,
       "consecutive_misses": 0
     },
     "consumer.json": {
@@ -169,8 +169,8 @@
     },
     "industry_surveys.json": {
       "status": "ok",
-      "latest": "2026-07-31",
-      "age_days": 32,
+      "latest": "2026-08-31",
+      "age_days": 1,
       "max_age_days": 45,
       "build_age_days": 0,
       "note": "ISM Mfg ~1st business day, ISM Svc ~3rd, NFIB 2nd Tuesday.",
@@ -213,8 +213,8 @@
       "watch": {
         "jolts_openings": {
           "status": "ok",
-          "latest": "2026-06-30",
-          "age_days": 63,
+          "latest": "2026-07-31",
+          "age_days": 32,
           "max_age_days": 100
         }
       }
