@@ -7,6 +7,8 @@ window.EG_PAGES = window.EG_PAGES || {};
 var IND_SILVER = 'rgba(255,255,255,.42)';
 var IND_KHAKI  = '#9B8B6A';
 var IND_TEALLT = '#5FB8B8';
+var IND_BLUE   = '#6B8FE3';   // brightened Bold Blue for dark bg (light export maps to #33509A)
+var IND_PURPLE = '#A77BDB';   // brightened Impact Purple for dark bg (light export maps to #5F249F)
 function indAlign(basisRows, series){
   var m = {}; (series || []).forEach(function(r){ m[r[0]] = r[1]; });
   return basisRows.map(function(r){ return (m[r[0]] == null) ? null : m[r[0]]; });
@@ -71,16 +73,19 @@ window.EG_PAGES.manufacturing = function (data, EG) {
       EG.line(indAlign(cut, cu.mfg), YELLOW, { label:'Manufacturing', borderWidth:2.2, spanGaps:true })
     ]}, options:EG.singleOpts(EG.fmtPct1) });
 
-    // 5. Factory orders — MoM bars (6) + 0% line
+    // 5. Factory orders — MoM bars (7) + 0% line
+    // Colors: distinct hues, CVD-checked on the dark navy surface. Core capex
+    // shipments (ANXAVS) reuses the shipments block — no extra data fetch.
     var fot = EG.tail(fo.total_mom || [], n);
     var lab4 = fot.map(function(r){ return EG.lab(r[0]); });
     EG.newChart('cIndMfgFactoryOrders', { type:'bar', data:{ labels:lab4, datasets:[
       { label:'Total manufacturing', data:fot.map(function(r){return r[1];}), backgroundColor:GOLD, borderColor:GOLD, borderWidth:1 },
       { label:'Mfg ex. transportation (core)', data:indAlign(fot, fo.core_mom), backgroundColor:YELLOW, borderColor:YELLOW, borderWidth:1 },
       { label:'Durable goods', data:indAlign(fot, fo.durable_mom), backgroundColor:ELEC, borderColor:ELEC, borderWidth:1 },
-      { label:'Core durable goods', data:indAlign(fot, fo.core_durable_mom), backgroundColor:IND_TEALLT, borderColor:IND_TEALLT, borderWidth:1 },
-      { label:'Nondurable goods', data:indAlign(fot, fo.nondurable_mom), backgroundColor:IND_KHAKI, borderColor:IND_KHAKI, borderWidth:1 },
-      { label:'Core capex', data:indAlign(fot, fo.core_capex_mom), backgroundColor:ORANGE, borderColor:ORANGE, borderWidth:1 },
+      { label:'Core durable goods', data:indAlign(fot, fo.core_durable_mom), backgroundColor:IND_BLUE, borderColor:IND_BLUE, borderWidth:1 },
+      { label:'Nondurable goods', data:indAlign(fot, fo.nondurable_mom), backgroundColor:LIME, borderColor:LIME, borderWidth:1 },
+      { label:'Core capex orders', data:indAlign(fot, fo.core_capex_mom), backgroundColor:ORANGE, borderColor:ORANGE, borderWidth:1 },
+      { label:'Core capital goods shipments', data:indAlign(fot, sh.nondef_capital_ex_air_mom), backgroundColor:IND_PURPLE, borderColor:IND_PURPLE, borderWidth:1 },
       indZero(lab4)
     ]}, options:indHideZero(EG.singleOpts(EG.fmtPct1s)) });
 

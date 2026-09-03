@@ -301,7 +301,9 @@ window.EG = (function () {
     '#E04F39':'#C5402B',  // New Horizon-> deeper orange-red
     '#3A5DAE':'#33509A',  // Bold Blue  -> slightly deeper
     '#5F249F':'#5F249F',  // Impact Purple (ok on white)
-    '#008C95':'#006D74'   // Olympic Teal -> deeper
+    '#008C95':'#006D74',  // Olympic Teal -> deeper
+    '#6B8FE3':'#33509A',  // bright Bold Blue (dark-bg variant) -> deep Bold Blue
+    '#A77BDB':'#5F249F'   // bright Impact Purple (dark-bg variant) -> Impact Purple
   };
   var EXPORT_DARK  = { bg:T.exBg, ink:T.exTitle, muted:T.exMuted, brand:T.exBrand, axis:T.exAxis, grid:T.exGrid, map:null, barFill:null, suffix:'' };
   var EXPORT_LIGHT = { bg:'#ffffff', ink:'#10233a', muted:'#5d6f82', brand:'#857437', axis:'#10233a', grid:'rgba(16,32,52,.12)', map:LIGHT_MAP, barFill:'rgba(84,88,90,.32)', suffix:'-light' };
