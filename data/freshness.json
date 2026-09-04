@@ -1,17 +1,17 @@
 {
-  "build_time": "2026-09-04T13:35:55.071838Z",
+  "build_time": "2026-09-04T16:49:57.741391Z",
   "checked_date": "2026-09-04",
   "stale_count": 0,
   "stale": [],
   "datasets": {
     "commodities.json": {
       "status": "ok",
-      "latest": "2026-09-02",
-      "age_days": 2,
+      "latest": "2026-09-03",
+      "age_days": 1,
       "max_age_days": 8,
-      "build_age_days": null,
+      "build_age_days": 0,
       "note": "Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier).",
-      "wrote_this_run": null,
+      "wrote_this_run": true,
       "consecutive_misses": 0
     },
     "consumer.json": {
