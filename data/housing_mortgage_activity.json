@@ -45762,7 +45762,7 @@
     ],
     [
       "2026-09-03",
-      4.75
+      4.77
     ]
   ],
   "spread_30y_10y": [
@@ -57336,7 +57336,7 @@
     ],
     [
       "2026-09-03",
-      1.96
+      1.94
     ]
   ],
   "mortgage_30y_m": [
@@ -68367,8 +68367,8 @@
       "label": "2026-09-03"
     },
     "spread_30y_10y": {
-      "value": 1.96,
-      "delta": -0.01,
+      "value": 1.94,
+      "delta": -0.03,
       "label": "2026-09-03"
     },
     "purchase_index": {
@@ -68413,7 +68413,7 @@
     }
   },
   "latest_label": "2026-08-21",
-  "build_time": "2026-09-04T13:35:08Z",
+  "build_time": "2026-09-05T15:53:17Z",
   "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
