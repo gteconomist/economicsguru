@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-09-07T18:16:09.766087Z",
+  "build_time": "2026-09-07T22:25:31.767527Z",
   "checked_date": "2026-09-07",
   "stale_count": 0,
   "stale": [],
@@ -9,9 +9,9 @@
       "latest": "2026-09-06",
       "age_days": 1,
       "max_age_days": 8,
-      "build_age_days": 0,
+      "build_age_days": null,
       "note": "Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier).",
-      "wrote_this_run": true,
+      "wrote_this_run": null,
       "consecutive_misses": 0
     },
     "consumer.json": {
@@ -188,6 +188,18 @@
           "latest": "2026-07-31",
           "age_days": 38,
           "max_age_days": 48
+        },
+        "ism_manufacturing.production": {
+          "status": "ok",
+          "latest": "2026-08-31",
+          "age_days": 7,
+          "max_age_days": 45
+        },
+        "ism_services.business_activity": {
+          "status": "ok",
+          "latest": "2026-08-31",
+          "age_days": 7,
+          "max_age_days": 48
         }
       }
     },
@@ -216,6 +228,12 @@
           "latest": "2026-07-31",
           "age_days": 38,
           "max_age_days": 100
+        },
+        "challenger_layoffs": {
+          "status": "ok",
+          "latest": "2026-08-31",
+          "age_days": 7,
+          "max_age_days": 45
         }
       }
     },
