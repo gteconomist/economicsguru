@@ -53,6 +53,24 @@ OUT_PATH       = REPO_ROOT / "data" / "industry_surveys.json"
 
 ISM_MFG_CSV  = HISTORICAL_DIR / "ism_manufacturing.csv"
 ISM_SVC_CSV  = HISTORICAL_DIR / "ism_services.csv"
+
+# Column order for the two ISM CSVs. The first four value columns of each are
+# the original scraped set; the rest were backfilled from Moody's Data Buffet
+# (2026-09-07) and are carried forward by the same press-release scrape --
+# every one of them appears in each monthly release as
+# "<label> Index registered N.N percent".
+#
+# Manufacturing deliberately omits Inventories and Customers' Inventories:
+# no usable history exists for them (Moody's inventories series was
+# discontinued in 2011, customers' inventories is absent), so the columns
+# would start empty in 2026 and chart as a stub.
+ISM_MFG_COLS = ["total", "employment", "new_orders", "backlog", "prices_paid",
+                "production", "supplier_deliveries", "new_export_orders",
+                "imports"]
+ISM_SVC_COLS = ["composite", "employment", "new_orders", "prices",
+                "business_activity", "supplier_deliveries", "backlog",
+                "new_export_orders", "imports", "inventories",
+                "inventory_sentiment"]
 CASS_CSV     = HISTORICAL_DIR / "cass_freight.csv"
 NFIB_CSV     = HISTORICAL_DIR / "nfib_sbet.csv"
 
@@ -705,10 +723,14 @@ def scrape_ism_manufacturing():
         headline_patterns=_ISM_MFG_HEADLINE,
         primary_col="total",
         sub_specs=[
-            ("employment",   ["Employment"]),
-            ("new_orders",   ["New Orders"]),
-            ("backlog",      ["Backlog of Orders", "Backlog"]),
-            ("prices_paid",  ["Prices"]),
+            ("employment",          ["Employment"]),
+            ("new_orders",          ["New Orders"]),
+            ("backlog",             ["Backlog of Orders", "Backlog"]),
+            ("prices_paid",         ["Prices"]),
+            ("production",          ["Production"]),
+            ("supplier_deliveries", ["Supplier Deliveries"]),
+            ("new_export_orders",   ["New Export Orders"]),
+            ("imports",             ["Imports"]),
         ],
     )
 
@@ -720,9 +742,16 @@ def scrape_ism_services():
         headline_patterns=_ISM_SVC_HEADLINE,
         primary_col="composite",
         sub_specs=[
-            ("employment",   ["Employment"]),
-            ("new_orders",   ["New Orders"]),
-            ("prices",       ["Prices"]),
+            ("employment",          ["Employment"]),
+            ("new_orders",          ["New Orders"]),
+            ("prices",              ["Prices"]),
+            ("business_activity",   ["Business Activity"]),
+            ("supplier_deliveries", ["Supplier Deliveries"]),
+            ("backlog",             ["Backlog of Orders", "Backlog"]),
+            ("new_export_orders",   ["New Export Orders"]),
+            ("imports",             ["Imports"]),
+            ("inventories",         ["Inventories"]),
+            ("inventory_sentiment", ["Inventory Sentiment"]),
         ],
     )
 
@@ -1176,9 +1205,7 @@ def main():
         mfg_scraped = []
     if mfg_scraped:
         try:
-            changed = _upsert_csv(ISM_MFG_CSV,
-                ["total", "employment", "new_orders", "backlog", "prices_paid"],
-                mfg_scraped)
+            changed = _upsert_csv(ISM_MFG_CSV, ISM_MFG_COLS, mfg_scraped)
             print(f"  ISM Mfg CSV {'CHANGED' if changed else 'unchanged'}",
                   file=sys.stderr)
         except Exception as e:
@@ -1196,9 +1223,7 @@ def main():
         svc_scraped = []
     if svc_scraped:
         try:
-            changed = _upsert_csv(ISM_SVC_CSV,
-                ["composite", "employment", "new_orders", "prices"],
-                svc_scraped)
+            changed = _upsert_csv(ISM_SVC_CSV, ISM_SVC_COLS, svc_scraped)
             print(f"  ISM Svc CSV {'CHANGED' if changed else 'unchanged'}",
                   file=sys.stderr)
         except Exception as e:
@@ -1267,10 +1292,8 @@ def main():
 
     # ---- Read final CSVs and build JSON ----
     print("Reading CSV baselines...", file=sys.stderr)
-    mfg = _read_csv_series(ISM_MFG_CSV,
-        ["total", "employment", "new_orders", "backlog", "prices_paid"])
-    svc = _read_csv_series(ISM_SVC_CSV,
-        ["composite", "employment", "new_orders", "prices"])
+    mfg = _read_csv_series(ISM_MFG_CSV, ISM_MFG_COLS)
+    svc = _read_csv_series(ISM_SVC_CSV, ISM_SVC_COLS)
     cass = _read_csv_series(CASS_CSV, ["index_level"])
     nfib = _read_csv_series(NFIB_CSV,
         ["optimism", "uncertainty", "taxes", "labor_quality", "inflation",
@@ -1333,17 +1356,10 @@ def main():
         "kpis":         kpis,
 
         "ism_manufacturing": {
-            "total":      _to_iso_pairs(mfg["total"]),
-            "employment": _to_iso_pairs(mfg["employment"]),
-            "new_orders": _to_iso_pairs(mfg["new_orders"]),
-            "backlog":    _to_iso_pairs(mfg["backlog"]),
-            "prices_paid": _to_iso_pairs(mfg["prices_paid"]),
+            col: _to_iso_pairs(mfg[col]) for col in ISM_MFG_COLS
         },
         "ism_services": {
-            "composite":  _to_iso_pairs(svc["composite"]),
-            "employment": _to_iso_pairs(svc["employment"]),
-            "new_orders": _to_iso_pairs(svc["new_orders"]),
-            "prices":     _to_iso_pairs(svc["prices"]),
+            col: _to_iso_pairs(svc[col]) for col in ISM_SVC_COLS
         },
         "cass_freight": {
             "index":   _to_iso_pairs(cass_level, decimals=3),

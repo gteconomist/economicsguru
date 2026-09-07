@@ -280,6 +280,38 @@ def detect_gaps_recent(rows, n=14):
 
 
 # ---------- Main ----------
+CHALLENGER_CSV = OUT_PATH.parent / "historical" / "challenger_layoffs.csv"
+
+
+def read_challenger():
+    """Read the Challenger job-cut baseline as [['YYYY-MM', value], ...].
+
+    The CSV is maintained by scripts/fetch_challenger.py, which runs before
+    this script. Any problem here is swallowed: the labor page loses one
+    chart rather than the whole build failing.
+    """
+    try:
+        import csv as _csv
+        if not CHALLENGER_CSV.exists():
+            return []
+        out = []
+        with CHALLENGER_CSV.open() as f:
+            for row in _csv.DictReader(f):
+                month = (row.get("month") or "").strip()
+                raw = (row.get("announced_layoffs") or "").strip()
+                if not month or not raw:
+                    continue
+                try:
+                    out.append([month, int(round(float(raw)))])
+                except ValueError:
+                    continue
+        out.sort(key=lambda r: r[0])
+        return out
+    except Exception as e:
+        print(f"Challenger CSV read failed: {e}", file=sys.stderr)
+        return []
+
+
 def main():
     today = dt.date.today()
     raw = fetch_long(ALL_IDS, today.year - 24, today.year)
@@ -328,6 +360,8 @@ def main():
     ces_latest   = "{}-{:02d}".format(*raw["CES0000000001"][-1][:2])
     jolts_latest = "{}-{:02d}".format(*raw["JTS000000000000000JOL"][-1][:2])
 
+    challenger = read_challenger()
+
     out = {
         "unemployment_rate": unemployment_rate,
         "u6_rate":           u6_rate,
@@ -349,6 +383,7 @@ def main():
         "jolts_openings":    jolts_openings,
         "jolts_hires":       jolts_hires,
         "jolts_quits":       jolts_quits,
+        "challenger_layoffs": challenger,
         "kpis": {
             "unemployment": kpi(unemployment_rate, unit="pp"),
             "u6":           kpi(u6_rate,           unit="pp"),
@@ -357,6 +392,7 @@ def main():
             "ahe_yoy":      kpi(ahe_yoy,           unit="pp"),
             "openings":     kpi(jolts_openings,    unit="k"),
             "quits":        kpi(jolts_quits,       unit="k"),
+            "challenger":   kpi(challenger,      unit="k") if challenger else None,
         },
         "latest_label":  cps_latest,
         "ces_latest":    ces_latest,
@@ -364,6 +400,9 @@ def main():
         "jolts_latest":  jolts_latest,
         "build_time":    dt.datetime.utcnow().isoformat(timespec="seconds") + "Z",
     }
+
+    if challenger:
+        out["challenger_latest"] = challenger[-1][0]
 
     gaps = detect_gaps_recent(raw["LNS14000000"], n=14)
     if gaps:

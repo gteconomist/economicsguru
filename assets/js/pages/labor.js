@@ -13,7 +13,8 @@ window.EG_PAGES.labor = function (data, EG) {
     { key:'payrolls',     label:'Payrolls (Δ mo)',unit:'k', decimals:0, deltaUnit:'k', deltaDecimals:0, signed:true, goodDir:'up' },
     { key:'lfp',          label:'Participation',  unit:'%', decimals:1, deltaUnit:'pp', deltaDecimals:1, goodDir:'up' },
     { key:'ahe_yoy',      label:'Wage growth',    unit:'%', decimals:1, deltaUnit:'pp', deltaDecimals:1, goodDir:'up' },
-    { key:'openings',     label:'Job openings',   unit:'M', scale:0.001, decimals:2, deltaUnit:'M', deltaDecimals:2, goodDir:'up' }
+    { key:'openings',     label:'Job openings',   unit:'M', scale:0.001, decimals:2, deltaUnit:'M', deltaDecimals:2, goodDir:'up' },
+    { key:'challenger',   label:'Announced cuts', unit:'k', scale:0.001, decimals:1, deltaUnit:'k', deltaDecimals:1, signed:true, goodDir:'down' }
   ], data.kpis);
 
   function st(key, n){ return EG.tail(data[key] || [], n); }
@@ -137,6 +138,21 @@ window.EG_PAGES.labor = function (data, EG) {
       EG.line(EG.val(st('jolts_hires', n)), C[1], { label:'Hires' }),
       EG.line(EG.val(st('jolts_quits', n)), C[2], { label:'Quits' })
     ]}, options:EG.singleOpts(EG.fmtMillions) });
+
+    // 11. Challenger announced job cuts (NSA, monthly) + 3-month average.
+    //     The monthly series is dominated by a handful of mass-layoff
+    //     announcements, so the bars carry the news and the moving average
+    //     carries the trend. Announcements lead initial claims by weeks --
+    //     they are intentions, not separations, and never all materialize.
+    var ch = data.challenger_layoffs || [];
+    if (ch.length) {
+      var cht = EG.tail(ch, n);
+      var chLab = cht.map(function(p){ return EG.lab(p[0]); });
+      EG.newChart('cChallenger', { type:'bar', data:{ labels:chLab, datasets:[
+        { label:'Announced cuts', data:EG.val(cht), backgroundColor:C[0], borderColor:C[0], borderWidth:1, order:2 },
+        Object.assign(EG.line(EG.val(EG.tail(mma(ch, 3), n)), C[1], { label:'3-month average', borderWidth:2.2, spanGaps:true }), { type:'line', order:1 })
+      ]}, options:EG.singleOpts(EG.fmtBig) });
+    }
   }
 
   return draw;

@@ -191,6 +191,19 @@ window.EG_PAGES.surveys = function (data, EG) {
       { label:'Commodity prices paid', data:dist(m.prices_paid), backgroundColor:IND_KHAKI, borderColor:IND_KHAKI, borderWidth:1 }
     ]}, options:EG.singleOpts(distFmt) });
 
+    // 2a. ISM Mfg production & supply chain detail + 50 line
+    //     Production and supplier deliveries are SA; export orders and imports
+    //     are published NSA by ISM, so they run noisier by design.
+    var idt = EG.tail(m.production || [], n);
+    var l2a = idt.map(function(r){ return EG.lab(r[0]); });
+    EG.newChart('cIndSurveysIsmMfgDetail', { type:'line', data:{ labels:l2a, datasets:[
+      EG.line(idt.map(function(r){return r[1];}), GOLD, { label:'Production (SA)', borderWidth:2.4 }),
+      EG.line(indAlign(idt, m.supplier_deliveries), ELEC, { label:'Supplier deliveries (SA)', borderWidth:2.2, spanGaps:true }),
+      EG.line(indAlign(idt, m.new_export_orders), IND_BLUE, { label:'New export orders (NSA)', borderWidth:2.0, spanGaps:true }),
+      EG.line(indAlign(idt, m.imports), ORANGE, { label:'Imports (NSA)', borderWidth:2.0, spanGaps:true }),
+      refLine(l2a, 50, '50 (expansion / contraction)')
+    ]}, options:EG.singleOpts(EG.fmtIdx) });
+
     // 3. ISM Services composite + sub-indices + 50 line
     var sc = EG.tail(s.composite || [], n);
     var l3 = sc.map(function(r){ return EG.lab(r[0]); });
@@ -200,6 +213,30 @@ window.EG_PAGES.surveys = function (data, EG) {
       dashed(indAlign(sc, s.new_orders), ELEC, 'New orders'),
       dashed(indAlign(sc, s.prices), IND_KHAKI, 'Prices'),
       refLine(l3, 50, '50 (expansion / contraction)')
+    ]}, options:EG.singleOpts(EG.fmtIdx) });
+
+    // 3a. ISM Services orders, deliveries & backlog + 50 line
+    //     Business activity is SA; the rest are published NSA.
+    var sdt = EG.tail(s.business_activity || [], n);
+    var l3a = sdt.map(function(r){ return EG.lab(r[0]); });
+    EG.newChart('cIndSurveysIsmSvcDetail', { type:'line', data:{ labels:l3a, datasets:[
+      EG.line(sdt.map(function(r){return r[1];}), GOLD, { label:'Business activity (SA)', borderWidth:2.4 }),
+      EG.line(indAlign(sdt, s.supplier_deliveries), ELEC, { label:'Supplier deliveries (NSA)', borderWidth:2.2, spanGaps:true }),
+      EG.line(indAlign(sdt, s.backlog), YELLOW, { label:'Backlog of orders (NSA)', borderWidth:2.0, spanGaps:true }),
+      EG.line(indAlign(sdt, s.new_export_orders), IND_BLUE, { label:'New export orders (NSA)', borderWidth:2.0, spanGaps:true }),
+      EG.line(indAlign(sdt, s.imports), ORANGE, { label:'Imports (NSA)', borderWidth:2.0, spanGaps:true }),
+      refLine(l3a, 50, '50 (expansion / contraction)')
+    ]}, options:EG.singleOpts(EG.fmtIdx) });
+
+    // 3b. ISM Services inventories vs inventory sentiment + 50 line
+    //     Sentiment above 50 means respondents think their inventories are
+    //     too high, so the two lines diverging is the signal worth watching.
+    var sin = EG.tail(s.inventories || [], n);
+    var l3b = sin.map(function(r){ return EG.lab(r[0]); });
+    EG.newChart('cIndSurveysIsmSvcInventories', { type:'line', data:{ labels:l3b, datasets:[
+      EG.line(sin.map(function(r){return r[1];}), GOLD, { label:'Inventories (NSA)', borderWidth:2.4 }),
+      EG.line(indAlign(sin, s.inventory_sentiment), ELEC, { label:'Inventory sentiment (NSA)', borderWidth:2.2, spanGaps:true }),
+      refLine(l3b, 50, '50 (expansion / contraction)')
     ]}, options:EG.singleOpts(EG.fmtIdx) });
 
     // 4. Composite PMI — Manufacturing vs Services + 50 line

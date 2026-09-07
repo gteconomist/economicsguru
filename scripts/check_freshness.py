@@ -92,7 +92,9 @@ TOLERANCES = {
 
     # ---- monthly ----------------------------------------------------------
     "labor.json":        dict(max_age_days=45,  note="Employment Situation lands ~1st Friday (R~6). JOLTS runs 2 months behind and is checked separately below.",
-                              watch={"jolts_openings": 100}),
+                              watch={"jolts_openings": 100,
+                                     # Challenger prints ~1st Thursday for the prior month.
+                                     "challenger_layoffs": 45}),
     "inflation.json":    dict(max_age_days=55,  note="CPI ~day 13 of the following month (R~13)."),
     "ppi.json":          dict(max_age_days=58,  note="PPI ~day 16 (R~16)."),
     "pce.json":          dict(max_age_days=70,  note="BEA Personal Income & Outlays lands ~day 28 of the following month (R~28) -- the longest monthly lag on the site."),
@@ -123,7 +125,12 @@ TOLERANCES = {
     "leading.json":      dict(max_age_days=62,  note="Conference Board LEI ~day 20 (R~20). LCI is manual and lags a month by design.",
                               watch={"lei_level": 62}),
     "industry_surveys.json": dict(max_age_days=45, note="ISM Mfg ~1st business day, ISM Svc ~3rd, NFIB 2nd Tuesday.",
-                              watch={"cass_freight.index": 62, "nfib_sbet.optimism": 48}),
+                              watch={"cass_freight.index": 62, "nfib_sbet.optimism": 48,
+                                     # The sub-indices come from the same release as the
+                                     # headline, so a sub-index regex that stops matching
+                                     # would otherwise hide behind a fresh "total".
+                                     "ism_manufacturing.production": 45,
+                                     "ism_services.business_activity": 48}),
 
     # ---- quarterly --------------------------------------------------------
     "gdp.json":          dict(max_age_days=130, note="BEA advance estimate ~30d after quarter end; third estimate ~90d. 130 tolerates a delayed advance print."),
