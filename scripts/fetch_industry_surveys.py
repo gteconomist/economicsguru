@@ -130,7 +130,24 @@ def _strip_html(html):
     # releases use them inline ("Manufacturing PMI® registered 52.7 percent")
     # so they sit between words and break \s-anchored regexes if not stripped.
     s = s.replace("®", "").replace("™", "")
+    s = _strip_markdown(s)
     s = re.sub(r"\s+", " ", s)
+    return s
+
+
+def _strip_markdown(s):
+    """Flatten Markdown that Tavily / Jina extracts return, so regexes see prose.
+
+    Found 2026-09-08: Tavily hands back the NFIB page as Markdown, and the
+    headline reads "The [**NFIB Small Business Optimism Index**](https://www.nfib.com/...pdf)
+    rose 2.1 points". The link URL sits between "Index" and the verb, and its
+    dots defeat the "[^.]{0,80}" fallback -- so every NFIB pattern missed and
+    the run logged "no parse (regex miss?)". Images, links, emphasis and
+    heading markers all go; link text is kept.
+    """
+    s = re.sub(r"!\[[^\]]*\]\([^)]*\)", " ", s)          # images
+    s = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", s)        # [text](url) -> text
+    s = re.sub(r"[*_`#>|]+", " ", s)                      # emphasis / headings / tables
     return s
 
 
@@ -517,22 +534,37 @@ def _get_text_resilient(url, label=""):
 
     Raises if BOTH paths fail, so the caller can record a visible notice.
     """
-    direct_err = None
+    errs = []
     try:
         return _strip_html(_http_get_text(url))
     except Exception as e:
-        direct_err = e
-        print(f"  {label} direct fetch failed ({e}); trying Tavily extract...",
+        errs.append(f"direct={e}")
+        print(f"  {label} direct fetch failed ({e}); trying Jina reader...",
+              file=sys.stderr)
+    # Jina reader proxy (r.jina.ai) renders the page from its own egress pool
+    # and returns Markdown. Added 2026-09-08 because Tavily's extract of
+    # nfib.com is a frozen cache (it kept returning the June 2026 page in
+    # September) and Tavily cannot re-fetch the live page at all.
+    try:
+        raw = _http_get_text("https://r.jina.ai/" + url, retries=1, timeout=60)
+        if raw and len(raw.strip()) > 2000:
+            print(f"  {label} Jina reader OK ({len(raw)} chars)", file=sys.stderr)
+            return _strip_html(raw)
+        raise RuntimeError("Jina returned empty/unusable content")
+    except Exception as e:
+        errs.append(f"jina={e}")
+        print(f"  {label} Jina reader failed ({e}); trying Tavily extract...",
               file=sys.stderr)
     try:
         raw = tavily_extract(url)
         if raw and raw.strip():
-            print(f"  {label} Tavily extract OK ({len(raw)} chars)", file=sys.stderr)
+            print(f"  {label} Tavily extract OK ({len(raw)} chars) -- NOTE: may be a "
+                  f"stale cached copy; check the parsed month", file=sys.stderr)
             return _strip_html(raw)
         raise RuntimeError("Tavily extract returned empty content")
     except Exception as e:
-        raise RuntimeError(
-            f"{label} fetch failed both ways: direct={direct_err}; tavily={e}") from e
+        errs.append(f"tavily={e}")
+        raise RuntimeError(f"{label} fetch failed all ways: " + "; ".join(errs)) from e
 
 
 def _csv_latest_month(path):
@@ -977,7 +1009,7 @@ def _to_iso_pairs(pairs, decimals=2):
 
 NFIB_URL = "https://www.nfib.com/news/monthly_report/sbet/"
 
-_NFIB_VERB = r"(?:rose|fell|increased|decreased|declined|gained|dropped|climbed|jumped|edged\s+up|ticked\s+up|edged\s+down|ticked\s+down)"
+_NFIB_VERB = r"(?:rose|fell|increased|decreased|declined|gained|dropped|climbed|jumped|dipped|slipped|slid|eased|improved|rebounded|edged\s+up|ticked\s+up|edged\s+down|ticked\s+down)"
 
 _NFIB_NUM = r"\d+(?:\.\d+)?"     # 95 or 95.8; group-less (NFIB patterns add their own parens). Renamed from _NUM so it no longer clobbers the grouped ISM _NUM used by _find_subindex.
 _INT = r"\d+"
@@ -1016,7 +1048,7 @@ _NFIB_PROBLEM_TOPICS = [
     ("taxes",                          re.compile(r"\btaxes\b",                                re.IGNORECASE)),
     ("labor_quality",                  re.compile(r"labor\s*quality",                          re.IGNORECASE)),
     ("inflation",                      re.compile(r"inflation",                                re.IGNORECASE)),
-    ("poor_sales",                     re.compile(r"poor\s*sales",                             re.IGNORECASE)),
+    ("poor_sales",                     re.compile(r"(?:poor|weak)\s*sales",                    re.IGNORECASE)),
     ("labor_costs",                    re.compile(r"labor\s*costs",                            re.IGNORECASE)),
     ("insurance",                      re.compile(r"(?:cost\s+or\s+availability\s+of\s+)?insurance", re.IGNORECASE)),
     ("regulations",                    re.compile(r"government\s*regulations?(?:\s+and\s+red\s+tape)?", re.IGNORECASE)),
@@ -1127,13 +1159,18 @@ def _nfib_parse(text):
         pct = _nfib_extract_pct(s)
         if pct is None:
             continue
-        # First topic match in the sentence wins; first occurrence in the
-        # document wins overall (avoids overwriting with secondary mentions).
-        for col, rx in _NFIB_PROBLEM_TOPICS:
-            if rx.search(s):
-                if col not in found:
-                    found[col] = pct
-                break
+        # The topic mentioned EARLIEST in the sentence wins -- not the first
+        # one in _NFIB_PROBLEM_TOPICS list order. Aug 2026 read "Sixteen
+        # percent ... cited inflation as their single most important business
+        # problem ... tied with taxes": list order handed that 16 to taxes and
+        # dropped inflation from the pie. First occurrence in the document
+        # still wins overall (avoids overwriting with secondary mentions).
+        hits = [(m.start(), col) for col, rx in _NFIB_PROBLEM_TOPICS
+                for m in [rx.search(s)] if m]
+        if hits:
+            col = min(hits)[1]
+            if col not in found:
+                found[col] = pct
     out.update(found)
     return out
 
@@ -1154,6 +1191,15 @@ def scrape_nfib():
         print("  NFIB scrape: no parse (regex miss?)", file=sys.stderr)
         return []
     print(f"  NFIB scraped: {parsed}", file=sys.stderr)
+    latest_csv = _csv_latest_month(NFIB_CSV)
+    if latest_csv and parsed.get("month") and parsed["month"] < latest_csv:
+        # Tavily's extract cache handed us an OLD copy of the page (June 2026
+        # was served in Sept 2026). Nothing to upsert; say so loudly instead of
+        # letting the run look like a clean no-op.
+        print(f"  NFIB WARNING: fetched page is for {parsed['month']} but CSV already "
+              f"has {latest_csv} -- stale cached copy, nothing new landed",
+              file=sys.stderr)
+        return []
     return [parsed]
 
 
