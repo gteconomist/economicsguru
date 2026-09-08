@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-09-08T00:03:54.430170Z",
+  "build_time": "2026-09-08T13:23:53.579311Z",
   "checked_date": "2026-09-08",
   "stale_count": 0,
   "stale": [],
@@ -277,8 +277,8 @@
     },
     "treasuries.json": {
       "status": "ok",
-      "latest": "2026-09-07",
-      "age_days": 1,
+      "latest": "2026-09-08",
+      "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily H.15 yields; 6d covers a long holiday weekend.",
