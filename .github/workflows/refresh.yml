@@ -60,6 +60,15 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_ppi.py
 
+      # Challenger job cuts: scraped from challengergray.com via Tavily and
+      # upserted into data/historical/challenger_layoffs.csv. Must run BEFORE
+      # fetch_labor.py, which reads that CSV into data/labor.json.
+      - name: Refresh Challenger job cuts
+        env:
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+        continue-on-error: true
+        run: python scripts/fetch_challenger.py
+
       - name: Refresh labor market data from BLS
         env:
           BLS_API_KEY: ${{ secrets.BLS_API_KEY }}
@@ -334,7 +343,8 @@ jobs:
               data/historical/nar_affordability.csv \
               data/historical/ny_fed_hhdc_mortgage.csv \
               data/historical/mortgage_eff_rate.csv \
-              data/historical/quarterly_hh_income.csv; do
+              data/historical/quarterly_hh_income.csv \
+              data/historical/challenger_layoffs.csv; do
             if [[ -f "$f" && -n "$(git status --porcelain "$f")" ]]; then
               changed="$changed $f"
             fi
