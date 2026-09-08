@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-09-07T22:25:22.177949Z",
+  "build_time": "2026-09-08T00:03:44.632162Z",
   "latest_label": "2026-08-01",
   "kpis": {
     "ism_mfg_total": {
@@ -46767,6 +46767,12 @@
     "cass_freight": true,
     "nfib_sbet": false
   },
-  "stale": null,
-  "notice": null
+  "stale": {
+    "nfib_sbet": {
+      "latest": "2026-07",
+      "expected": "2026-08",
+      "months_behind": 1
+    }
+  },
+  "notice": "nfib_sbet is 1 month(s) behind (latest 2026-07, expected 2026-08)."
 }
