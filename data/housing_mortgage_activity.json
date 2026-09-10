@@ -15308,9 +15308,9 @@
     ]
   ],
   "mba_latest_week": "2026-08-28",
-  "mba_refi_share": 41.8,
-  "mba_arm_share": 8.0,
-  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/09/02/mortgage-applications-increase-in-latest-mba-weekly-survey",
+  "mba_refi_share": 42.0,
+  "mba_arm_share": 7.9,
+  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/08/26/mortgage-applications-decrease-in-latest-mba-weekly-survey",
   "mortgage_30y": [
     [
       "1971-04-02",
@@ -26883,6 +26883,10 @@
     [
       "2026-09-03",
       6.71
+    ],
+    [
+      "2026-09-10",
+      6.76
     ]
   ],
   "mortgage_15y": [
@@ -34197,6 +34201,10 @@
     [
       "2026-09-03",
       6.04
+    ],
+    [
+      "2026-09-10",
+      6.09
     ]
   ],
   "treasury_10y": [
@@ -45771,6 +45779,10 @@
     [
       "2026-09-03",
       4.77
+    ],
+    [
+      "2026-09-10",
+      4.79
     ]
   ],
   "spread_30y_10y": [
@@ -57345,6 +57357,10 @@
     [
       "2026-09-03",
       1.94
+    ],
+    [
+      "2026-09-10",
+      1.97
     ]
   ],
   "mortgage_30y_m": [
@@ -60010,7 +60026,7 @@
     ],
     [
       "2026-09-01",
-      6.71
+      6.73
     ]
   ],
   "eff_rate_outstanding": [
@@ -65579,6 +65595,10 @@
     [
       "2026-07-01",
       107.7
+    ],
+    [
+      "2026-08-01",
+      107.9
     ]
   ],
   "price_income_ratio": [
@@ -68365,19 +68385,19 @@
   ],
   "kpis": {
     "mortgage_30y": {
-      "value": 6.71,
+      "value": 6.76,
       "delta": 0.05,
-      "label": "2026-09-03"
+      "label": "2026-09-10"
     },
     "mortgage_15y": {
-      "value": 6.04,
-      "delta": 0.06,
-      "label": "2026-09-03"
+      "value": 6.09,
+      "delta": 0.05,
+      "label": "2026-09-10"
     },
     "spread_30y_10y": {
-      "value": 1.94,
-      "delta": -0.03,
-      "label": "2026-09-03"
+      "value": 1.97,
+      "delta": 0.03,
+      "label": "2026-09-10"
     },
     "purchase_index": {
       "value": 157.5,
@@ -68390,14 +68410,14 @@
       "label": "2026-08-28"
     },
     "refi_share": {
-      "value": 41.8,
+      "value": 42.0,
       "delta": null,
-      "label": "2026-08-28"
+      "label": "2026-08-21"
     },
     "arm_share": {
-      "value": 8.0,
+      "value": 7.9,
       "delta": null,
-      "label": "2026-08-28"
+      "label": "2026-08-21"
     },
     "delinquency_rate": {
       "value": 1.86,
@@ -68410,9 +68430,9 @@
       "label": "2026-03-01"
     },
     "affordability": {
-      "value": 107.7,
-      "delta": -1.7,
-      "label": "2026-07-01"
+      "value": 107.9,
+      "delta": 0.2,
+      "label": "2026-08-01"
     },
     "price_income_ratio": {
       "value": 5.05,
@@ -68421,8 +68441,8 @@
     }
   },
   "latest_label": "2026-08-28",
-  "build_time": "2026-09-10T13:21:34Z",
-  "csv_rows_appended_this_run": 1,
+  "build_time": "2026-09-10T17:08:29Z",
+  "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
   "eff_rate_rows": 591,
@@ -68432,9 +68452,9 @@
   "mba_history_rows": 1913,
   "hai_csv_loaded": true,
   "hai_csv_rows": 547,
-  "hai_csv_rows_appended_this_run": 0,
-  "hai_scrape_succeeded": false,
-  "hai_scrape_source": null,
+  "hai_csv_rows_appended_this_run": 1,
+  "hai_scrape_succeeded": true,
+  "hai_scrape_source": "FRED FIXHAI",
   "hai_factor_window_months": 36,
   "hai_basis": "NAR Housing Affordability Index, seasonally adjusted in-house using monthly factors derived from the historical SA/NSA overlap. Trailing months from the NAR press release via Tavily.",
   "price_income_ratio_rows": 220,
