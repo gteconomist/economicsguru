@@ -68449,8 +68449,8 @@
     }
   },
   "latest_label": "2026-09-04",
-  "build_time": "2026-09-11T14:12:57Z",
-  "csv_rows_appended_this_run": 1,
+  "build_time": "2026-09-11T16:58:59Z",
+  "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
   "eff_rate_rows": 591,
