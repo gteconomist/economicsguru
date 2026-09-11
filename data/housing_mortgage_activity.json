@@ -68396,7 +68396,7 @@
     },
     "spread_30y_10y": {
       "value": 1.97,
-      "delta": 0.03,
+      "delta": 0.02,
       "label": "2026-09-10"
     },
     "purchase_index": {
@@ -68441,7 +68441,7 @@
     }
   },
   "latest_label": "2026-08-28",
-  "build_time": "2026-09-10T18:09:09Z",
+  "build_time": "2026-09-11T13:13:53Z",
   "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
