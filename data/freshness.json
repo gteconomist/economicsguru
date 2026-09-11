@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-09-11T13:23:23.703981Z",
+  "build_time": "2026-09-11T14:13:57.622716Z",
   "checked_date": "2026-09-11",
   "stale_count": 0,
   "stale": [],
@@ -40,8 +40,8 @@
     },
     "equities.json": {
       "status": "ok",
-      "latest": "2026-09-10",
-      "age_days": 1,
+      "latest": "2026-09-11",
+      "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily index closes.",
@@ -90,14 +90,14 @@
       "watch": {
         "mba_refinance": {
           "status": "ok",
-          "latest": "2026-08-28",
-          "age_days": 14,
+          "latest": "2026-09-04",
+          "age_days": 7,
           "max_age_days": 20
         },
         "mba_purchase": {
           "status": "ok",
-          "latest": "2026-08-28",
-          "age_days": 14,
+          "latest": "2026-09-04",
+          "age_days": 7,
           "max_age_days": 20
         },
         "affordability_index": {
@@ -159,8 +159,8 @@
     },
     "industry_manufacturing.json": {
       "status": "ok",
-      "latest": "2026-07-31",
-      "age_days": 42,
+      "latest": "2026-08-31",
+      "age_days": 11,
       "max_age_days": 56,
       "build_age_days": 0,
       "note": "Fed G.17 industrial production ~day 16 (R~16).",

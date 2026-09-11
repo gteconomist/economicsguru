@@ -7651,6 +7651,10 @@
     [
       "2026-08-28",
       157.5
+    ],
+    [
+      "2026-09-04",
+      157.5
     ]
   ],
   "mba_refinance": [
@@ -15305,12 +15309,16 @@
     [
       "2026-08-28",
       733.4
+    ],
+    [
+      "2026-09-04",
+      687.3
     ]
   ],
-  "mba_latest_week": "2026-08-28",
-  "mba_refi_share": 42.0,
-  "mba_arm_share": 7.9,
-  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/08/26/mortgage-applications-decrease-in-latest-mba-weekly-survey",
+  "mba_latest_week": "2026-09-04",
+  "mba_refi_share": 40.9,
+  "mba_arm_share": 8.5,
+  "mba_latest_source": "https://www.redbooklumberdata.com/2026/09/09/mortgage-applications-decrease-in-latest-mba-weekly-survey-65",
   "mortgage_30y": [
     [
       "1971-04-02",
@@ -68401,23 +68409,23 @@
     },
     "purchase_index": {
       "value": 157.5,
-      "delta": 3.1,
-      "label": "2026-08-28"
+      "delta": 0.0,
+      "label": "2026-09-04"
     },
     "refinance_index": {
-      "value": 733.4,
-      "delta": -7.4,
-      "label": "2026-08-28"
+      "value": 687.3,
+      "delta": -46.1,
+      "label": "2026-09-04"
     },
     "refi_share": {
-      "value": 42.0,
+      "value": 40.9,
       "delta": null,
-      "label": "2026-08-21"
+      "label": "2026-09-04"
     },
     "arm_share": {
-      "value": 7.9,
+      "value": 8.5,
       "delta": null,
-      "label": "2026-08-21"
+      "label": "2026-09-04"
     },
     "delinquency_rate": {
       "value": 1.86,
@@ -68440,16 +68448,16 @@
       "label": "2024-12-31"
     }
   },
-  "latest_label": "2026-08-28",
-  "build_time": "2026-09-11T13:13:53Z",
-  "csv_rows_appended_this_run": 0,
+  "latest_label": "2026-09-04",
+  "build_time": "2026-09-11T14:12:57Z",
+  "csv_rows_appended_this_run": 1,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
   "eff_rate_rows": 591,
   "debt_csv_rows": 110,
   "debt_latest_quarter": "2026-06-30",
   "csv_baseline_loaded": true,
-  "mba_history_rows": 1913,
+  "mba_history_rows": 1914,
   "hai_csv_loaded": true,
   "hai_csv_rows": 548,
   "hai_csv_rows_appended_this_run": 0,
