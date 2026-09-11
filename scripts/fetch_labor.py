@@ -14,7 +14,8 @@ CES (establishment survey, Seasonally Adjusted)
   CES0000000001  Total nonfarm payroll employment (level, thousands)
   CES0500000002  Total private avg weekly hours of all employees
   CES0500000003  Total private avg hourly earnings of all employees ($)
-  CES0500000012  Total private avg hourly earnings, 1982-84 dollars (real AHE)
+  CES0500000013  Total private avg hourly earnings, 1982-84 dollars (real AHE)
+                 (NOT ...12 -- that is real average WEEKLY earnings, ~$388)
 
 CPS (household survey, Seasonally Adjusted)
   LNS12000000    Civilian Employment Level (thousands)
@@ -55,7 +56,7 @@ import datetime as dt
 from pathlib import Path
 from urllib import request, error
 
-CES_IDS = ["CES0000000001", "CES0500000002", "CES0500000003", "CES0500000012"]
+CES_IDS = ["CES0000000001", "CES0500000002", "CES0500000003", "CES0500000013"]
 CPS_SA_IDS = [
     "LNS12000000", "LNS11000000", "LNS11300000",
     "LNS14000000", "LNS12500000", "LNS12600000",
@@ -329,7 +330,7 @@ def main():
     # Real AHE (1982-84 $) is AHE deflated by CPI-U, so it arrives on CPI day
     # (~1 week after the jobs report) and lags nominal AHE by one month in
     # between. Guarded so the page never depends on it.
-    real_ahe_yoy     = yoy(raw.get("CES0500000012") or [])
+    real_ahe_yoy     = yoy(raw.get("CES0500000013") or [])
     avg_weekly_hours = values(raw["CES0500000002"], 1)
 
     # Raw levels — frontend rebases the visible window to start = 100
