@@ -14,6 +14,7 @@ CES (establishment survey, Seasonally Adjusted)
   CES0000000001  Total nonfarm payroll employment (level, thousands)
   CES0500000002  Total private avg weekly hours of all employees
   CES0500000003  Total private avg hourly earnings of all employees ($)
+  CES0500000012  Total private avg hourly earnings, 1982-84 dollars (real AHE)
 
 CPS (household survey, Seasonally Adjusted)
   LNS12000000    Civilian Employment Level (thousands)
@@ -54,7 +55,7 @@ import datetime as dt
 from pathlib import Path
 from urllib import request, error
 
-CES_IDS = ["CES0000000001", "CES0500000002", "CES0500000003"]
+CES_IDS = ["CES0000000001", "CES0500000002", "CES0500000003", "CES0500000012"]
 CPS_SA_IDS = [
     "LNS12000000", "LNS11000000", "LNS11300000",
     "LNS14000000", "LNS12500000", "LNS12600000",
@@ -325,6 +326,10 @@ def main():
     household_employment_mom = diff_level(raw["LNS12000000"], 0)
 
     ahe_yoy          = yoy(raw["CES0500000003"])
+    # Real AHE (1982-84 $) is AHE deflated by CPI-U, so it arrives on CPI day
+    # (~1 week after the jobs report) and lags nominal AHE by one month in
+    # between. Guarded so the page never depends on it.
+    real_ahe_yoy     = yoy(raw.get("CES0500000012") or [])
     avg_weekly_hours = values(raw["CES0500000002"], 1)
 
     # Raw levels — frontend rebases the visible window to start = 100
@@ -370,6 +375,7 @@ def main():
         "payroll_level":            payroll_level,
         "household_employment_mom": household_employment_mom,
         "ahe_yoy":           ahe_yoy,
+        "real_ahe_yoy":      real_ahe_yoy,
         "avg_weekly_hours":  avg_weekly_hours,
         "ft_level":          ft_level,
         "pt_level":          pt_level,
@@ -390,6 +396,7 @@ def main():
             "payrolls":     kpi(payroll_mom,       unit="k"),
             "lfp":          kpi(lfp_rate,          unit="pp"),
             "ahe_yoy":      kpi(ahe_yoy,           unit="pp"),
+            "real_ahe_yoy": kpi(real_ahe_yoy,      unit="pp") if real_ahe_yoy else None,
             "openings":     kpi(jolts_openings,    unit="k"),
             "quits":        kpi(jolts_quits,       unit="k"),
             "challenger":   kpi(challenger,      unit="k") if challenger else None,

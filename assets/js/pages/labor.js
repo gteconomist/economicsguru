@@ -88,6 +88,16 @@ window.EG_PAGES.labor = function (data, EG) {
       EG.line(EG.val(hrs), C[1], { label:'Avg weekly hours', yAxisID:'y1' })
     ]}, options:dual('AHE YoY %', true, 'Hours', false) });
 
+    // 5b. Real average hourly earnings (1982-84 $), YoY % -- bars colored by sign
+    var rahe = st('real_ahe_yoy', n);
+    if (rahe.length) {
+      var rv = EG.val(rahe);
+      EG.newChart('cRealWages', { type:'bar', data:{ labels:rahe.map(function(p){return EG.lab(p[0]);}), datasets:[
+        { label:'Real AHE YoY', data:rv, borderRadius:3, barPercentage:.95, categoryPercentage:.8,
+          backgroundColor: rv.map(function(v){ return v == null ? C[0] : (v < 0 ? C[2] : C[4]); }) }
+      ]}, options:EG.baseOpts(true) });
+    }
+
     // 6. Full-time vs part-time, indexed
     var ft = st('ft_level', n), pt = st('pt_level', n);
     EG.newChart('cFtPt', { type:'line', data:{ labels:ft.map(function(p){return EG.lab(p[0]);}), datasets:[

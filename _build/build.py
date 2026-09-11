@@ -141,6 +141,13 @@ def build_home():
             '<h3>%s</h3><p>%s</p>'
             '<div class="gc-meta"><span>%s</span><span class="gc-arrow">&rarr;</span></div></a>'
             % (g["slug"], accents[i % len(accents)], esc(title), esc(g.get("blurb", "")), meta))
+    # Georgia Counties lives outside _data/site.json (its own static app under
+    # /counties/), so its home card is added here rather than from the groups loop.
+    cards.append(
+        '<a class="gcard" href="/counties/" style="--accent:#7FBF7F">'
+        '<h3>Georgia Counties</h3><p>County-level dashboards for all 159 Georgia counties &mdash; '
+        'jobs, wages, industry mix, population, income, permits.</p>'
+        '<div class="gc-meta"><span>159 counties</span><span class="gc-arrow">&rarr;</span></div></a>')
     hero = (
         '<section class="home-hero">'
         '<h1>Live U.S. economic data,<br><span class="grad">tracked beautifully.</span></h1>'
