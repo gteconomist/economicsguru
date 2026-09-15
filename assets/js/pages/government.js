@@ -105,6 +105,26 @@ window.EG_PAGES.government = function (data, EG) {
     EG.newChart('cGovDebtGdp', { type:'line', data:{ labels:ldg, datasets:[
       { type:'line', label:'Federal debt / nominal GDP (%)', data:dg.map(function(x){return x[1];}), borderColor:GOLD, backgroundColor:'rgba(179,163,105,0.18)', tension:.15, borderWidth:2.4, pointRadius:0, fill:'origin' }
     ]}, options:EG.singleOpts(function(v){return v==null?'n/a':v.toFixed(1)+'%';}) });
+
+    // 9. Top-10% household assets per $1 of federal debt (quarterly ratio) + recession shading
+    var recRegions=(data.recessions||[]).map(function(t){ return {start:t[0], end:t[1], color:'rgba(255,255,255,1)', alpha:0.16}; });
+    var wr=rd('wealth_debt_ratio'); var lwr=wr.map(function(x){return EG.lab(x[0]);}); var wrDates=wr.map(function(x){return x[0];});
+    var fmtRatio=function(v){ return v==null?'n/a':'$'+v.toFixed(2); };
+    var o9=EG.singleOpts(fmtRatio); o9.plugins.politicalShading={ regions:recRegions, origDates:wrDates };
+    o9.scales.y.min=0;   // ratio reads from a zero base; auto-scaling from $3 exaggerates the post-2012 plateau
+    EG.newChart('cGovWealthRatio', { type:'line', data:{ labels:lwr, datasets:[
+      { type:'line', label:'Top-10% assets per $1 of federal debt', data:wr.map(function(x){return x[1];}), borderColor:GOLD, backgroundColor:'rgba(179,163,105,0.18)', tension:.15, borderWidth:2.4, pointRadius:0, fill:'origin' }
+    ]}, options:o9 });
+
+    // 10. Top-10% household assets vs. federal debt — levels, $T
+    var wt=rd('wealth_top10_assets'); var lwt=wt.map(function(x){return EG.lab(x[0]);}); var wtDates=wt.map(function(x){return x[0];});
+    var o10=EG.singleOpts(govT); o10.plugins.politicalShading={ regions:recRegions, origDates:wtDates };
+    EG.newChart('cGovWealthLevels', { type:'line', data:{ labels:lwt, datasets:[
+      EG.line(wt.map(function(x){return x[1];}), GOLD, { label:'Top 10% total assets ($T)', borderWidth:2.4, tension:.15 }),
+      EG.line(align(wt, data.wealth_90_99_assets), ELEC, { label:'of which: 90th–99th percentiles', borderWidth:1.6, tension:.15, spanGaps:true }),
+      EG.line(align(wt, data.wealth_top1_assets), C[3], { label:'of which: top 1%', borderWidth:1.6, tension:.15, spanGaps:true }),
+      EG.line(align(wt, data.debt_quarterly), ORANGE, { label:'Federal debt (total public debt, $T)', borderWidth:2.4, tension:.15, spanGaps:true })
+    ]}, options:o10 });
   }
 
   return draw;

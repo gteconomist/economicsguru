@@ -13,6 +13,8 @@ Eight charts on /government/:
      gray shading for NBER recessions
   7. Federal Interest Expense (quarterly, $B annualized)
   8. Federal Debt as % of GDP (quarterly, %)
+  9. Top-10% Household Assets per $1 of Federal Debt (quarterly, ratio)
+ 10. Top-10% Household Assets vs. Federal Debt (quarterly, $T levels)
 
 Data sources
 ------------
@@ -23,6 +25,8 @@ FRED (api.stlouisfed.org) for:
   WALCL, TREAST, WSHOMCB                        (Fed BS total / treasuries / MBS)
   A091RC1Q027SBEA                               (federal interest payments, NIPA)
   GFDEGDQ188S                                   (debt as % of GDP)
+  WFRBLN09027, WFRBLT01000                      (DFA total assets: 90th-99th pct, top 1%)
+  GFDEBTN                                       (total public debt, quarterly, $M)
 
 Treasury Fiscal Data (api.fiscaldata.treasury.gov) for:
   /v2/accounting/od/debt_to_penny               (daily federal debt)
@@ -286,8 +290,9 @@ TRUMP_TERMS = [
     ["2025-01-20", None],
 ]
 
-# NBER-dated US recessions since 1995 (gray shading on tariff chart).
+# NBER-dated US recessions since 1990 (gray shading on tariff + wealth charts).
 RECESSIONS = [
+    ["1990-07", "1991-03"],
     ["2001-03", "2001-11"],
     ["2007-12", "2009-06"],
     ["2020-02", "2020-04"],
@@ -318,6 +323,12 @@ FRED_SERIES = {
     "debt_to_gdp":   "GFDEGDQ188S",
     # Customs duties / tariff revenue (quarterly, $B at annual rate, NIPA)
     "tariff_q":      "B235RC1Q027SBEA",
+    # Distributional Financial Accounts — total assets by wealth group
+    # (quarterly, $M; ~10-week lag). Top 10% = 90th-99th pct + top 1%.
+    "dfa_assets_90_99": "WFRBLN09027",
+    "dfa_assets_top1":  "WFRBLT01000",
+    # Total public debt, quarterly ($M) — same basis as debt_to_gdp numerator
+    "debt_total_q":     "GFDEBTN",
 }
 
 
@@ -425,6 +436,25 @@ def main():
     # Debt-to-GDP (quarterly, %)
     debt_to_gdp = [[d[:7], round(v, 2)] for d, v in raw["debt_to_gdp"]]
 
+    # Top-10% household assets (DFA) vs. federal debt — quarterly, $T.
+    # Ratio = (90th-99th pct assets + top 1% assets) / total public debt.
+    # Only quarters where all three series exist are emitted, so the ratio
+    # never uses a stale debt figure against a fresh DFA quarter (or vice versa).
+    top1_lookup = dict(raw.get("dfa_assets_top1", []))
+    debtq_lookup = dict(raw.get("debt_total_q", []))
+    wealth_top10_T, wealth_90_99_T, wealth_top1_T = [], [], []
+    debt_q_T, wealth_debt_ratio = [], []
+    for d, a99 in raw.get("dfa_assets_90_99", []):
+        a1 = top1_lookup.get(d); dq = debtq_lookup.get(d)
+        if a1 is None or dq is None or dq <= 0:
+            continue
+        m = d[:7]
+        wealth_90_99_T.append([m, round(a99 / 1_000_000, 3)])
+        wealth_top1_T.append([m, round(a1 / 1_000_000, 3)])
+        wealth_top10_T.append([m, round((a99 + a1) / 1_000_000, 3)])
+        debt_q_T.append([m, round(dq / 1_000_000, 3)])
+        wealth_debt_ratio.append([m, round((a99 + a1) / dq, 3)])
+
     # =====================================================================
     # KPIs
     # =====================================================================
@@ -444,6 +474,7 @@ def main():
     tariffs_last  = last_or_none(tariffs_12m_B)
     interest_last = last_or_none(interest_exp)
     dgdp_last     = last_or_none(debt_to_gdp)
+    ratio_last    = last_or_none(wealth_debt_ratio)
 
     emp_total_thousands = None
     if emp_fed_last[1] is not None and emp_st_last[1] is not None and emp_lc_last[1] is not None:
@@ -460,6 +491,7 @@ def main():
         "tariff_12m_B":  {"value": tariffs_last[1], "label": tariffs_last[0]},
         "interest_B":    {"value": interest_last[1], "label": interest_last[0]},
         "debt_to_gdp":   {"value": dgdp_last[1], "label": dgdp_last[0]},
+        "wealth_debt_ratio": {"value": ratio_last[1], "label": ratio_last[0]},
     }
 
     # The page header "Latest data: …" uses the most recent daily debt date,
@@ -504,6 +536,13 @@ def main():
 
         # ---- Debt as % of GDP (quarterly) ----
         "debt_to_gdp":                debt_to_gdp,
+
+        # ---- Top-10% household assets vs. federal debt (quarterly, $T + ratio) ----
+        "wealth_top10_assets":        wealth_top10_T,
+        "wealth_90_99_assets":        wealth_90_99_T,
+        "wealth_top1_assets":         wealth_top1_T,
+        "debt_quarterly":             debt_q_T,
+        "wealth_debt_ratio":          wealth_debt_ratio,
 
         # ---- KPIs + provenance ----
         "kpis":                       kpis,
