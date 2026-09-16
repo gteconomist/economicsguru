@@ -203,6 +203,18 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_industry_manufacturing.py
 
+      # Energy > Oil & Gas: EIA Weekly Petroleum Status Report + retail fuel
+      # prices + monthly SPR/rig history (EIA API v2), Brent/WTI from FRED,
+      # and the weekly U.S. oil rig count parsed straight out of the Baker
+      # Hughes "New Report" workbook (upserted into
+      # data/historical/baker_hughes_oil_rigs.csv, auto-committed below).
+      - name: Refresh Energy / Oil & Gas data from EIA + FRED + Baker Hughes
+        env:
+          EIA_API_KEY:  ${{ secrets.EIA_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        continue-on-error: true
+        run: python scripts/fetch_energy.py
+
       # ISM data (no public API, JS-rendered website) is fetched via Tavily
       # search + extract on the official PR Newswire wire distribution. Cass
       # data is fetched directly from cassinfo.com/.../{month}-{year}. Both
@@ -237,7 +249,7 @@ jobs:
       - name: Show generated data summary
         run: |
           set +e
-          for f in inflation ppi labor pce housing_existing housing_new housing_permits housing_mortgage_activity gdp leading consumer treasuries commodities equities industry_manufacturing industry_surveys government; do
+          for f in inflation ppi labor pce housing_existing housing_new housing_permits housing_mortgage_activity gdp leading consumer treasuries commodities equities industry_manufacturing industry_surveys government energy; do
             if [[ -s "data/${f}.json" ]]; then
               echo "OK  data/${f}.json ($(stat -c%s data/${f}.json) bytes)"
             else
@@ -260,6 +272,7 @@ jobs:
           python -c "import json; d=json.load(open('data/equities.json')); print('Equities latest:', d['latest_label']); print('SPX kpi:', d['kpis']['spx']); print('Nasdaq kpi:', d['kpis']['nasdaq']); print('Dow kpi:', d['kpis']['dow']); print('Russell kpi:', d['kpis']['russell']); print('VIX kpi:', d['kpis']['vix']); print('SPX drawdown kpi:', d['kpis']['spx_drawdown']); pe=d.get('wilshire_pe', []); print('Wilshire/PE quarters:', len(pe)); print('Wilshire/PE latest:', pe[-1] if pe else None); print('Profits after tax (IVA+CCAdj) latest:', d.get('profits_after_tax', [None])[-1]); print('Yahoo ok:', d.get('yahoo_succeeded')); print('FRED ok:', d.get('fred_succeeded'))" 2>/dev/null || echo "skip equities summary"
           python -c "import json; d=json.load(open('data/industry_manufacturing.json')); print('Industry/Mfg latest:', d['latest_label']); print('IP YoY kpi:', d['kpis']['ip_yoy']); print('IP MoM kpi:', d['kpis']['ip_mom']); print('Cap Util Total kpi:', d['kpis']['tcu']); print('Cap Util Mfg kpi:', d['kpis']['mcumfn']); print('Factory Orders kpi:', d['kpis']['factory_orders']); print('Core Capex kpi:', d['kpis']['core_capex']); print('Electricity 12mma rows:', len(d.get('electricity', {}).get('generation_12mma', []))); print('FRED ok:', d.get('fred_succeeded')); print('EIA ok:', d.get('eia_succeeded'))" 2>/dev/null || echo "skip industry-manufacturing summary"
           python -c "import json; d=json.load(open('data/industry_surveys.json')); print('Industry/Surveys latest:', d['latest_label']); print('ISM Mfg PMI kpi:', d['kpis']['ism_mfg_total']); print('ISM Mfg New Orders kpi:', d['kpis']['ism_mfg_new_orders']); print('ISM Svc Composite kpi:', d['kpis']['ism_svc_composite']); print('ISM Svc New Orders kpi:', d['kpis']['ism_svc_new_orders']); print('Cass level kpi:', d['kpis']['cass_level']); print('Cass YoY kpi:', d['kpis']['cass_yoy']); print('NFIB Optimism kpi:', d['kpis']['nfib_optimism']); print('NFIB Uncertainty kpi:', d['kpis']['nfib_uncertainty']); print('CSV loaded:', d.get('loaded'))" 2>/dev/null || echo "skip industry-surveys summary"
+          python -c "import json; d=json.load(open('data/energy.json')); print('Energy latest:', d['latest_label']); print('Production kpi:', d['kpis']['production']); print('Oil rigs kpi:', d['kpis']['rigs_oil']); print('Brent kpi:', d['kpis']['brent']); print('Gasoline kpi:', d['kpis']['gasoline']); print('SPR kpi:', d['kpis']['spr']); print('EIA ok:', d.get('eia_succeeded'), 'FRED ok:', d.get('fred_succeeded'), 'Baker Hughes ok:', d.get('baker_hughes_succeeded')); print('Rig CSV rows:', d.get('rigs_csv_rows'), 'changed:', d.get('rigs_csv_changed_this_run'))" 2>/dev/null || echo "skip energy summary"
           exit 0
 
       # Auto-commit fresh data files + CSV baselines if their content materially
@@ -271,7 +284,7 @@ jobs:
       #     going blank.
       #  2. The historical CSV baselines (NAR existing-homes, NAHB HMI, UMich
       #     sentiment, Conference Board, precious metals, ISM Mfg, ISM Svcs,
-      #     Cass freight, NFIB SBET) keep auto-extending.
+      #     Cass freight, NFIB SBET, Baker Hughes rigs) keep auto-extending.
       # The [skip ci] tag prevents the bot's commit from re-triggering this
       # workflow.
       # Freshness report. Runs BEFORE the auto-commit so data/freshness.json is
@@ -344,7 +357,8 @@ jobs:
               data/historical/ny_fed_hhdc_mortgage.csv \
               data/historical/mortgage_eff_rate.csv \
               data/historical/quarterly_hh_income.csv \
-              data/historical/challenger_layoffs.csv; do
+              data/historical/challenger_layoffs.csv \
+              data/historical/baker_hughes_oil_rigs.csv; do
             if [[ -f "$f" && -n "$(git status --porcelain "$f")" ]]; then
               changed="$changed $f"
             fi
