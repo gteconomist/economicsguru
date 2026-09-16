@@ -55,9 +55,20 @@ window.EG_PAGES['retail-confidence'] = function (data, EG) {
     var ds2 = (data.retail_sectors || []).map(function(sec, i){
       return { label:sec.label, data:conAlign(rt, sec.contribution), backgroundColor:CON_SECTORS[i % CON_SECTORS.length], borderColor:CON_SECTORS[i % CON_SECTORS.length], stack:'sec', barPercentage:.92, categoryPercentage:.92 };
     });
-    ds2.push({ type:'line', label:'Total retail MoM (sum)', data:rt.map(function(r){return r[1];}), borderColor:CON_WHITE, backgroundColor:CON_WHITE, borderWidth:1.8, pointRadius:0, fill:false, tension:.15 });
+    ds2.push({ type:'line', label:'Total retail MoM', data:rt.map(function(r){return r[1];}), borderColor:CON_WHITE, backgroundColor:CON_WHITE, borderWidth:1.8, pointRadius:0, fill:false, tension:.15 });
     var o2 = EG.singleOpts(EG.fmtPct1s); o2.scales.x.stacked = true; o2.scales.y.stacked = true;
-    o2.plugins.legend.labels.boxWidth = 10; o2.plugins.legend.labels.padding = 8;
+    // 13 series: a bottom legend swallows half the card, so stack it in one column on the
+    // right (bottom again on phones, where width is the scarce dimension) and give the
+    // plot extra height. exportPosition tells chart-core to use the right-side layout in
+    // the PNG export regardless of the device that triggered it.
+    var wide = window.innerWidth > 900;
+    o2.plugins.legend.position = wide ? 'right' : 'bottom';
+    o2.plugins.legend.exportPosition = 'right';
+    o2.plugins.legend.maxWidth = 260;   // Chart.js otherwise caps a side legend at 1/4 of the canvas and clips the labels
+    o2.plugins.legend.labels.boxWidth = 8; o2.plugins.legend.labels.padding = 7;
+    o2.plugins.legend.labels.font = { size:11.5, weight:'600' };
+    var plot2 = document.getElementById('cCsRetailSectors');
+    if(plot2 && plot2.parentElement) plot2.parentElement.style.height = wide ? '380px' : '470px';
     EG.newChart('cCsRetailSectors', { type:'bar', data:{ labels:lab2, datasets:ds2 }, options:o2 });
 
     // 3. UMich consumer sentiment — 3 lines

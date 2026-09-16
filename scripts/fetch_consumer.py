@@ -746,18 +746,18 @@ def main():
     rs_ex_mv = _fred_obs("RSFSXMV")
 
     SECTORS = [
-        ("auto",        "RSMVPD",   "Motor Vehicle & Parts Dealers (441)"),
-        ("furniture",   "RSFHFS",   "Furniture & Home Furnishings (442)"),
-        ("building",    "RSBMGESD", "Building Materials (444)"),
-        ("food_bev",    "RSDBS",    "Food & Beverage Stores (445)"),
-        ("health",      "RSHPCS",   "Health & Personal Care (446)"),
-        ("gas",         "RSGASS",   "Gasoline Stations (447)"),
-        ("clothing",    "RSCCAS",   "Clothing Stores (448)"),
-        ("sporting",    "RSSGHBMS", "Sporting Goods, Hobby, Books (451)"),
-        ("general_mer", "RSGMS",    "General Merchandise (452)"),
-        ("misc",        "RSMSR",    "Misc. Store Retailers (453)"),
-        ("nonstore",    "RSNSR",    "Nonstore Retailers (454)"),
-        ("food_svc",    "RSFSDP",   "Food Services & Drinking Places (722)"),
+        ("auto",        "RSMVPD",   "Motor vehicles & parts"),
+        ("furniture",   "RSFHFS",   "Furniture & home furnishings"),
+        ("building",    "RSBMGESD", "Building materials"),
+        ("food_bev",    "RSDBS",    "Food & beverage stores"),
+        ("health",      "RSHPCS",   "Health & personal care"),
+        ("gas",         "RSGASS",   "Gasoline stations"),
+        ("clothing",    "RSCCAS",   "Clothing stores"),
+        ("sporting",    "RSSGHBMS", "Sporting goods, hobby, books"),
+        ("general_mer", "RSGMS",    "General merchandise"),
+        ("misc",        "RSMSR",    "Misc. store retailers"),
+        ("nonstore",    "RSNSR",    "Nonstore (online) retailers"),
+        ("food_svc",    "RSFSDP",   "Food services & bars"),
     ]
     sector_levels = {}
     for key, sid, _label in SECTORS:

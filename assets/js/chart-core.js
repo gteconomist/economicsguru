@@ -363,11 +363,18 @@ window.EG = (function () {
   }
   function exOpts(srcOptions, sc, theme, type){
     var circ = isCircular(type);
+    // Charts with many series (e.g. retail contribution by sector) opt into a single-column
+    // legend on the right via legend.exportPosition / legend.position = 'right'; the bottom
+    // legend at export size would otherwise crush the plot to a strip.
+    var srcLeg = (srcOptions && srcOptions.plugins && srcOptions.plugins.legend) || {};
+    var legRight = !circ && (srcLeg.exportPosition === 'right' || srcLeg.position === 'right');
     var o = {
       responsive:false, animation:false, devicePixelRatio:1, maintainAspectRatio:false,
       layout:{padding:{top:6*sc, right:12*sc, bottom:2*sc, left:2*sc}},
       plugins:{ legend: circ ? circularLegend(srcOptions, sc, theme)
-                              : {position:'bottom', labels:{color:theme.axis, usePointStyle:true, pointStyle:'circle', boxWidth:12*sc, padding:16*sc, font:{size:18*sc, weight:'700'}, generateLabels:gapLabels}},
+                              : legRight
+                                ? {position:'right', align:'center', maxWidth:330*sc, labels:{color:theme.axis, usePointStyle:true, pointStyle:'circle', boxWidth:10*sc, padding:9*sc, font:{size:14*sc, weight:'700'}, generateLabels:gapLabels}}
+                                : {position:'bottom', labels:{color:theme.axis, usePointStyle:true, pointStyle:'circle', boxWidth:12*sc, padding:16*sc, font:{size:18*sc, weight:'700'}, generateLabels:gapLabels}},
                 tooltip:{enabled:false} },
       scales: circ ? {} : exScales(srcOptions && srcOptions.scales, sc, theme.axis, theme.grid)
     };
