@@ -80,6 +80,16 @@ TOLERANCES = {
     # series, which is how a 12-week MBA outage went unseen (found in the
     # 2026-08-12 source audit). Everything on this page that moves on its own
     # clock now gets watched individually.
+    # EIA Weekly Petroleum Status Report lands Wednesdays for the week ended
+    # the prior Friday (5 days), retail prices Mondays. 16d = one skipped
+    # release (holiday weeks slip a day) + slack. Rigs are watched on their
+    # own clock: Baker Hughes publishes Fridays, but the value only reaches
+    # the JSON if the workbook download + parse succeeds -- and a silent
+    # fallback to the EIA monthly history (frozen at Feb 2026) would
+    # otherwise hide behind the fresh EIA weekly series in the same file.
+    # Brent/WTI are daily FRED series checked on the same 8d as commodities.
+    "energy.json":       dict(max_age_days=16,  note="EIA WPSR Wednesdays for the week ended Friday; retail fuel prices Mondays.",
+                              watch={"rigs_oil": 16, "brent": 8, "spr_monthly": 75, "gasoline": 12}),
     "housing_mortgage_activity.json": dict(max_age_days=16,
                               note="MBA weekly applications Wednesdays; FRED rate series daily/weekly.",
                               watch={"mba_refinance":        20,   # MBA, weekly, Wednesdays
