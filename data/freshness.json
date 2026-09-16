@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-09-16T18:09:28.413212Z",
+  "build_time": "2026-09-16T22:52:58.881893Z",
   "checked_date": "2026-09-16",
   "stale_count": 1,
   "stale": [
@@ -62,8 +62,8 @@
     },
     "government.json": {
       "status": "ok",
-      "latest": "2026-09-14",
-      "age_days": 2,
+      "latest": "2026-09-15",
+      "age_days": 1,
       "max_age_days": 20,
       "build_age_days": 0,
       "note": "Treasury Fiscal Data updates near-daily; Monthly Treasury Statement ~day 8.",
