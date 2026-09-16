@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-09-16T17:46:42.080119Z",
+  "build_time": "2026-09-16T18:09:28.413212Z",
   "checked_date": "2026-09-16",
   "stale_count": 1,
   "stale": [
@@ -11,9 +11,9 @@
       "latest": "2026-09-15",
       "age_days": 1,
       "max_age_days": 8,
-      "build_age_days": 0,
+      "build_age_days": null,
       "note": "Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier).",
-      "wrote_this_run": true,
+      "wrote_this_run": null,
       "consecutive_misses": 0
     },
     "consumer.json": {
