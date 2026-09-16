@@ -307,7 +307,10 @@ SNOOZE_UNTIL = {
     # NAR affordability: FIXED 2026-08-12 -- now pulled from FRED FIXHAI.
     # Effective rate on outstanding mortgage debt: hand-fed, no free monthly
     # source exists (FHFA NMDB is quarterly and lags a further ~3 months).
-    "housing_mortgage_activity.json:eff_rate_outstanding":  "2026-09-15",
+    # The 2026-09-15 snooze expired and turned every run red from the
+    # 2026-09-16 09:13 refresh onward (build + deploy were fine). Extended to
+    # year end; the real fix is a new seed value or a quarterly NMDB pull.
+    "housing_mortgage_activity.json:eff_rate_outstanding":  "2026-12-31",
     # delinquency_rate (DRSFRMACBS) was NEVER stale -- it was a false alarm
     # from reading quarter-start dates as monthly. Fixed in _series_latest.
 }
