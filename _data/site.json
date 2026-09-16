@@ -384,6 +384,45 @@
       ]
     },
     {
+      "slug": "energy",
+      "title": "Energy",
+      "status": "new",
+      "blurb": "Crude production, rig counts, oil & fuel prices, inventories, the SPR, exports, refining.",
+      "indicators": [
+        {
+          "slug": "oil-gas",
+          "title": "Oil & Gas",
+          "nav": "Oil & Gas",
+          "subtitle": "U.S. crude production and the rig count, Brent vs. pump prices, commercial and Strategic Petroleum Reserve inventories, net exports, and refinery throughput — sourced live from the EIA Weekly Petroleum Status Report, FRED, and Baker Hughes.",
+          "card": "Crude production & oil rigs, Brent vs. gasoline & diesel, SPR history, commercial crude stocks vs. 5-yr range, net exports, refinery utilization, product stocks. Source: EIA, FRED, Baker Hughes.",
+          "data": "/data/energy.json",
+          "module": "energy",
+          "page": "oil_gas",
+          "status": "new",
+          "keywords": [
+            "oil",
+            "crude oil",
+            "crude production",
+            "rig count",
+            "baker hughes",
+            "brent",
+            "wti",
+            "gasoline prices",
+            "gas prices",
+            "diesel",
+            "strategic petroleum reserve",
+            "spr",
+            "crude inventories",
+            "oil stocks",
+            "refinery utilization",
+            "oil exports",
+            "energy",
+            "eia"
+          ]
+        }
+      ]
+    },
+    {
       "slug": "industry",
       "title": "Industry",
       "status": "new",

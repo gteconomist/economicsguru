@@ -152,7 +152,7 @@ def build_home():
         '<section class="home-hero">'
         '<h1>Live U.S. economic data,<br><span class="grad">tracked beautifully.</span></h1>'
         '<p class="lede">Charts, KPIs, and downloadable series for the indicators that move markets &mdash; '
-        'CPI, jobs, GDP, housing, rates, equities, commodities, and the federal balance sheet. '
+        'CPI, jobs, GDP, housing, rates, equities, commodities, oil &amp; gas, and the federal balance sheet. '
         'Sourced straight from BLS, FRED, BEA, Census, EIA, and ICE BofA, and refreshed every night.</p>'
         '<label class="home-search-xl">'
         '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#92a3b4" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>'
@@ -162,11 +162,11 @@ def build_home():
     ticker = ('<div class="ticker"><div class="live"><span class="dot"></span>Live</div>'
               '<div class="mask"><div class="track" id="ticker-track"></div></div></div>')
     section = ('<div class="home-section-h"><h2>Explore the data</h2>'
-               '<p>Eight areas, 40+ indicators &mdash; each a live, exportable dashboard.</p></div>')
+               '<p>Nine areas, 50+ indicators &mdash; each a live, exportable dashboard.</p></div>')
     content = hero + ticker + section + '<div class="home-cards">' + "".join(cards) + "</div>"
     return render("index.html",
                   "Economics Guru — Live US Economic Data",
-                  "Live US economic data dashboards: inflation, labor, housing, GDP, consumer, rates & markets, industry, and government. Updated nightly from BLS, FRED, BEA, Census, EIA, and ICE BofA.",
+                  "Live US economic data dashboards: inflation, labor, housing, GDP, consumer, rates & markets, energy, industry, and government. Updated nightly from BLS, FRED, BEA, Census, EIA, and ICE BofA.",
                   content, scripts='<script src="/assets/js/home.js"></script>',
                   active="home", head_extra='<link rel="stylesheet" href="/assets/css/home.css">')
 
