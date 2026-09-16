@@ -1,0 +1,51 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+<div id="kpis" class="kpis"></div>
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="12m">12 mo</button><button data-r="5y" class="active">5 yr</button>
+    <button data-r="10y">10 yr</button><button data-r="20y">20 yr</button><button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG · SPR history chart always shows full history</span>
+</div>
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">U.S. Crude Oil Production &amp; Active Oil Rigs</div><div class="cs">Weekly field production, thousand barrels/day (left) vs. Baker Hughes oil-directed rotary rigs (right)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnProdRigs"></canvas></div>
+    <div class="src">Source: EIA Weekly Petroleum Status Report (WCRFPUS2); Baker Hughes North America Rig Count (weekly from 2024, EIA monthly before).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Oil &amp; Fuel Prices</div><div class="cs">Brent crude, $/barrel (left) vs. U.S. retail regular gasoline and diesel, $/gallon (right)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnPrices"></canvas></div>
+    <div class="src">Source: EIA via FRED (DCOILBRENTEU); EIA weekly retail prices (EMM_EPMR_PTE_NUS_DPG, EMD_EPD2D_PTE_NUS_DPG).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Strategic Petroleum Reserve</div><div class="cs">Crude oil stocks in the SPR, thousand barrels, monthly since 1977 — gray bands are NBER recessions</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnSpr"></canvas></div>
+    <div class="src">Source: EIA Petroleum Supply Monthly (MCSSTUS1). Not affected by the range buttons.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">SPR Stocks vs. the Price of Oil</div><div class="cs">SPR crude stocks, thousand barrels (left) vs. WTI spot, monthly average $/barrel (right)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnSprPrice"></canvas></div>
+    <div class="src">Source: EIA (MCSSTUS1); EIA via FRED (DCOILWTICO), averaged by month.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Commercial Crude Inventories vs. 5-Year Range</div><div class="cs">Weekly crude stocks excluding the SPR, thousand barrels, against the prior five years' min–max band and average</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnCrudeStocks"></canvas></div>
+    <div class="src">Source: EIA Weekly Petroleum Status Report (WCESTUS1); band computed from the same week in each of the prior five years.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">U.S. Net Petroleum Exports</div><div class="cs">Net exports of crude oil + refined products and of crude alone, thousand barrels/day — above zero the U.S. is a net exporter</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnNetExports"></canvas></div>
+    <div class="src">Source: EIA Weekly Petroleum Status Report (WTTNTUS2, WCREXUS2, WCRIMUS2), sign flipped so exports are positive; 4-week average.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Refinery Utilization</div><div class="cs">Percent of operable refining capacity in use, weekly — seasonal dips are spring/fall maintenance turnarounds</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnRefinery"></canvas></div>
+    <div class="src">Source: EIA Weekly Petroleum Status Report (WPULEUS3).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Gasoline &amp; Distillate Stocks</div><div class="cs">Weekly inventories of total gasoline and distillate fuel oil (diesel, heating oil), thousand barrels</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnProductStocks"></canvas></div>
+    <div class="src">Source: EIA Weekly Petroleum Status Report (WGTSTUS1, WDISTUS1).</div>
+  </div>
+</div>
