@@ -1,11 +1,8 @@
 {
-  "build_time": "2026-09-17T00:36:14.143166Z",
+  "build_time": "2026-09-17T00:49:11.821451Z",
   "checked_date": "2026-09-17",
-  "stale_count": 2,
-  "stale": [
-    "energy.json:rigs_oil: newest observation 2026-02-27 is 202d old (tolerance 16d)",
-    "energy.json:spr_monthly: newest observation 2026-06-30 is 79d old (tolerance 75d)"
-  ],
+  "stale_count": 0,
+  "stale": [],
   "datasets": {
     "commodities.json": {
       "status": "ok",
@@ -42,7 +39,7 @@
       }
     },
     "energy.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-09-15",
       "age_days": 2,
       "max_age_days": 16,
@@ -52,10 +49,11 @@
       "consecutive_misses": 0,
       "watch": {
         "rigs_oil": {
-          "status": "STALE",
+          "status": "SNOOZED",
           "latest": "2026-02-27",
           "age_days": 202,
-          "max_age_days": 16
+          "max_age_days": 16,
+          "snoozed_until": "2026-10-16"
         },
         "brent": {
           "status": "ok",
@@ -64,10 +62,10 @@
           "max_age_days": 8
         },
         "spr_monthly": {
-          "status": "STALE",
+          "status": "ok",
           "latest": "2026-06-30",
           "age_days": 79,
-          "max_age_days": 75
+          "max_age_days": 105
         },
         "gasoline": {
           "status": "ok",
