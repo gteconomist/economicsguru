@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-09-17T00:49:11.821451Z",
+  "build_time": "2026-09-17T01:15:31.853828Z",
   "checked_date": "2026-09-17",
   "stale_count": 0,
   "stale": [],
@@ -49,11 +49,10 @@
       "consecutive_misses": 0,
       "watch": {
         "rigs_oil": {
-          "status": "SNOOZED",
-          "latest": "2026-02-27",
-          "age_days": 202,
-          "max_age_days": 16,
-          "snoozed_until": "2026-10-16"
+          "status": "ok",
+          "latest": "2026-09-11",
+          "age_days": 6,
+          "max_age_days": 16
         },
         "brent": {
           "status": "ok",
