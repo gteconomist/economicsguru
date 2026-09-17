@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-09-17T12:23:39.117447Z",
+  "build_time": "2026-09-17T13:14:59.465309Z",
   "checked_date": "2026-09-17",
   "stale_count": 0,
   "stale": [],
@@ -217,8 +217,8 @@
     },
     "housing_permits.json": {
       "status": "ok",
-      "latest": "2026-07-31",
-      "age_days": 48,
+      "latest": "2026-08-31",
+      "age_days": 17,
       "max_age_days": 58,
       "build_age_days": 0,
       "note": "Census permits/starts ~day 18 (R~18).",

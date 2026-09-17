@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-09-17T11:49:08.427151Z",
+  "build_time": "2026-09-17T13:13:16.007469Z",
   "latest_label": "2026-09-16",
   "kpis": {
     "spx": {
@@ -320971,7 +320971,7 @@
       3921.45
     ]
   ],
-  "yahoo_succeeded": true,
+  "yahoo_succeeded": false,
   "fred_succeeded": true,
-  "notice": null
+  "notice": "Dow Jones daily series temporarily unavailable. Wilshire 5000 Total Market daily series temporarily unavailable."
 }
