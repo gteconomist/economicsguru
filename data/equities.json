@@ -1,11 +1,11 @@
 {
-  "build_time": "2026-09-17T13:13:16.007469Z",
-  "latest_label": "2026-09-16",
+  "build_time": "2026-09-17T14:25:15.499710Z",
+  "latest_label": "2026-09-17",
   "kpis": {
     "spx": {
-      "value": 7551.81,
-      "delta_pct": -0.45,
-      "label": "2026-09-16"
+      "value": 7631.33,
+      "delta_pct": 1.05,
+      "label": "2026-09-17"
     },
     "nasdaq": {
       "value": 25978.42,
@@ -13,24 +13,24 @@
       "label": "2026-09-16"
     },
     "dow": {
-      "value": 51461.9,
-      "delta_pct": -1.21,
-      "label": "2026-09-16"
+      "value": 51789.23,
+      "delta_pct": 0.64,
+      "label": "2026-09-17"
     },
     "russell": {
-      "value": 2858.81,
-      "delta_pct": -0.4,
-      "label": "2026-09-16"
+      "value": 2886.56,
+      "delta_pct": 0.97,
+      "label": "2026-09-17"
     },
     "vix": {
-      "value": 17.2,
-      "delta_pct": 0.58,
-      "label": "2026-09-15"
+      "value": 17.71,
+      "delta_pct": 2.97,
+      "label": "2026-09-16"
     },
     "spx_drawdown": {
-      "value": -3.17,
-      "delta_pct": -0.43,
-      "label": "2026-09-16"
+      "value": -2.15,
+      "delta_pct": 1.02,
+      "label": "2026-09-17"
     }
   },
   "spx": [
@@ -57225,6 +57225,10 @@
     [
       "2026-09-16",
       7551.81
+    ],
+    [
+      "2026-09-17",
+      7631.33
     ]
   ],
   "nasdaq": [
@@ -148265,6 +148269,10 @@
     [
       "2026-09-16",
       51461.9
+    ],
+    [
+      "2026-09-17",
+      51789.23
     ]
   ],
   "russell": [
@@ -187579,6 +187587,10 @@
     [
       "2026-09-16",
       2858.81
+    ],
+    [
+      "2026-09-17",
+      2886.56
     ]
   ],
   "wilshire": [
@@ -262267,6 +262279,10 @@
     [
       "2026-09-15",
       17.2
+    ],
+    [
+      "2026-09-16",
+      17.71
     ]
   ],
   "spx_drawdown": [
@@ -319461,6 +319477,10 @@
     [
       "2026-09-16",
       -3.17
+    ],
+    [
+      "2026-09-17",
+      -2.15
     ]
   ],
   "wilshire_pe": [
@@ -320971,7 +320991,7 @@
       3921.45
     ]
   ],
-  "yahoo_succeeded": false,
+  "yahoo_succeeded": true,
   "fred_succeeded": true,
-  "notice": "Dow Jones daily series temporarily unavailable. Wilshire 5000 Total Market daily series temporarily unavailable."
+  "notice": null
 }
