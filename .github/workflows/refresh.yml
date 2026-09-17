@@ -208,9 +208,13 @@ jobs:
       # and the weekly U.S. oil rig count parsed straight out of the Baker
       # Hughes "New Report" workbook (upserted into
       # data/historical/baker_hughes_oil_rigs.csv, auto-committed below).
-      - name: Refresh Energy / Oil & Gas data from EIA + FRED + Baker Hughes
+      # The Baker Hughes site never answers GitHub-runner connections, so the
+      # weekly oil-rig count actually comes from the Friday news coverage
+      # (Reuters wire / Rigzone / Oilprice) via Tavily search + extract, with
+      # a two-source agreement rule -- same pattern as the ISM releases.
+      - name: Refresh Energy / Oil & Gas data from EIA + FRED + Baker Hughes (via Tavily)
         env:
-          EIA_API_KEY:  ${{ secrets.EIA_API_KEY }}
+          EIA_API_KEY:    ${{ secrets.EIA_API_KEY }}
           FRED_API_KEY:   ${{ secrets.FRED_API_KEY }}
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         continue-on-error: true
