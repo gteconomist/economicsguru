@@ -69,6 +69,7 @@ import sys
 import json
 import time
 import zipfile
+import subprocess
 import datetime as dt
 from pathlib import Path
 from urllib import request, parse, error
@@ -220,6 +221,34 @@ def fetch_fred(series_id):
 
 
 # ---------- Baker Hughes ----------
+def _bh_get(url, timeout=30, accept=None):
+    """Fetch from rigcount.bakerhughes.com. The site's CDN sits on
+    GitHub-runner connections without answering (the first CI run hung the
+    step for 13 minutes), so: ONE urllib attempt with a short timeout, then
+    fall back to curl, whose TLS/HTTP2 fingerprint the CDN may accept where
+    python-urllib's is not. Raises on failure."""
+    hdrs = dict(BH_HEADERS)
+    if accept:
+        hdrs["Accept"] = accept
+        hdrs["Referer"] = BH_PAGE
+    try:
+        return _http_get(url, retries=1, timeout=timeout, headers=hdrs)
+    except (RuntimeError, error.URLError, TimeoutError) as e:
+        print(f"    urllib failed ({e}); trying curl", file=sys.stderr)
+    cmd = ["curl", "-sS", "-f", "-L", "--max-time", str(timeout * 2), "--connect-timeout", "20",
+           "-A", UA, "-o", "-"]
+    for k, v in hdrs.items():
+        cmd += ["-H", f"{k}: {v}"]
+    cmd.append(url)
+    try:
+        r = subprocess.run(cmd, capture_output=True, timeout=timeout * 2 + 15)
+    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
+        raise RuntimeError(f"curl fallback failed: {e}")
+    if r.returncode != 0 or not r.stdout:
+        raise RuntimeError(f"curl fallback failed (exit {r.returncode}): {r.stderr.decode('utf-8', 'replace')[:300]}")
+    return r.stdout
+
+
 def _excel_serial_to_iso(n):
     return (dt.date(1899, 12, 30) + dt.timedelta(days=int(float(n)))).isoformat()
 
@@ -229,7 +258,7 @@ def fetch_baker_hughes_weekly():
     {YYYY-MM-DD: US oil rig count} for every publish date in its NAM Weekly
     sheet (Jan 2024 onward). Raises on any structural surprise so the caller
     can fall back to the CSV baseline."""
-    html = _http_get(BH_PAGE, headers=BH_HEADERS).decode("utf-8", "replace")
+    html = _bh_get(BH_PAGE, timeout=30).decode("utf-8", "replace")
     m = re.search(r'href="([^"]*?/static-files/[^"]+)"[^>]*>\s*' + re.escape(BH_LINK_TEXT), html, re.I)
     if not m:
         # anchor text may sit in a child element; fall back to nearest preceding static-files href
@@ -245,7 +274,7 @@ def fetch_baker_hughes_weekly():
     if href.startswith("/"):
         href = BH_ORIGIN + href
     print(f"  Baker Hughes report: {href}", file=sys.stderr)
-    blob = _http_get(href, timeout=180, headers=dict(BH_HEADERS, Accept="*/*", Referer=BH_PAGE))
+    blob = _bh_get(href, timeout=90, accept="*/*")
     if not blob[:2] == b"PK":
         raise RuntimeError(f"Baker Hughes download is not an xlsx ({len(blob)} bytes, starts {blob[:40]!r})")
     zf = zipfile.ZipFile(io.BytesIO(blob))
