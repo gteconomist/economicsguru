@@ -28,7 +28,7 @@ Sources
   FRED (FRED_API_KEY)
       DCOILBRENTEU  Brent spot, $/bbl, daily   1987-
       DCOILWTICO    WTI spot, $/bbl, daily     1986-
-  Baker Hughes (no key)
+  Baker Hughes (no key) -- direct download, tried first
       The "North America Rig Count Report - New Report" xlsx linked from
       https://rigcount.bakerhughes.com/na-rig-count . The link is a
       /static-files/<guid> URL that changes every Friday, so the script
@@ -41,6 +41,19 @@ Sources
       (auto-committed by the workflow) so the history survives if the
       download breaks; the CSV is the source of truth for the chart, the
       download only extends it.
+      CAVEAT (2026-09-16): the BH CDN never answers GitHub-runner
+      connections, so in CI this path fails fast and the news route below
+      is what actually extends the series.
+  Weekly rig count via news coverage (TAVILY_API_KEY) -- fallback
+      Every Friday Reuters (syndicated on boereport.com), Rigzone, Oilprice
+      (via Yahoo), Seeking Alpha and others publish the Baker Hughes numbers
+      in plain prose: "oil rigs rose by one to 450 this week". Tavily news
+      search + extract pulls the past ~10 days of coverage, a set of regexes
+      reads the U.S. oil-rig level out of each article (sentences mentioning
+      Canada are skipped), each article is dated to the Friday on or before
+      its publish date, and a week's value is accepted only when at least
+      two sources agree (or one source lands within 25 rigs of the previous
+      week). Same upsert into the CSV. This is the ISM press-release pattern.
 
 Output
 ------
@@ -57,8 +70,9 @@ page redesign) degrades that block instead of killing the run.
 
 Environment variables
 ---------------------
-  EIA_API_KEY    required
-  FRED_API_KEY   required for Brent / WTI (the page degrades without them)
+  EIA_API_KEY      required
+  FRED_API_KEY     required for Brent / WTI (the page degrades without them)
+  TAVILY_API_KEY   optional; enables the news route for the weekly rig count
 """
 
 import os
@@ -84,6 +98,8 @@ FRED_BASE = "https://api.stlouisfed.org/fred/series/observations"
 BH_PAGE   = "https://rigcount.bakerhughes.com/na-rig-count"
 BH_ORIGIN = "https://rigcount.bakerhughes.com"
 BH_LINK_TEXT = "North America Rig Count Report"
+TAVILY_SEARCH  = "https://api.tavily.com/search"
+TAVILY_EXTRACT = "https://api.tavily.com/extract"
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
 # rigcount.bakerhughes.com sits behind a CDN that rejects bare python-urllib
@@ -340,6 +356,169 @@ def fetch_baker_hughes_weekly():
     return {d: int(round(v)) for d, v in agg.items()}
 
 
+# ---------- Baker Hughes via news coverage (Tavily) ----------
+_RIG_PATTERNS = [
+    # Reuters / BOE Report: "oil rigs rose by one to 450 this week"
+    re.compile(r"\boil rigs?\b[^.;]{0,40}?\b(?:rose|fell|climbed|dropped|increased|decreased|gained|lost|slipped|edged|jumped|declined|were unchanged|held(?: steady)?|remained)\b[^.;]{0,40}?\b(?:to|at)\s+(\d{3})\b", re.I),
+    # Rigzone: "is made up of 450 oil rigs, 132 gas rigs"
+    re.compile(r"\b(?:made up of|comprised of|consist(?:s|ing) of|including)\s+(\d{3})\s+oil rigs?\b", re.I),
+    # Oilprice / Yahoo: "active oil rigs rose by 1, reaching 450"
+    re.compile(r"\boil rigs?\b[^.;]{0,60}?\b(?:reaching|reached|totaled|totalled|stood at|now stand(?:s)? at|stands at)\s+(\d{3})\b", re.I),
+    # Yieh and similar: "drilling rigs for crude oil ... to 450 units"
+    re.compile(r"\bcrude oil\b[^.;]{0,80}?\bto\s+(\d{3})\s+units\b", re.I),
+    # "U.S. oil rig count ... 450"
+    re.compile(r"\boil rig count\b[^.;]{0,50}?\b(?:to|at|of)\s+(\d{3})\b", re.I),
+]
+_MONTHS = {m: i for i, m in enumerate(
+    ["january", "february", "march", "april", "may", "june", "july", "august",
+     "september", "october", "november", "december"], 1)}
+
+
+def _tavily_post(endpoint, payload, timeout=90):
+    key = os.environ.get("TAVILY_API_KEY")
+    if not key:
+        raise RuntimeError("TAVILY_API_KEY is not set")
+    payload = dict(payload, api_key=key)
+    req = request.Request(endpoint, data=json.dumps(payload).encode(),
+                          headers={"Content-Type": "application/json", "User-Agent": UA})
+    with request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read())
+
+
+def _friday_on_or_before(d):
+    return d - dt.timedelta(days=(d.weekday() - 4) % 7)
+
+
+def _parse_pubdate(s):
+    """Tavily published_date is RFC-1123 ('Fri, 11 Sep 2026 20:25:40 GMT') or
+    ISO. Returns a date or None."""
+    if not s:
+        return None
+    try:
+        from email.utils import parsedate_to_datetime
+        return parsedate_to_datetime(s).date()
+    except (TypeError, ValueError, IndexError):
+        pass
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})", s)
+    if m:
+        try:
+            return dt.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError:
+            return None
+    return None
+
+
+def _date_from_url(url):
+    """boereport.com/2026/09/11/... or rigzone ...-15-sep-2026-... -> date."""
+    m = re.search(r"/(20\d{2})/(\d{1,2})/(\d{1,2})/", url)
+    if m:
+        try:
+            return dt.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError:
+            pass
+    m = re.search(r"-(\d{1,2})-([a-z]{3})-(20\d{2})-", url, re.I)
+    if m:
+        mon = {k[:3]: v for k, v in _MONTHS.items()}.get(m.group(2).lower())
+        if mon:
+            try:
+                return dt.date(int(m.group(3)), mon, int(m.group(1)))
+            except ValueError:
+                pass
+    return None
+
+
+def _week_ending_in_text(text, ref_year):
+    """'week ending September 11' / 'week ended Sept. 4, 2026' -> date."""
+    m = re.search(r"week (?:ending|ended)(?: on)?\s+([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:,?\s+(\d{4}))?", text, re.I)
+    if not m:
+        return None
+    mon = {k[:3]: v for k, v in _MONTHS.items()}.get(m.group(1).lower()[:3])
+    if mon is None:
+        return None
+    year = int(m.group(3)) if m.group(3) else ref_year
+    try:
+        return dt.date(year, mon, int(m.group(2)))
+    except ValueError:
+        return None
+
+
+def _oil_rigs_from_text(text):
+    """Return the set of candidate U.S. oil-rig levels in an article."""
+    flat = re.sub(r"\s+", " ", text)
+    vals = []
+    for sent in re.split(r"(?<=[.;])\s+", flat):
+        if re.search(r"\bCanad(?:a|ian)\b", sent, re.I):
+            continue
+        for rx in _RIG_PATTERNS:
+            for m in rx.finditer(sent):
+                v = int(m.group(1))
+                if 150 <= v <= 1000:
+                    vals.append(v)
+    return vals
+
+
+def fetch_rigs_via_news(prev_known=None, days=10, max_results=10):
+    """Return {YYYY-MM-DD (Friday): oil_rigs} for the weeks covered by recent
+    news articles that quote the Baker Hughes count. `prev_known` is the
+    latest (date, value) already in the CSV, used to sanity-check a
+    single-source week."""
+    res = _tavily_post(TAVILY_SEARCH, {
+        "query": "Baker Hughes weekly rig count U.S. oil rigs",
+        "topic": "news", "days": days, "search_depth": "advanced",
+        "max_results": max_results, "include_raw_content": False,
+    })
+    hits = [h for h in res.get("results", []) if h.get("url")]
+    if not hits:
+        raise RuntimeError("Tavily search returned no rig-count articles")
+    urls = [h["url"] for h in hits]
+    ext = _tavily_post(TAVILY_EXTRACT, {"urls": urls}, timeout=120)
+    raw_by_url = {r["url"]: r.get("raw_content") or "" for r in ext.get("results", [])}
+
+    # per Friday: list of (value, source)
+    votes = {}
+    for h in hits:
+        text = raw_by_url.get(h["url"]) or h.get("content") or ""
+        if not text:
+            continue
+        pub = _parse_pubdate(h.get("published_date")) or _date_from_url(h["url"])
+        if pub is None:
+            continue
+        # Baker Hughes publishes Fridays; coverage lands Friday through the
+        # following Tuesday, so the count is the Friday on or before the
+        # publish date. A "week ending <date>" phrase overrides that when it
+        # names a Friday within the prior week (guards against articles that
+        # also mention the previous week's figure).
+        friday = _friday_on_or_before(pub)
+        we = _week_ending_in_text(text, pub.year)
+        if we and we.weekday() == 4 and 0 <= (pub - we).days <= 6:
+            friday = we
+        vals = _oil_rigs_from_text(text)
+        if not vals:
+            continue
+        # one vote per source: the value it mentions most often
+        v = max(set(vals), key=vals.count)
+        votes.setdefault(friday.isoformat(), []).append((v, h["url"]))
+        print(f"    {friday} oil rigs={v}  <- {h['url'][:70]}", file=sys.stderr)
+
+    out = {}
+    prev_val = prev_known[1] if prev_known else None
+    for d, vs in sorted(votes.items()):
+        counts = {}
+        for v, _ in vs:
+            counts[v] = counts.get(v, 0) + 1
+        best, n = max(counts.items(), key=lambda kv: kv[1])
+        agree = n >= 2 and n / len(vs) >= 0.5
+        near_prev = prev_val is not None and abs(best - prev_val) <= 25
+        if agree or (len(vs) == 1 and near_prev):
+            out[d] = best
+            prev_val = best
+        else:
+            print(f"    {d}: no consensus {counts} (prev {prev_val}); skipped", file=sys.stderr)
+    if not out:
+        raise RuntimeError("news route found articles but no agreed oil-rig value")
+    return out
+
+
 def load_rigs_csv():
     if not RIGS_CSV.exists():
         return {}
@@ -353,12 +532,16 @@ def load_rigs_csv():
     return out
 
 
-def upsert_rigs_csv(existing, fresh):
-    """Merge fresh Baker Hughes values into the CSV. Fresh wins (BH revises
-    the prior week). Returns (merged, changed)."""
+def upsert_rigs_csv(existing, fresh, overwrite=True):
+    """Merge fresh values into the CSV. With overwrite=True fresh wins (the
+    Baker Hughes workbook revises the prior week); the news route passes
+    overwrite=False so a single misread article can only ADD a week, never
+    replace one already on file. Returns (merged, changed)."""
     merged = dict(existing)
     changed = False
     for d, v in fresh.items():
+        if d in merged and not overwrite:
+            continue
         if merged.get(d) != v:
             merged[d] = v
             changed = True
@@ -540,12 +723,23 @@ def main():
         if bh_changed:
             print(f"  CSV baseline updated ({len(bh_csv)} rows)", file=sys.stderr)
     except Exception as e:  # noqa: BLE001
-        status["baker_hughes"] = False
-        print(f"  ERROR Baker Hughes: {e}", file=sys.stderr)
-        if bh_csv:
-            print(f"  using CSV baseline ({len(bh_csv)} rows, latest {max(bh_csv)})", file=sys.stderr)
-        else:
-            notice.append("Baker Hughes weekly rig count unavailable; rig series falls back to EIA monthly history.")
+        print(f"  Baker Hughes direct download failed: {e}", file=sys.stderr)
+        print("  Trying the news route (Tavily)...", file=sys.stderr)
+        try:
+            prev = (max(bh_csv), bh_csv[max(bh_csv)]) if bh_csv else None
+            fresh = fetch_rigs_via_news(prev_known=prev)
+            last = max(fresh)
+            print(f"  news route: {len(fresh)} week(s); latest {last} = {fresh[last]} oil rigs", file=sys.stderr)
+            bh_csv, bh_changed = upsert_rigs_csv(bh_csv, fresh, overwrite=False)
+            if bh_changed:
+                print(f"  CSV baseline updated ({len(bh_csv)} rows)", file=sys.stderr)
+        except Exception as e2:  # noqa: BLE001
+            status["baker_hughes"] = False
+            print(f"  ERROR rig count (news route): {e2}", file=sys.stderr)
+            if bh_csv:
+                print(f"  using CSV baseline ({len(bh_csv)} rows, latest {max(bh_csv)})", file=sys.stderr)
+            else:
+                notice.append("Baker Hughes weekly rig count unavailable; rig series falls back to EIA monthly history.")
 
     # ----- derived -----
     prod = weekly.get("production", [])
