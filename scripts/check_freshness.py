@@ -89,7 +89,9 @@ TOLERANCES = {
     # otherwise hide behind the fresh EIA weekly series in the same file.
     # Brent/WTI are daily FRED series checked on the same 8d as commodities.
     "energy.json":       dict(max_age_days=16,  note="EIA WPSR Wednesdays for the week ended Friday; retail fuel prices Mondays.",
-                              watch={"rigs_oil": 16, "brent": 8, "spr_monthly": 75, "gasoline": 12}),
+                              # spr_monthly: EIA Petroleum Supply Monthly runs ~2 months behind
+                              # (June data landed Aug 29; July due ~Sep 30) -> 31 + 60 + slack.
+                              watch={"rigs_oil": 16, "brent": 8, "spr_monthly": 105, "gasoline": 12}),
     "housing_mortgage_activity.json": dict(max_age_days=16,
                               note="MBA weekly applications Wednesdays; FRED rate series daily/weekly.",
                               watch={"mba_refinance":        20,   # MBA, weekly, Wednesdays
@@ -311,6 +313,10 @@ SNOOZE_UNTIL = {
     # 2026-09-16 09:13 refresh onward (build + deploy were fine). Extended to
     # year end; the real fix is a new seed value or a quarterly NMDB pull.
     "housing_mortgage_activity.json:eff_rate_outstanding":  "2026-12-31",
+    # Baker Hughes weekly oil rigs: rigcount.bakerhughes.com's CDN does not
+    # answer GitHub-runner connections (2026-09-16), so the series is frozen
+    # at EIA's Feb-2026 monthly value until a different route is wired up.
+    "energy.json:rigs_oil":  "2026-10-16",
     # delinquency_rate (DRSFRMACBS) was NEVER stale -- it was a false alarm
     # from reading quarter-start dates as monthly. Fixed in _series_latest.
 }
