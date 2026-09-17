@@ -85,6 +85,16 @@ BH_ORIGIN = "https://rigcount.bakerhughes.com"
 BH_LINK_TEXT = "North America Rig Count Report"
 
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+# rigcount.bakerhughes.com sits behind a CDN that rejects bare python-urllib
+# requests; send a full browser-shaped header set.
+BH_HEADERS = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "identity",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Cache-Control": "no-cache",
+}
 
 # NBER-dated recessions (gray shading on the SPR history chart).
 RECESSIONS = [
@@ -126,6 +136,17 @@ def _http_get(url, retries=3, timeout=90, headers=None):
                 return r.read()
         except (error.HTTPError, error.URLError, TimeoutError) as e:
             last_err = e
+            if isinstance(e, error.HTTPError):
+                # Surface what the server actually said (Akamai/Cloudflare
+                # bot pages, redirects to a challenge, etc.) -- the status
+                # code alone is not enough to debug a blocked download.
+                try:
+                    body = e.read(600).decode("utf-8", "replace").replace("\n", " ")
+                except Exception:  # noqa: BLE001
+                    body = ""
+                print(f"    HTTP {e.code} {e.reason}; headers={dict(e.headers)}; body[:600]={body!r}", file=sys.stderr)
+                if e.code in (401, 403, 404):
+                    break   # not transient; retrying only burns time
             wait = 2 ** attempt
             print(f"    retry {attempt + 1} after {wait}s ({type(e).__name__}: {e})", file=sys.stderr)
             time.sleep(wait)
@@ -208,7 +229,7 @@ def fetch_baker_hughes_weekly():
     {YYYY-MM-DD: US oil rig count} for every publish date in its NAM Weekly
     sheet (Jan 2024 onward). Raises on any structural surprise so the caller
     can fall back to the CSV baseline."""
-    html = _http_get(BH_PAGE).decode("utf-8", "replace")
+    html = _http_get(BH_PAGE, headers=BH_HEADERS).decode("utf-8", "replace")
     m = re.search(r'href="([^"]*?/static-files/[^"]+)"[^>]*>\s*' + re.escape(BH_LINK_TEXT), html, re.I)
     if not m:
         # anchor text may sit in a child element; fall back to nearest preceding static-files href
@@ -224,7 +245,9 @@ def fetch_baker_hughes_weekly():
     if href.startswith("/"):
         href = BH_ORIGIN + href
     print(f"  Baker Hughes report: {href}", file=sys.stderr)
-    blob = _http_get(href, timeout=180)
+    blob = _http_get(href, timeout=180, headers=dict(BH_HEADERS, Accept="*/*", Referer=BH_PAGE))
+    if not blob[:2] == b"PK":
+        raise RuntimeError(f"Baker Hughes download is not an xlsx ({len(blob)} bytes, starts {blob[:40]!r})")
     zf = zipfile.ZipFile(io.BytesIO(blob))
 
     # workbook.xml -> sheet name -> rId -> target path
