@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Energy — Economics Guru</title>
-<meta name="description" content="Oil production, rigs, fuel prices and inventories; electricity generation, data centers, gas storage and prices.">
+<title>Natural Gas &amp; Electricity — Economics Guru</title>
+<meta name="description" content="Electricity generation and who is using it, the data-center building boom, the generation mix, retail power prices, Henry Hub, gas storage, production and LNG exports — sourced live from the EIA, FRED, and Census construction spending.">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -28,7 +28,58 @@
 </header>
 
 <main class="wrap">
-<div class="crumb"><a href="/">Home</a><span class="sep">/</span>Energy</div><div class="pagehead"><div><h1>Energy</h1><p class="sub">Oil production, rigs, fuel prices and inventories; electricity generation, data centers, gas storage and prices.</p></div></div><div class="hub-grid"><a class="hub-card" href="/energy/oil-gas/"><div class="badge">Available</div><h3>Oil &amp; Gas</h3><p>Crude production &amp; oil rigs, Brent vs. gasoline &amp; diesel, SPR history, commercial crude stocks vs. 5-yr range, net exports, refinery utilization, product stocks. Source: EIA, FRED, Baker Hughes.</p></a><a class="hub-card" href="/energy/gas-electricity/"><div class="badge">Available</div><h3>Natural Gas &amp; Electricity</h3><p>Total generation vs. CPI electricity (ChatGPT marker), retail sales by sector, data-center construction spending, generation mix, power prices, Henry Hub, gas storage vs. 5-yr range, dry gas production &amp; LNG exports. Source: EIA, FRED, Census.</p></a></div>
+<div class="crumb"><a href="/">Home</a><span class="sep">/</span><a href="/energy/">Energy</a><span class="sep">/</span>Gas &amp; Electricity</div><div class="pagehead"><div><h1>Natural Gas &amp; Electricity</h1><p class="sub">Electricity generation and who is using it, the data-center building boom, the generation mix, retail power prices, Henry Hub, gas storage, production and LNG exports — sourced live from the EIA, FRED, and Census construction spending.</p></div><div class="latest">Latest data &nbsp;<b id="latest">…</b></div></div><nav class="pills"><a href="/energy/oil-gas/">Oil &amp; Gas</a><a href="/energy/gas-electricity/" class="active">Gas &amp; Electricity</a></nav><div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+<div id="kpis" class="kpis"></div>
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="5y">5 yr</button><button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button><button data-r="max" class="active">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG · red line marks the launch of ChatGPT (Nov 30, 2022)</span>
+</div>
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">Total Electricity Net Generation</div><div class="cs">Electric power sector, 12-month moving average, million kWh (left) vs. CPI electricity index, 1982-84=100 (right)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnGenCpi"></canvas></div>
+    <div class="src">Source: EIA Electric Power Monthly (sector 98, all fuels); BLS CPI electricity via FRED (CUSR0000SEHF01).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Who Is Using the Power — Retail Sales by Sector</div><div class="cs">12-month moving average of monthly electricity sales, million kWh — commercial is where data centers land</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnRetailSales"></canvas></div>
+    <div class="src">Source: EIA Electric Power Monthly, retail sales by sector (stateid US).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Data Center Construction Spending</div><div class="cs">Private construction put in place, seasonally adjusted annual rate, $ billions (left) vs. electric power construction (right)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnDataCenter"></canvas></div>
+    <div class="src">Source: U.S. Census Bureau, Construction Spending (C30), private nonresidential detail — "Data center" (under Office) and "Electric" (under Power). Data-center detail begins Jan 2014.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Generation Mix</div><div class="cs">Share of electric-power-sector generation over the trailing 12 months, percent</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnGenMix"></canvas></div>
+    <div class="src">Source: EIA Electric Power Monthly — natural gas, coal, nuclear, wind, utility-scale solar, conventional hydro; "other" is the remainder.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Retail Electricity Prices by Sector</div><div class="cs">Average price, cents per kWh, 12-month moving average</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnRetailPrice"></canvas></div>
+    <div class="src">Source: EIA Electric Power Monthly, average retail price by sector.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Henry Hub Natural Gas Spot Price</div><div class="cs">$ per MMBtu, daily — the fuel behind roughly 40% of U.S. generation</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnHenryHub"></canvas></div>
+    <div class="src">Source: EIA via FRED (DHHNGSP).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Natural Gas in Storage vs. 5-Year Range</div><div class="cs">Working gas in underground storage, Lower 48, Bcf, weekly, against the prior five years' min–max band and average</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnGasStorage"></canvas></div>
+    <div class="src">Source: EIA Weekly Natural Gas Storage Report (NW2_EPG0_SWO_R48_BCF).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Dry Gas Production &amp; LNG Exports</div><div class="cs">Billion cubic feet per day, monthly — dry production (left) and liquefied natural gas exports (right)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cEnGasProdLng"></canvas></div>
+    <div class="src">Source: EIA Natural Gas Monthly (N9070US2, N9133US2), monthly volumes divided by days in month.</div>
+  </div>
+</div>
+
 </main>
 
 <footer class="foot">
@@ -39,6 +90,9 @@
 </footer>
 
 <script>document.getElementById('yr').textContent = '2023-' + new Date().getFullYear();</script>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/assets/js/chart-core.js"></script>
+<script src="/assets/js/pages/energy.js"></script>
+<script>EG.boot("/data/energy_power.json", "gas_electricity");</script>
 </body>
 </html>
