@@ -232,6 +232,16 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_government.py
 
+      # Regenerate every page from _data/site.json + _templates + _content/ so
+      # the deployed site always reflects the committed sources (nav, new
+      # pages) even when the generated index.html files were not committed
+      # alongside a source change. Generated pages that changed are included
+      # in the auto-commit below so the repo copy never drifts from the
+      # sources. Stdlib only, no network.
+      - name: Regenerate pages (_build/build.py)
+        continue-on-error: true
+        run: python _build/build.py
+
       # Build the tiny cross-site KPI feed (api/summary.json) that alfie.com
       # pulls on page load. Pure local computation from the freshly-fetched
       # data/*.json above -- no network, no secrets -- so it always runs
@@ -362,6 +372,12 @@ jobs:
             if [[ -f "$f" && -n "$(git status --porcelain "$f")" ]]; then
               changed="$changed $f"
             fi
+          done
+
+          # Generated pages (build.py output) -- commit whatever changed so the
+          # committed index.html files track the _content/ + site.json sources.
+          for f in $(git status --porcelain -uall -- 'index.html' '*/index.html' | awk '{print $2}'); do
+            [[ "$f" == *index.html ]] && changed="$changed $f"
           done
 
           if [[ -n "$changed" ]]; then
