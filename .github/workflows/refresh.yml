@@ -211,7 +211,8 @@ jobs:
       - name: Refresh Energy / Oil & Gas data from EIA + FRED + Baker Hughes
         env:
           EIA_API_KEY:  ${{ secrets.EIA_API_KEY }}
-          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          FRED_API_KEY:   ${{ secrets.FRED_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         continue-on-error: true
         run: python scripts/fetch_energy.py
 
