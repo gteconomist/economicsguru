@@ -92,6 +92,13 @@ TOLERANCES = {
                               # spr_monthly: EIA Petroleum Supply Monthly runs ~2 months behind
                               # (June data landed Aug 29; July due ~Sep 30) -> 31 + 60 + slack.
                               watch={"rigs_oil": 16, "brent": 8, "spr_monthly": 105, "gasoline": 12}),
+    # Natural Gas & Electricity: weekly storage (Thursdays, for the prior
+    # Friday) keeps the file fresh; the monthly EIA electricity data runs
+    # ~2 months behind (June data lands late August) and Census construction
+    # spending ~1 month (July data on Sept 1), so those get their own clocks.
+    "energy_power.json": dict(max_age_days=16,  note="EIA weekly gas storage Thursdays; monthly electricity ~2 months behind; Census C30 ~day 1.",
+                              watch={"generation_12mma": 100, "data_center_construction": 66, "henry_hub": 8,
+                                     "sales_12mma.com": 100, "gas_production_bcfd": 100}),
     "housing_mortgage_activity.json": dict(max_age_days=16,
                               note="MBA weekly applications Wednesdays; FRED rate series daily/weekly.",
                               watch={"mba_refinance":        20,   # MBA, weekly, Wednesdays

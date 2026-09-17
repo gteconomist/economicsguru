@@ -387,7 +387,7 @@
       "slug": "energy",
       "title": "Energy",
       "status": "new",
-      "blurb": "Crude production, rig counts, oil & fuel prices, inventories, the SPR, exports, refining.",
+      "blurb": "Oil production, rigs, fuel prices and inventories; electricity generation, data centers, gas storage and prices.",
       "indicators": [
         {
           "slug": "oil-gas",
@@ -417,6 +417,37 @@
             "refinery utilization",
             "oil exports",
             "energy",
+            "eia"
+          ]
+        },
+        {
+          "slug": "gas-electricity",
+          "title": "Natural Gas & Electricity",
+          "nav": "Gas & Electricity",
+          "subtitle": "Electricity generation and who is using it, the data-center building boom, the generation mix, retail power prices, Henry Hub, gas storage, production and LNG exports — sourced live from the EIA, FRED, and Census construction spending.",
+          "card": "Total generation vs. CPI electricity (ChatGPT marker), retail sales by sector, data-center construction spending, generation mix, power prices, Henry Hub, gas storage vs. 5-yr range, dry gas production & LNG exports. Source: EIA, FRED, Census.",
+          "data": "/data/energy_power.json",
+          "module": "energy",
+          "page": "gas_electricity",
+          "status": "new",
+          "keywords": [
+            "electricity",
+            "power",
+            "electricity generation",
+            "data centers",
+            "data center construction",
+            "ai power demand",
+            "natural gas",
+            "henry hub",
+            "gas storage",
+            "lng exports",
+            "generation mix",
+            "solar",
+            "wind",
+            "nuclear",
+            "coal",
+            "electricity prices",
+            "utility",
             "eia"
           ]
         }
