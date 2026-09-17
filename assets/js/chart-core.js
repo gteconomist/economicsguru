@@ -396,6 +396,28 @@ window.EG = (function () {
     var title=q('.ct'), sub=q('.cs'), src=q('.src');
     var out=document.createElement('canvas'); out.width=W; out.height=H;
     var x=out.getContext('2d');
+    // Source line: word-wrap onto up to SRC_MAX_LINES lines (all kept clear of the
+    // wordmark) so a long footnote is shown in full; the footer grows to fit and the
+    // plot gives up the extra rows. Only a footnote longer than that gets ellipsized.
+    var SRC_MAX_LINES=2, srcLH=16*sc, srcFont=(12*sc)+'px '+EXF;
+    x.font='700 '+(13*sc)+'px '+EXF; var brandW = x.measureText('economicsguru.com').width;
+    x.font=srcFont;
+    var srcMax = W - padL - padR - brandW - 24*sc, srcLines=[];
+    if(src){
+      var words=src.split(' '), cur='';
+      for(var wi=0; wi<words.length; wi++){
+        var tryS = cur ? cur+' '+words[wi] : words[wi];
+        if(x.measureText(tryS).width <= srcMax || !cur){ cur=tryS; }
+        else { srcLines.push(cur); cur=words[wi]; }
+      }
+      if(cur) srcLines.push(cur);
+      if(srcLines.length > SRC_MAX_LINES){
+        var last = srcLines.slice(SRC_MAX_LINES-1).join(' ');
+        while (last.length > 1 && x.measureText(last + '…').width > srcMax) last = last.slice(0, -1);
+        srcLines = srcLines.slice(0, SRC_MAX_LINES-1).concat([last.replace(/[\s.,;—-]+$/, '') + '…']);
+      }
+    }
+    footerH += Math.max(0, srcLines.length-1)*srcLH;
     x.fillStyle=theme.bg; x.fillRect(0,0,W,H);
     x.fillStyle=theme.brand; x.fillRect(padL, 22*sc, 40*sc, 4*sc);
     x.textAlign='left'; x.textBaseline='alphabetic';
@@ -410,16 +432,12 @@ window.EG = (function () {
     ec.destroy();
     var fy=H-19*sc;
     x.textAlign='right'; x.fillStyle=theme.brand; x.font='700 '+(13*sc)+'px '+EXF;
-    var brandW = x.measureText('economicsguru.com').width;
     x.fillText('economicsguru.com', W-padR, fy);
-    // ellipsize the source line so a long footnote never runs under the wordmark
-    x.textAlign='left'; x.fillStyle=theme.muted; x.font=(12*sc)+'px '+EXF;
-    var srcMax = W - padL - padR - brandW - 24*sc, srcTxt = src;
-    if (x.measureText(srcTxt).width > srcMax){
-      while (srcTxt.length > 1 && x.measureText(srcTxt + '…').width > srcMax) srcTxt = srcTxt.slice(0, -1);
-      srcTxt = srcTxt.replace(/[\s.,;—-]+$/, '') + '…';
+    // source line(s), bottom-aligned with the wordmark, stacked upward
+    x.textAlign='left'; x.fillStyle=theme.muted; x.font=srcFont;
+    for(var li=0; li<srcLines.length; li++){
+      x.fillText(srcLines[li], padL, fy - (srcLines.length-1-li)*srcLH);
     }
-    x.fillText(srcTxt, padL, fy);
     return out;
   }
   function exportImg(card, ch, theme){
