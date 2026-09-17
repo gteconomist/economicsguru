@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-09-17T11:50:21.782464Z",
+  "build_time": "2026-09-17T12:23:39.117447Z",
   "checked_date": "2026-09-17",
   "stale_count": 0,
   "stale": [],
@@ -71,6 +71,48 @@
           "latest": "2026-09-14",
           "age_days": 3,
           "max_age_days": 12
+        }
+      }
+    },
+    "energy_power.json": {
+      "status": "ok",
+      "latest": "2026-09-15",
+      "age_days": 2,
+      "max_age_days": 16,
+      "build_age_days": 0,
+      "note": "EIA weekly gas storage Thursdays; monthly electricity ~2 months behind; Census C30 ~day 1.",
+      "wrote_this_run": true,
+      "consecutive_misses": 0,
+      "watch": {
+        "generation_12mma": {
+          "status": "ok",
+          "latest": "2026-06-30",
+          "age_days": 79,
+          "max_age_days": 100
+        },
+        "data_center_construction": {
+          "status": "ok",
+          "latest": "2026-07-31",
+          "age_days": 48,
+          "max_age_days": 66
+        },
+        "henry_hub": {
+          "status": "ok",
+          "latest": "2026-09-15",
+          "age_days": 2,
+          "max_age_days": 8
+        },
+        "sales_12mma.com": {
+          "status": "ok",
+          "latest": "2026-06-30",
+          "age_days": 79,
+          "max_age_days": 100
+        },
+        "gas_production_bcfd": {
+          "status": "ok",
+          "latest": "2026-06-30",
+          "age_days": 79,
+          "max_age_days": 100
         }
       }
     },
