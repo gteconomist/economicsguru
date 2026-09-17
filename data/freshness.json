@@ -1,11 +1,10 @@
 {
-  "build_time": "2026-09-17T00:03:43.279128Z",
+  "build_time": "2026-09-17T00:11:00.845100Z",
   "checked_date": "2026-09-17",
-  "stale_count": 3,
+  "stale_count": 2,
   "stale": [
     "energy.json:rigs_oil: newest observation 2026-02-27 is 202d old (tolerance 16d)",
-    "energy.json:spr_monthly: newest observation 2026-06-30 is 79d old (tolerance 75d)",
-    "housing_mortgage_activity.json:eff_rate_outstanding: newest observation 2026-03-31 is 170d old (tolerance 75d)"
+    "energy.json:spr_monthly: newest observation 2026-06-30 is 79d old (tolerance 75d)"
   ],
   "datasets": {
     "commodities.json": {
@@ -119,7 +118,7 @@
       "consecutive_misses": 1
     },
     "housing_mortgage_activity.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-09-10",
       "age_days": 7,
       "max_age_days": 16,
@@ -147,10 +146,11 @@
           "max_age_days": 75
         },
         "eff_rate_outstanding": {
-          "status": "STALE",
+          "status": "SNOOZED",
           "latest": "2026-03-31",
           "age_days": 170,
-          "max_age_days": 75
+          "max_age_days": 75,
+          "snoozed_until": "2026-12-31"
         },
         "mortgage_debt_out": {
           "status": "ok",
