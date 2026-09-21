@@ -812,6 +812,171 @@ window.EG_CHART_REGISTRY = {
       ]
     },
     {
+      topic: 'energy-oil-gas',
+      label: 'Energy · Oil & Gas',
+      embed: '/energy/oil-gas/embed/',
+      data:  '/data/energy.json',
+      module:'oil_gas',
+      charts: [
+        {
+          key:'oil-prod-rigs', canvas:'cEnProdRigs',
+          title:'U.S. Crude Oil Production & Active Oil Rigs',
+          subtitle:'Weekly field production, thousand barrels/day (left) vs. Baker Hughes oil-directed rotary rigs (right)',
+          source:'Source: EIA Weekly Petroleum Status Report (WCRFPUS2); Baker Hughes North America Rig Count (weekly from 2024, EIA monthly before).',
+          series:[
+            {key:'production', label:'Crude production (left)'},
+            {key:'rigs',       label:'Active oil rigs (right)'}
+          ]
+        },
+        {
+          key:'oil-fuel-prices', canvas:'cEnPrices',
+          title:'Oil & Fuel Prices',
+          subtitle:'Brent crude, $/barrel (left) vs. U.S. retail regular gasoline and diesel, $/gallon (right)',
+          source:'Source: EIA via FRED (DCOILBRENTEU); EIA weekly retail prices (EMM_EPMR_PTE_NUS_DPG, EMD_EPD2D_PTE_NUS_DPG).',
+          series:[
+            {key:'brent',    label:'Brent crude (left)'},
+            {key:'gasoline', label:'Regular gasoline (right)'},
+            {key:'diesel',   label:'Diesel (right)'}
+          ]
+        },
+        {
+          key:'spr-history', canvas:'cEnSpr',
+          title:'Strategic Petroleum Reserve',
+          subtitle:'Crude oil stocks in the SPR, thousand barrels, monthly since 1977 — gray bands are NBER recessions',
+          source:'Source: EIA Petroleum Supply Monthly (MCSSTUS1). Full history — not affected by the range setting.',
+          series:[]
+        },
+        {
+          key:'spr-vs-oil', canvas:'cEnSprPrice',
+          title:'SPR Stocks vs. the Price of Oil',
+          subtitle:'SPR crude stocks, thousand barrels (left) vs. WTI spot, monthly average $/barrel (right)',
+          source:'Source: EIA (MCSSTUS1); EIA via FRED (DCOILWTICO), averaged by month.',
+          series:[
+            {key:'spr', label:'SPR stocks (left)'},
+            {key:'wti', label:'WTI monthly avg (right)'}
+          ]
+        },
+        {
+          key:'crude-stocks', canvas:'cEnCrudeStocks',
+          title:'Commercial Crude Inventories vs. 5-Year Range',
+          subtitle:'Weekly crude stocks excluding the SPR, thousand barrels, against the prior five years\' min–max band and average',
+          source:'Source: EIA Weekly Petroleum Status Report (WCESTUS1); band computed from the same week in each of the prior five years.',
+          series:[]
+        },
+        {
+          key:'net-petroleum-exports', canvas:'cEnNetExports',
+          title:'U.S. Net Petroleum Exports',
+          subtitle:'Net exports of crude oil + refined products and of crude alone, thousand barrels/day — above zero the U.S. is a net exporter',
+          source:'Source: EIA Weekly Petroleum Status Report (WTTNTUS2, WCREXUS2, WCRIMUS2), sign flipped so exports are positive; 4-week average.',
+          series:[
+            {key:'total', label:'Crude + products, net exports'},
+            {key:'crude', label:'Crude oil only, net exports'}
+          ]
+        },
+        {
+          key:'refinery-util', canvas:'cEnRefinery',
+          title:'Refinery Utilization',
+          subtitle:'Percent of operable refining capacity in use, weekly — seasonal dips are spring/fall maintenance turnarounds',
+          source:'Source: EIA Weekly Petroleum Status Report (WPULEUS3).',
+          series:[
+            {key:'util', label:'Refinery utilization'}
+          ]
+        },
+        {
+          key:'product-stocks', canvas:'cEnProductStocks',
+          title:'Gasoline & Distillate Stocks',
+          subtitle:'Weekly inventories of total gasoline and distillate fuel oil (diesel, heating oil), thousand barrels',
+          source:'Source: EIA Weekly Petroleum Status Report (WGTSTUS1, WDISTUS1).',
+          series:[
+            {key:'gasoline',   label:'Total gasoline stocks'},
+            {key:'distillate', label:'Distillate fuel oil stocks'}
+          ]
+        }
+      ]
+    },
+    {
+      topic: 'energy-gas-electricity',
+      label: 'Energy · Gas & Electricity',
+      embed: '/energy/gas-electricity/embed/',
+      data:  '/data/energy_power.json',
+      module:'gas_electricity',
+      charts: [
+        {
+          key:'gen-cpi', canvas:'cEnGenCpi',
+          title:'Total Electricity Net Generation',
+          subtitle:'Electric power sector, 12-month moving average, million kWh (left) vs. CPI electricity index, 1982-84=100 (right)',
+          source:'Source: EIA Electric Power Monthly (sector 98, all fuels); BLS CPI electricity via FRED (CUSR0000SEHF01). Red line marks the launch of ChatGPT.',
+          series:[
+            {key:'generation', label:'Net generation, 12-mo avg (left)'},
+            {key:'cpi',        label:'CPI: electricity (right)'}
+          ]
+        },
+        {
+          key:'power-sales', canvas:'cEnRetailSales',
+          title:'Who Is Using the Power — Retail Sales by Sector',
+          subtitle:'12-month moving average of monthly electricity sales, million kWh — commercial is where data centers land',
+          source:'Source: EIA Electric Power Monthly, retail sales by sector (stateid US). Red line marks the launch of ChatGPT.',
+          series:[
+            {key:'res', label:'Residential'},
+            {key:'com', label:'Commercial (incl. data centers)'},
+            {key:'ind', label:'Industrial'}
+          ]
+        },
+        {
+          key:'data-centers', canvas:'cEnDataCenter',
+          title:'Data Center Construction Spending',
+          subtitle:'Private construction put in place, seasonally adjusted annual rate, $ billions (left) vs. electric power construction (right)',
+          source:'Source: U.S. Census Bureau, Construction Spending (C30) — "Data center" and "Electric" detail; data-center detail begins Jan 2014. Red line marks the launch of ChatGPT.',
+          series:[
+            {key:'datacenter', label:'Data center construction (left)'},
+            {key:'electric',   label:'Electric power construction (right)'}
+          ]
+        },
+        {
+          key:'gen-mix', canvas:'cEnGenMix',
+          title:'Generation Mix',
+          subtitle:'Share of electric-power-sector generation over the trailing 12 months, percent',
+          source:'Source: EIA Electric Power Monthly — natural gas, coal, nuclear, wind, utility-scale solar, conventional hydro; "other" is the remainder.',
+          series:[]
+        },
+        {
+          key:'power-prices', canvas:'cEnRetailPrice',
+          title:'Retail Electricity Prices by Sector',
+          subtitle:'Average price, cents per kWh, 12-month moving average',
+          source:'Source: EIA Electric Power Monthly, average retail price by sector.',
+          series:[
+            {key:'res', label:'Residential'},
+            {key:'com', label:'Commercial'},
+            {key:'ind', label:'Industrial'}
+          ]
+        },
+        {
+          key:'henry-hub', canvas:'cEnHenryHub',
+          title:'Henry Hub Natural Gas Spot Price',
+          subtitle:'$ per MMBtu, daily — the fuel behind roughly 40% of U.S. generation',
+          source:'Source: EIA via FRED (DHHNGSP).',
+          series:[]
+        },
+        {
+          key:'gas-storage', canvas:'cEnGasStorage',
+          title:'Natural Gas in Storage vs. 5-Year Range',
+          subtitle:'Working gas in underground storage, Lower 48, Bcf, weekly, against the prior five years\' min–max band and average',
+          source:'Source: EIA Weekly Natural Gas Storage Report (NW2_EPG0_SWO_R48_BCF).',
+          series:[]
+        },
+        {
+          key:'gas-prod-lng', canvas:'cEnGasProdLng',
+          title:'Dry Gas Production & LNG Exports',
+          subtitle:'Billion cubic feet per day, monthly — dry production (left) and liquefied natural gas exports (right)',
+          source:'Source: EIA Natural Gas Monthly (N9070US2, N9133US2), monthly volumes divided by days in month.',
+          series:[
+            {key:'production', label:'Dry gas production (left)'},
+            {key:'lng',        label:'LNG exports (right)'}
+          ]
+        }
+      ]
+    },
+    {
       topic: 'ga-counties',
       label: 'Georgia Counties',
       embed: '/counties/embed/',
