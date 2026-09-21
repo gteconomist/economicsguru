@@ -7655,6 +7655,10 @@
     [
       "2026-09-04",
       157.5
+    ],
+    [
+      "2026-09-11",
+      156.2
     ]
   ],
   "mba_refinance": [
@@ -15313,12 +15317,16 @@
     [
       "2026-09-04",
       687.3
+    ],
+    [
+      "2026-09-11",
+      627.1
     ]
   ],
-  "mba_latest_week": "2026-09-04",
-  "mba_refi_share": 42.0,
-  "mba_arm_share": 7.9,
-  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/08/26/mortgage-applications-decrease-in-latest-mba-weekly-survey",
+  "mba_latest_week": "2026-09-11",
+  "mba_refi_share": 39.4,
+  "mba_arm_share": 8.4,
+  "mba_latest_source": "https://www.redbooklumberdata.com/2026/09/16/mortgage-applications-decrease-in-latest-mba-weekly-survey-66",
   "mortgage_30y": [
     [
       "1971-04-02",
@@ -68456,24 +68464,24 @@
       "label": "2026-09-17"
     },
     "purchase_index": {
-      "value": 157.5,
-      "delta": 0.0,
-      "label": "2026-09-04"
+      "value": 156.2,
+      "delta": -1.3,
+      "label": "2026-09-11"
     },
     "refinance_index": {
-      "value": 687.3,
-      "delta": -46.1,
-      "label": "2026-09-04"
+      "value": 627.1,
+      "delta": -60.2,
+      "label": "2026-09-11"
     },
     "refi_share": {
-      "value": 42.0,
+      "value": 39.4,
       "delta": null,
-      "label": "2026-08-21"
+      "label": "2026-09-11"
     },
     "arm_share": {
-      "value": 7.9,
+      "value": 8.4,
       "delta": null,
-      "label": "2026-08-21"
+      "label": "2026-09-11"
     },
     "delinquency_rate": {
       "value": 1.86,
@@ -68496,16 +68504,16 @@
       "label": "2025-12-31"
     }
   },
-  "latest_label": "2026-09-04",
-  "build_time": "2026-09-18T18:08:42Z",
-  "csv_rows_appended_this_run": 0,
+  "latest_label": "2026-09-11",
+  "build_time": "2026-09-21T13:17:21Z",
+  "csv_rows_appended_this_run": 1,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
   "eff_rate_rows": 591,
   "debt_csv_rows": 110,
   "debt_latest_quarter": "2026-06-30",
   "csv_baseline_loaded": true,
-  "mba_history_rows": 1914,
+  "mba_history_rows": 1915,
   "hai_csv_loaded": true,
   "hai_csv_rows": 548,
   "hai_csv_rows_appended_this_run": 0,
