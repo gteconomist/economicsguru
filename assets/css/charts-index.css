@@ -1,0 +1,22 @@
+/* economicsguru.com — /charts/ searchable chart index */
+.cx-search{ display:flex; align-items:center; gap:12px; margin:20px 0 14px; padding:0 18px; height:54px; background:var(--card); border:1px solid rgba(255,255,255,.22); border-radius:12px; transition:.18s; }
+.cx-search:focus-within{ border-color:var(--gold); box-shadow:0 0 0 4px rgba(179,163,105,.14); }
+.cx-search svg{ flex:none; width:18px; height:18px; }
+.cx-search input{ flex:1; min-width:0; height:44px; background:none; border:0; outline:0; color:#fff; font:inherit; font-size:18px; }
+.cx-search input::placeholder{ color:#9fb1c2; }
+.chips{ display:flex; flex-wrap:wrap; gap:8px; }
+.chip{ height:40px; padding:0 15px; border-radius:999px; border:1px solid rgba(255,255,255,.22); background:none; color:var(--ink); font:inherit; font-size:14px; font-weight:600; cursor:pointer; transition:.15s; }
+.chip:hover{ border-color:var(--gold); }
+.chip.active{ background:var(--gold); border-color:var(--gold); color:#10233a; font-weight:700; }
+.cx-count{ margin:16px 2px 6px; font-size:13px; color:var(--muted); }
+.cx-page{ margin:0 0 16px; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:6px 20px 8px; }
+.cx-page h2{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin:10px 0 4px; font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--gold); }
+.cx-page h2 a:hover{ text-decoration:underline; }
+.cx-page h2 span{ color:var(--slate); font-weight:600; letter-spacing:.04em; }
+.cx-row{ display:flex; align-items:baseline; gap:16px; padding:11px 0; border-top:1px solid rgba(255,255,255,.07); }
+.cx-row:hover .cx-t{ color:var(--gold); }
+.cx-t{ flex:none; max-width:55%; font-weight:600; font-size:15.5px; color:var(--ink); transition:.15s; }
+.cx-s{ flex:1; min-width:0; font-size:13px; color:var(--muted); text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cx-none{ padding:26px 4px; font-size:15px; color:var(--muted); }
+[hidden]{ display:none !important; }
+@media(max-width:700px){ .cx-row{ flex-direction:column; gap:2px; } .cx-t{ max-width:none; } .cx-s{ text-align:left; white-space:normal; } }

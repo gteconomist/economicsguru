@@ -1,5 +1,51 @@
 {
   "brand": "EconomicsGuru",
+  "sections": [
+    {
+      "slug": "growth",
+      "title": "Growth",
+      "blurb": "How fast the economy is growing and where it is headed — GDP, the leading indicators, factory output, and the business surveys.",
+      "groups": [
+        "gdp",
+        "industry"
+      ]
+    },
+    {
+      "groups": [
+        "labor"
+      ]
+    },
+    {
+      "groups": [
+        "inflation"
+      ]
+    },
+    {
+      "groups": [
+        "consumer"
+      ]
+    },
+    {
+      "groups": [
+        "housing"
+      ]
+    },
+    {
+      "groups": [
+        "rates"
+      ]
+    },
+    {
+      "groups": [
+        "energy"
+      ]
+    },
+    {
+      "groups": [
+        "government"
+      ]
+    }
+  ],
   "groups": [
     {
       "slug": "inflation",
@@ -71,14 +117,14 @@
       "slug": "labor",
       "title": "Labor",
       "status": "new",
-      "blurb": "Payrolls, unemployment, JOLTS, wages, participation.",
+      "blurb": "Payrolls, unemployment, job openings, job cuts, wages, and who is in the workforce.",
       "indicators": [
         {
-          "slug": "",
-          "title": "US Labor Market",
-          "nav": "Overview",
-          "subtitle": "Payrolls, unemployment, wages, hours, participation, and JOLTS — sourced live from the U.S. Bureau of Labor Statistics.",
-          "card": "Payrolls, unemployment, JOLTS, wage growth, participation.",
+          "slug": "jobs",
+          "title": "Jobs & Unemployment",
+          "nav": "Jobs & Unemployment",
+          "subtitle": "Unemployment, payrolls, full-time vs part-time work, job openings, and announced job cuts — sourced live from the U.S. Bureau of Labor Statistics.",
+          "card": "Unemployment & participation, payrolls, household survey, full-time vs part-time, JOLTS, announced job cuts. Source: BLS, Challenger.",
           "data": "/data/labor.json",
           "module": "labor",
           "page": "labor",
@@ -88,9 +134,40 @@
             "jobs",
             "payrolls",
             "unemployment",
-            "jolts",
-            "wages",
+            "u-6",
             "participation",
+            "jolts",
+            "openings",
+            "quits",
+            "layoffs",
+            "job cuts",
+            "challenger",
+            "full-time",
+            "part-time",
+            "bls"
+          ]
+        },
+        {
+          "slug": "wages",
+          "title": "Wages & Workforce",
+          "nav": "Wages & Workforce",
+          "subtitle": "Wage growth, real wages, hours, participation by age, and the foreign-born vs native-born workforce — sourced live from the U.S. Bureau of Labor Statistics.",
+          "card": "Wage growth, real wages, hours worked, labor force by nativity, participation by age. Source: BLS.",
+          "data": "/data/labor.json",
+          "module": "labor",
+          "page": "labor",
+          "status": "new",
+          "keywords": [
+            "labor",
+            "wages",
+            "earnings",
+            "real wages",
+            "hours",
+            "foreign-born",
+            "native-born",
+            "nativity",
+            "participation",
+            "age",
             "bls"
           ]
         }
@@ -210,7 +287,8 @@
             "productivity",
             "gdi",
             "bea"
-          ]
+          ],
+          "section_nav": "GDP"
         },
         {
           "slug": "leading-indicators",
@@ -311,7 +389,7 @@
     },
     {
       "slug": "rates",
-      "title": "Rates",
+      "title": "Markets",
       "status": "new",
       "blurb": "Treasury yields, the curve, credit spreads, equities, commodities.",
       "indicators": [
@@ -482,7 +560,7 @@
         {
           "slug": "surveys",
           "title": "Industry Surveys — ISM, Cass & NFIB",
-          "nav": "Surveys",
+          "nav": "Business Surveys",
           "subtitle": "The forward-looking layer on top of the hard data: ISM Manufacturing & Services PMIs and sub-indices, the Cass Freight Index, and NFIB small-business optimism & uncertainty. PMIs above 50 = expansion.",
           "card": "ISM Manufacturing & Services PMIs, components, Cass Freight, NFIB optimism & uncertainty. Source: ISM, Cass, NFIB.",
           "data": "/data/industry_surveys.json",
@@ -504,7 +582,7 @@
     },
     {
       "slug": "government",
-      "title": "Gov't",
+      "title": "Government",
       "status": "new",
       "blurb": "Federal debt, fiscal flows, money supply, the Fed balance sheet.",
       "indicators": [

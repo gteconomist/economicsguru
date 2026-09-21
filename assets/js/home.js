@@ -6,8 +6,8 @@
   var ITEMS = [
     { f:'/data/inflation.json', k:'headline',        l:'CPI',          u:'/inflation/cpi/',          v:pc,  dk:'delta', d:pp },
     { f:'/data/pce.json',       k:'core',            l:'Core PCE',     u:'/inflation/pce/',          v:pc,  dk:'delta', d:pp },
-    { f:'/data/labor.json',     k:'unemployment',    l:'Unemployment', u:'/labor/',                  v:pc,  dk:'delta', d:pp, inv:true },
-    { f:'/data/labor.json',     k:'payrolls',        l:'Payrolls',     u:'/labor/',                  v:kk,  dk:'delta', d:kd },
+    { f:'/data/labor.json',     k:'unemployment',    l:'Unemployment', u:'/labor/jobs/',             v:pc,  dk:'delta', d:pp, inv:true },
+    { f:'/data/labor.json',     k:'payrolls',        l:'Payrolls',     u:'/labor/jobs/',             v:kk,  dk:'delta', d:kd },
     { f:'/data/gdp.json',       k:'gdp_qoq_ann',     l:'GDP QoQ',      u:'/gdp/',                    v:pc,  dk:'delta', d:pp },
     { f:'/data/treasuries.json',k:'y10y',            l:'10Y Treasury', u:'/rates/treasuries/',       v:pc,  dk:'delta_bps', d:bps },
     { f:'/data/treasuries.json',k:'ffr',             l:'Fed Funds',    u:'/rates/treasuries/',       v:pc,  dk:'delta_bps', d:bps },
@@ -55,4 +55,22 @@
       var track = document.getElementById('ticker-track');
       if(track) track.innerHTML = html + html;   // duplicate for seamless loop
     });
+
+  // ---- Latest releases (data/releases.json, kept by scripts/update_release_log.py) ----
+  var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function escHtml(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  var box = document.getElementById('releases');
+  if(box) load('/data/releases.json').then(function(j){
+    var rows = ((j && j.releases) || []).filter(function(r){ return r.seen; }).slice(0, 8);
+    if(!rows.length){ box.innerHTML = '<div class="rel-empty">Release dates will appear here after the next data refresh.</div>'; return; }
+    var now = Date.now();
+    box.innerHTML = rows.map(function(r){
+      var p = r.seen.split('-'), when = MON[+p[1]-1] + ' ' + (+p[2]);
+      var fresh = (now - new Date(r.seen + 'T12:00:00').getTime()) < 3*864e5;
+      return '<a class="rel-row" href="' + escHtml(r.url) + '"><span class="rel-d">' + when + '</span>' +
+        '<span class="rel-m"><span class="rel-n">' + escHtml(r.name) + ', ' + escHtml(r.period) + '</span>' + (fresh ? '<span class="rel-new">New</span>' : '') +
+        '<div class="rel-w">' + escHtml(r.where) + '</div></span>' +
+        '<span class="rel-v">' + escHtml(r.value) + '</span></a>';
+    }).join('');
+  });
 })();

@@ -1,0 +1,264 @@
+{
+ "releases": [
+  {
+   "id": "lei",
+   "name": "Leading Economic Index",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "-0.1% MoM",
+   "url": "/gdp/leading-indicators/",
+   "where": "Growth › Leading Indicators",
+   "seen": "2026-09-18"
+  },
+  {
+   "id": "ip",
+   "name": "Industrial Production",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "+0.0% MoM",
+   "url": "/industry/manufacturing/",
+   "where": "Growth › Manufacturing",
+   "seen": "2026-09-18"
+  },
+  {
+   "id": "permits",
+   "name": "Building Permits & Starts",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "1,394K permits",
+   "url": "/housing/permits-starts/",
+   "where": "Housing › Permits & Starts",
+   "seen": "2026-09-17"
+  },
+  {
+   "id": "retail",
+   "name": "Retail Sales",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "+1.2% MoM",
+   "url": "/consumer/retail-confidence/",
+   "where": "Consumer › Retail & Confidence",
+   "seen": "2026-09-16"
+  },
+  {
+   "id": "nahb",
+   "name": "NAHB Housing Market Index",
+   "period": "Sep 2026",
+   "period_key": [
+    2026,
+    9
+   ],
+   "value": "32",
+   "url": "/housing/new-homes/#cNhNahbHmi",
+   "where": "Housing › New Homes",
+   "seen": "2026-09-16"
+  },
+  {
+   "id": "cpi",
+   "name": "Consumer Price Index",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "3.4% YoY",
+   "url": "/inflation/cpi/",
+   "where": "Inflation › CPI",
+   "seen": "2026-09-11"
+  },
+  {
+   "id": "ppi",
+   "name": "Producer Price Index",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "5.4% YoY",
+   "url": "/inflation/ppi/",
+   "where": "Inflation › PPI",
+   "seen": "2026-09-10"
+  },
+  {
+   "id": "existing",
+   "name": "Existing Home Sales",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "3.98M annual rate",
+   "url": "/housing/existing/",
+   "where": "Housing › Existing",
+   "seen": "2026-09-10"
+  },
+  {
+   "id": "nfib",
+   "name": "NFIB Small Business Optimism",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "98.7",
+   "url": "/industry/surveys/#cIndSurveysNfibOptimism",
+   "where": "Growth › Business Surveys",
+   "seen": "2026-09-08"
+  },
+  {
+   "id": "jobs",
+   "name": "Jobs Report",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "+162K payrolls",
+   "url": "/labor/jobs/",
+   "where": "Labor › Jobs & Unemployment",
+   "seen": "2026-09-04"
+  },
+  {
+   "id": "ism_svc",
+   "name": "ISM Services",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "55.4",
+   "url": "/industry/surveys/#cIndSurveysIsmSvc",
+   "where": "Growth › Business Surveys",
+   "seen": "2026-09-03"
+  },
+  {
+   "id": "orders",
+   "name": "Factory Orders",
+   "period": "Jul 2026",
+   "period_key": [
+    2026,
+    7
+   ],
+   "value": "+0.9% MoM",
+   "url": "/industry/manufacturing/#cIndMfgFactoryOrders",
+   "where": "Growth › Manufacturing",
+   "seen": "2026-09-02"
+  },
+  {
+   "id": "jolts",
+   "name": "JOLTS Job Openings",
+   "period": "Jul 2026",
+   "period_key": [
+    2026,
+    7
+   ],
+   "value": "7.27M openings",
+   "url": "/labor/jobs/#cJolts",
+   "where": "Labor › Jobs & Unemployment",
+   "seen": "2026-09-01"
+  },
+  {
+   "id": "ism_mfg",
+   "name": "ISM Manufacturing",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "54.6",
+   "url": "/industry/surveys/",
+   "where": "Growth › Business Surveys",
+   "seen": "2026-09-01"
+  },
+  {
+   "id": "umich",
+   "name": "UMich Consumer Sentiment",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "51.7",
+   "url": "/consumer/retail-confidence/#cCsUmich",
+   "where": "Consumer › Retail & Confidence",
+   "seen": "2026-08-28"
+  },
+  {
+   "id": "pce",
+   "name": "PCE Price Index",
+   "period": "Jul 2026",
+   "period_key": [
+    2026,
+    7
+   ],
+   "value": "core 3.3% YoY",
+   "url": "/inflation/pce/",
+   "where": "Inflation › PCE",
+   "seen": "2026-08-26"
+  },
+  {
+   "id": "income",
+   "name": "Personal Income & Spending",
+   "period": "Jul 2026",
+   "period_key": [
+    2026,
+    7
+   ],
+   "value": "income +0.4% MoM",
+   "url": "/consumer/income-spending-debt/",
+   "where": "Consumer › Income & Spending",
+   "seen": "2026-08-26"
+  },
+  {
+   "id": "cb",
+   "name": "Conference Board Confidence",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "89.4",
+   "url": "/consumer/retail-confidence/#cCsConfBoard",
+   "where": "Consumer › Retail & Confidence",
+   "seen": "2026-08-25"
+  },
+  {
+   "id": "newhomes",
+   "name": "New Home Sales",
+   "period": "Jul 2026",
+   "period_key": [
+    2026,
+    7
+   ],
+   "value": "607K annual rate",
+   "url": "/housing/new-homes/",
+   "where": "Housing › New Homes",
+   "seen": "2026-08-25"
+  },
+  {
+   "id": "gdp",
+   "name": "Real GDP",
+   "period": "Q2 2026",
+   "period_key": [
+    2026,
+    6
+   ],
+   "value": "+1.5% annualized",
+   "url": "/gdp/",
+   "where": "Growth › GDP",
+   "seen": "2026-07-30"
+  }
+ ]
+}

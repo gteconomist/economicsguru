@@ -1,5 +1,6 @@
 /* economicsguru.com — pages/labor.js
- * Chart builders for the Labor group (single overview page at /labor/).
+ * Chart builders for the Labor group: /labor/jobs/ and /labor/wages/ (and /labor/embed/).
+ * Each page only contains some of the canvases; EG.newChart skips the ones that are absent.
  * Loaded alongside chart-core.js; registers render fn on window.EG_PAGES.labor.
  */
 window.EG_PAGES = window.EG_PAGES || {};
@@ -7,15 +8,21 @@ window.EG_PAGES = window.EG_PAGES || {};
 window.EG_PAGES.labor = function (data, EG) {
   var C = EG.T.series; // [gold, electric, orange, blue, lime, purple, yellow, teal]
 
+  // KPI strip follows the page: wage KPIs on Wages & Workforce, jobs KPIs elsewhere.
+  var wagesPage = !!document.getElementById('cWages') && !document.getElementById('cPayrolls');
+  var KPI_PAGE = wagesPage ? { ahe_yoy:1, real_ahe_yoy:1, lfp:1, quits:1 }
+                           : { unemployment:1, u6:1, payrolls:1, lfp:1, openings:1, challenger:1 };
   EG.renderKpis('kpis', [
     { key:'unemployment', label:'Unemployment',  unit:'%', decimals:1, deltaUnit:'pp', deltaDecimals:1, goodDir:'down' },
     { key:'u6',           label:'U-6 Underemp.',  unit:'%', decimals:1, deltaUnit:'pp', deltaDecimals:1, goodDir:'down' },
     { key:'payrolls',     label:'Payrolls (Δ mo)',unit:'k', decimals:0, deltaUnit:'k', deltaDecimals:0, signed:true, goodDir:'up' },
     { key:'lfp',          label:'Participation',  unit:'%', decimals:1, deltaUnit:'pp', deltaDecimals:1, goodDir:'up' },
     { key:'ahe_yoy',      label:'Wage growth',    unit:'%', decimals:1, deltaUnit:'pp', deltaDecimals:1, goodDir:'up' },
+    { key:'real_ahe_yoy', label:'Real wage growth',unit:'%', decimals:1, deltaUnit:'pp', deltaDecimals:1, signed:true, goodDir:'up' },
+    { key:'quits',        label:'Quits',          unit:'M', scale:0.001, decimals:2, deltaUnit:'M', deltaDecimals:2, goodDir:'up' },
     { key:'openings',     label:'Job openings',   unit:'M', scale:0.001, decimals:2, deltaUnit:'M', deltaDecimals:2, goodDir:'up' },
     { key:'challenger',   label:'Announced cuts', unit:'k', scale:0.001, decimals:1, deltaUnit:'k', deltaDecimals:1, signed:true, goodDir:'down' }
-  ], data.kpis);
+  ].filter(function(k){ return KPI_PAGE[k.key]; }), data.kpis);
 
   function st(key, n){ return EG.tail(data[key] || [], n); }
   // trailing k-month moving average over the full series, then tail to view

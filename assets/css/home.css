@@ -83,3 +83,31 @@
 .gcard .gc-meta span:first-child{ font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); }
 .gcard .gc-arrow{ font-size:18px; color:var(--muted); transition:transform .16s, color .16s; }
 .gcard:hover .gc-arrow{ transform:translateX(4px); color:#fff; }
+
+/* ── 2026-09 home refresh: latest releases beside the topic cards ── */
+.home-hero{ padding:46px 20px 22px; }
+.home-hero h1{ font-size:clamp(32px, 4.4vw, 52px); max-width:26ch; }
+.home-hero p.lede{ margin-bottom:22px; }
+.ticker{ margin-top:26px; }
+.home-two{ display:grid; grid-template-columns:minmax(0,5fr) minmax(0,7fr); gap:28px; margin:34px 0 8px; align-items:start; }
+@media(max-width:1000px){ .home-two{ grid-template-columns:1fr; } }
+.rel-h{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin:0 2px 14px; }
+.rel-h h2{ font-family:var(--serif); font-weight:700; font-size:24px; color:#fff; margin:0; }
+.rel-h a, .rel-h span{ font-size:13px; font-weight:700; color:var(--gold); white-space:nowrap; }
+.rel-h span{ color:var(--muted); font-weight:600; }
+.rel-list{ background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:4px 18px; }
+.rel-row{ display:flex; align-items:center; gap:14px; padding:13px 0; border-top:1px solid var(--line); }
+.rel-row:first-child{ border-top:0; }
+.rel-row:hover .rel-n{ color:var(--gold); }
+.rel-d{ flex:none; width:48px; font-size:12.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; }
+.rel-m{ flex:1; min-width:0; }
+.rel-n{ font-weight:700; font-size:15.5px; color:var(--ink); transition:.15s; }
+.rel-w{ font-size:12.5px; color:var(--muted); margin-top:1px; }
+.rel-v{ flex:none; text-align:right; font-family:var(--serif); font-weight:700; font-size:15px; color:#fff; max-width:46%; }
+.rel-new{ display:inline-block; margin-left:8px; padding:1px 7px; border-radius:999px; background:rgba(100,204,201,.16); color:#64CCC9; font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; vertical-align:2px; }
+.rel-empty{ padding:18px 0; font-size:14px; color:var(--muted); }
+.explore .home-cards{ grid-template-columns:repeat(2,1fr); margin:0; gap:14px; }
+@media(max-width:560px){ .explore .home-cards{ grid-template-columns:1fr; } }
+.explore .gcard{ padding:16px 16px 13px; }
+.explore .gcard p{ margin-bottom:12px; }
+.gcard-wide{ grid-column:1 / -1; }

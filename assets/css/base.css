@@ -73,3 +73,66 @@ main{min-height:50vh;}
   .pagehead h1{font-size:26px;}
   .pagehead .sub{font-size:14px;}
 }
+
+/* ── 2026-09 navigation refresh ─────────────────────────────────────────────
+   Header search is a real form (-> /charts/), Georgia Counties is a button,
+   long pages get an "On this page" jump bar, and phones get a real menu. */
+form.search{margin:0;}
+.hdr-search{flex:none;width:40px;height:40px;padding:0 0 0 12px;overflow:hidden;cursor:text;transition:width .18s ease;}
+.hdr-search input{opacity:0;transition:opacity .15s;}
+.hdr-search:focus-within{width:230px;padding-right:14px;border-color:var(--gold);}
+.hdr-search:focus-within input{opacity:1;}
+.hdr:has(.hdr-search:focus-within) .wrap>.hdr-cta{display:none;}   /* make room while typing */
+.search input[type=search]::-webkit-search-cancel-button{-webkit-appearance:none;}
+.hdr-cta{flex:none;display:inline-flex;align-items:center;height:36px;padding:0 15px;border-radius:999px;background:var(--gold);color:#10233a;font-size:13px;font-weight:700;white-space:nowrap;transition:.15s;}
+.hdr-cta:hover{background:var(--buzz-gold);}
+.burger{display:none;flex:none;width:44px;height:44px;margin-right:-10px;padding:0;border:0;background:none;cursor:pointer;flex-direction:column;align-items:center;justify-content:center;gap:5px;}
+.burger span{display:block;width:22px;height:2px;border-radius:2px;background:var(--ink);transition:.18s;}
+.nav-extra{display:none;}
+.nav .item.has-menu:focus-within .menu{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0);}
+
+/* "On this page" jump bar (auto-built by build.py on pages with 7+ charts) */
+.jump{display:flex;align-items:center;flex-wrap:wrap;gap:2px 4px;margin:0 0 16px;padding:8px 14px;background:var(--card);border:1px solid var(--line);border-radius:12px;}
+.jump .jl{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-right:8px;}
+.jump a{padding:6px 9px;border-radius:8px;font-size:13px;font-weight:600;color:var(--ink);}
+.jump a:hover{background:rgba(255,255,255,.08);color:var(--gold);}
+canvas[id]{scroll-margin-top:160px;}
+.card:has(canvas:target){border-color:var(--gold);box-shadow:0 0 0 1px var(--gold),var(--shadow);}
+
+@media(max-width:1240px){.nav>a,.nav>.item>a{padding:9px 9px;}}
+
+/* Tablet + phone (<=1180px, where the full menu no longer fits): burger + accordion menu */
+@media(max-width:560px){.hdr>.wrap>.hdr-cta{display:none;}}
+@media(max-width:1180px){
+  .hdr .wrap{gap:12px;}
+  .spacer{display:block;flex:1;}
+  .hdr-search,.hdr-search:focus-within{width:210px;padding:0 14px;}
+  .hdr-search input{opacity:1;}
+  .hdr:has(.hdr-search:focus-within) .wrap>.hdr-cta{display:inline-flex;}
+  .burger{display:flex;}
+  body.nav-open .burger span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+  body.nav-open .burger span:nth-child(2){opacity:0;}
+  body.nav-open .burger span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+  .nav{display:none;position:absolute;top:64px;left:0;right:0;height:calc(100vh - 64px);height:calc(100dvh - 64px);margin:0;padding:8px 20px 28px;flex:none;flex-direction:column;align-items:stretch;gap:0;flex-wrap:nowrap;overflow-x:hidden;overflow-y:auto;background:#04263f;z-index:60;}
+  body.nav-open .nav{display:flex;}
+  body.nav-open{overflow:hidden;}
+  .nav .item{border-bottom:1px solid var(--line);}
+  .nav>.item>a{justify-content:space-between;min-height:52px;padding:0 2px;font-size:17px;color:var(--ink);border-radius:0;white-space:normal;}
+  .nav>.item:hover>a{background:none;}
+  .nav .item.has-menu>a::after{width:8px;height:8px;opacity:.7;transition:.18s;}
+  .nav .item.open>a{color:var(--gold);}
+  .nav .item.open>a::after{transform:rotate(-135deg) translateY(-2px);}
+  .nav .menu,.nav .item.has-menu:hover .menu,.nav .item.has-menu:focus-within .menu{position:static;display:none;opacity:1;visibility:visible;transform:none;min-width:0;background:none;border:0;box-shadow:none;border-radius:0;padding:0 0 10px 12px;transition:none;}
+  .nav .item.has-menu.open .menu,.nav .item.has-menu.open:hover .menu,.nav .item.has-menu.open:focus-within .menu{display:block;}
+  .menu::before{display:none;}
+  .menu a{padding:11px 4px;}
+  .menu .mt{font-size:15.5px;font-weight:600;}
+  .menu .md{display:none;}
+  .nav-extra{display:flex;flex-direction:column;gap:14px;padding-top:18px;}
+  .nav-extra .search{display:flex;width:100%;padding:12px 16px;}
+  .nav-extra .search input{font-size:16px;}
+  .nav-extra .hdr-cta{display:flex;justify-content:center;height:48px;font-size:16px;border-radius:12px;}
+  .nav-links{display:flex;justify-content:center;gap:22px;font-size:13.5px;color:var(--muted);}
+  .jump{padding:8px 10px;}
+  .jump a{padding:9px 8px;}
+}

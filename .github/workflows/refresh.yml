@@ -269,6 +269,14 @@ jobs:
         continue-on-error: true
         run: python scripts/build_summary.py
 
+      # Home-page "Latest releases" feed (data/releases.json). Stamps today's
+      # date on any tracked indicator whose period moved forward this run.
+      # Pure local computation from data/*.json -- no network, no secrets.
+      # The data/*.json auto-commit loop below picks the file up when it changes.
+      - name: Update release log (data/releases.json)
+        continue-on-error: true
+        run: python scripts/update_release_log.py
+
       # Show data summary, but don't fail the workflow if some files are missing
       # (a fetch step may have hit a quota or rate-limit). Each line is wrapped
       # so a missing/empty JSON prints a warning and we keep going.

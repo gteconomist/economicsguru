@@ -1,0 +1,43 @@
+<div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="6m">6 mo</button>
+    <button data-r="12m" class="active">12 mo</button>
+    <button data-r="5y">5 yr</button>
+    <button data-r="10y">10 yr</button>
+    <button data-r="20y">20 yr</button>
+    <button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <div class="top"><div><div class="ct">Wages &amp; Hours</div><div class="cs">Total private; AHE YoY (left) and avg weekly hours (right)</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cWages"></canvas></div>
+    <div class="src">Source: BLS CES — CES0500000003 (AHE), CES0500000002 (hours).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Real Wage Growth</div><div class="cs">Avg hourly earnings in 1982-84 dollars; year-over-year percent change, SA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cRealWages"></canvas></div>
+    <div class="src">Source: BLS CES — CES0500000013 (AHE deflated by CPI-U). Published with the CPI release, about a week after the jobs report.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Foreign-Born vs Native-Born Employment</div><div class="cs">Year-over-year percent change; NSA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cNativity"></canvas></div>
+    <div class="src">Source: BLS CPS Table A-7 — LNU02073395 (foreign born), LNU02073413 (native born).</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Labor Force by Nativity</div><div class="cs">Year-over-year percent change in the 3-month moving average; NSA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cLaborForceNat"></canvas></div>
+    <div class="src">Source: BLS CPS — LNU01073413 (native born), LNU01073395 (foreign born), LNU01000000 (total).</div>
+  </div>
+  <div class="card span2">
+    <div class="top"><div><div class="ct">Labor Force Participation Rate by Age</div><div class="cs">Percent; monthly since 1948 — shaded bands mark NBER recessions</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cLfpAge"></canvas></div>
+    <div class="src">Source: BLS CPS — LNS11300012 (16-19), LNS11300036 (20-24), LNS11300060 (25-54), all seasonally adjusted. BLS publishes 55-64 (LNU01300095) and 65+ (LNU01300097) unadjusted only; both are shown as a 12-month trailing average.</div>
+  </div>
+</div>

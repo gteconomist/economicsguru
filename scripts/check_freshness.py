@@ -156,7 +156,7 @@ TOLERANCES = {
 }
 
 # Datasets with no meaningful time series to age-check (pure config/lookup).
-SKIP_FILES = {"freshness.json", "summary.json"}
+SKIP_FILES = {"freshness.json", "summary.json", "releases.json"}
 
 DEFAULT_MAX_AGE_DAYS = 70   # applied to any data/*.json not listed above
 
