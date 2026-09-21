@@ -1,0 +1,82 @@
+<div class="ab-stats">
+  <div class="ab-stat"><b>{{NCHARTS}}</b><span>live charts</span></div>
+  <div class="ab-stat"><b>{{NTOPICS}}</b><span>topics</span></div>
+  <div class="ab-stat"><b>159</b><span>Georgia counties</span></div>
+  <div class="ab-stat"><b>2&times;</b><span>updates every weekday</span></div>
+</div>
+
+<article class="prose">
+  <p class="lead">
+    Economics Guru is the companion data site for <a href="https://www.alfiemeek.com" target="_blank" rel="noopener">Alfie Meek&rsquo;s Weekly Economic Update</a>.
+    Every chart is built directly from public data and updates itself as new numbers are released.
+  </p>
+
+  <h2 id="using">Using the site</h2>
+  <ul>
+    <li><b>Find a chart.</b> The <a href="/charts/">All Charts</a> page lists every chart on the site. Type a word &mdash; <i>wage</i>, <i>rig count</i>, <i>delinquency</i> &mdash; or use the search box at the top of any page.</li>
+    <li><b>Change the time span.</b> The buttons above the charts switch every chart on the page between 6 months and the full history.</li>
+    <li><b>Show or hide a series.</b> Click a name in a chart&rsquo;s legend.</li>
+    <li><b>Take it with you.</b> Every chart downloads as a PNG image (dark or light background) or as a CSV of the underlying numbers.</li>
+    <li><b>See what is new.</b> The <a href="/">home page</a> lists the most recent releases and the day each one arrived.</li>
+  </ul>
+
+  <h2 id="schedule">Refresh schedule</h2>
+  <p>
+    The site rebuilds at about <b>9:00 AM and 2:00 PM Eastern every weekday</b>, plus one run each morning, weekends included.
+    Most federal releases come out at 8:30 AM and are on the site by the 9:00 update. Releases that come out at 10:00 AM &mdash;
+    home sales, JOLTS, consumer confidence, the ISM surveys &mdash; appear with the 2:00 PM update. Precious-metals prices update once a day,
+    and the Georgia county pages about once a week.
+  </p>
+  <p>
+    The &ldquo;Latest data&rdquo; tag at the top of each page shows the most recent period on it. If one source is down, the rest of the site
+    still updates and that page keeps its last good numbers. When a release is skipped or delayed &mdash; a federal shutdown, for example &mdash;
+    a note appears above the charts it affects.
+  </p>
+
+  <h2 id="sources">Data sources</h2>
+  <p>The line under each chart names its exact source and series. Many federal series are pulled through the St. Louis Fed&rsquo;s FRED database.</p>
+  <dl class="ab-sources">
+    <div><dt>U.S. Bureau of Labor Statistics</dt>
+      <dd>CPI and PPI; payrolls, wages and hours; unemployment and participation; JOLTS; productivity; county unemployment, employment and wages.</dd></div>
+    <div><dt>U.S. Bureau of Economic Analysis</dt>
+      <dd>GDP and GDI, corporate profits, personal income and spending, the saving rate, the PCE price index, county per-capita income.</dd></div>
+    <div><dt>U.S. Census Bureau</dt>
+      <dd>Retail sales; factory and durable-goods orders and shipments; new home sales; permits, starts and completions; construction spending; county population, income, home values and rents.</dd></div>
+    <div><dt>Federal Reserve Board</dt>
+      <dd>Industrial production and capacity utilization, consumer credit, the Fed balance sheet, M2, Treasury yields, mortgage delinquency, the Distributional Financial Accounts.</dd></div>
+    <div><dt>Federal Reserve Bank of New York</dt>
+      <dd>Household Debt and Credit report; Economic Heterogeneity Indicators (spending and inflation by income group).</dd></div>
+    <div><dt>U.S. Treasury</dt>
+      <dd>Debt to the Penny; Monthly Treasury Statement outlays and receipts.</dd></div>
+    <div><dt>U.S. Energy Information Administration</dt>
+      <dd>Crude production, inventories, trade and refinery runs; the Strategic Petroleum Reserve; fuel prices; natural gas storage, production and LNG exports; electricity generation, sales and prices.</dd></div>
+    <div><dt>The Conference Board</dt>
+      <dd>Leading, Coincident and Lagging indexes; Consumer Confidence.</dd></div>
+    <div><dt>University of Michigan</dt>
+      <dd>Surveys of Consumers &mdash; consumer sentiment.</dd></div>
+    <div><dt>Business surveys</dt>
+      <dd>Institute for Supply Management (manufacturing and services); NFIB Small Business Economic Trends; Cass Freight Index; Challenger, Gray &amp; Christmas job-cut report; Baker Hughes rig count.</dd></div>
+    <div><dt>Housing industry</dt>
+      <dd>National Association of Realtors (existing home sales, affordability); NAHB Housing Market Index; Mortgage Bankers Association weekly applications; Freddie Mac mortgage rates; S&amp;P Cotality Case-Shiller home prices.</dd></div>
+    <div><dt>Markets</dt>
+      <dd>Yahoo Finance (stock indexes); CBOE (VIX); ICE BofA (corporate credit spreads); London fix via Kitco and MetalPriceAPI (gold, silver, platinum).</dd></div>
+  </dl>
+
+  <h2 id="method">How a chart is built</h2>
+  <p>
+    Each series is pulled from its source, stored with its full available history, and drawn without smoothing unless the chart title says otherwise
+    (a 3-month average, for example). For CPI and PPI, year-over-year rates use the not-seasonally-adjusted indexes, the way they are reported in the press,
+    while monthly changes use seasonally adjusted data. Anything calculated here rather than published &mdash; ratios, spreads, contributions,
+    trailing sums &mdash; is labelled as derived in the chart&rsquo;s source line. Where a chart has gray bands, they mark NBER recessions.
+  </p>
+  <p>
+    A few private surveys have no public data feed. For those &mdash; ISM, NFIB, the Conference Board, NAHB, the MBA, Challenger &mdash;
+    the history is kept on file and each new month is added from the publisher&rsquo;s release.
+  </p>
+
+  <h2 id="disclaimer">Disclaimer</h2>
+  <p>
+    Charts and commentary are for information only. The data comes straight from the agencies and publishers named above and is not independently
+    validated by Economics Guru; check the original source before making a decision that depends on a specific number.
+  </p>
+</article>

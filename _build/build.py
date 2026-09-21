@@ -258,6 +258,17 @@ def build_charts_index():
                   content, scripts='<script src="/assets/js/charts-index.js"></script>', active="charts",
                   head_extra='<link rel="stylesheet" href="/assets/css/charts-index.css">')
 
+def build_about():
+    """/about/ -- methodology page. Text lives in _content/about.html; the counts are filled in here."""
+    frag = ((ROOT / "_content" / "about.html").read_text()
+            .replace("{{NCHARTS}}", str(chart_total())).replace("{{NTOPICS}}", str(len(SECTIONS))))
+    content = (breadcrumb([("Home", "/"), ("About", None)])
+               + pagehead("About & Methodology", "Where the data comes from, when it updates, and how the charts are built.")
+               + frag)
+    return render("about/index.html", "About & Methodology — Economics Guru",
+                  "Sources, refresh schedule, and methodology for the live U.S. economic charts on Economics Guru.",
+                  content, active="about", head_extra='<link rel="stylesheet" href="/assets/css/about.css">')
+
 def build_home():
     accents = ['#B3A369', '#64CCC9', '#E04F39', '#3A5DAE', '#A4D233', '#5F249F', '#FFCD00', '#008C95']
     cards = []
@@ -283,7 +294,7 @@ def build_home():
         '<h1>Live U.S. economic data,<br><span class="grad">tracked beautifully.</span></h1>'
         '<p class="lede">Charts, KPIs, and downloadable series for the indicators that move markets &mdash; '
         'CPI, jobs, GDP, housing, rates, equities, commodities, oil &amp; gas, and the federal balance sheet. '
-        'Sourced straight from BLS, FRED, BEA, Census, EIA, and ICE BofA, and refreshed every night.</p>'
+        'Sourced straight from BLS, FRED, BEA, Census, EIA, and ICE BofA, and refreshed twice every weekday.</p>'
         + search_form("home-search-xl") +
         '</section>'
     )
@@ -354,6 +365,7 @@ def main():
         if sec["merged"]:
             written.append(build_section_hub(sec))
     written.append(build_charts_index())
+    written.append(build_about())
     written += sync_static_headers()
     print("Generated %d page(s):" % len(written))
     for w in written:

@@ -1,0 +1,19 @@
+/* economicsguru.com — /about/ */
+.ab-stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin:22px 0 8px; max-width:860px; }
+@media(max-width:700px){ .ab-stats{ grid-template-columns:repeat(2,1fr); } }
+.ab-stat{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:15px 16px; }
+.ab-stat b{ display:block; font-family:var(--serif); font-weight:700; font-size:30px; line-height:1.05; color:var(--ink); }
+.ab-stat span{ display:block; margin-top:6px; font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); }
+.prose{ max-width:860px; margin:10px 0 0; }
+.prose p, .prose li{ font-size:16px; line-height:1.7; color:var(--ink); }
+.prose p.lead{ font-size:18px; color:#fff; }
+.prose h2{ font-family:var(--serif); font-weight:700; font-size:24px; color:#fff; margin:34px 0 8px; scroll-margin-top:90px; }
+.prose ul{ padding-left:20px; margin:8px 0; }
+.prose li{ margin:6px 0; }
+.prose a{ color:var(--gold); font-weight:600; }
+.prose a:hover{ text-decoration:underline; }
+.ab-sources{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:14px 0 0; }
+@media(max-width:700px){ .ab-sources{ grid-template-columns:1fr; } }
+.ab-sources > div{ background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; }
+.ab-sources dt{ font-weight:700; font-size:15px; color:var(--gold); }
+.ab-sources dd{ margin:4px 0 0; font-size:14px; line-height:1.55; color:var(--muted); }
