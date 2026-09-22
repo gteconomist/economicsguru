@@ -323,7 +323,14 @@ window.EG = (function () {
       // Respect legend-deselected series: skip datasets the user has hidden on screen.
       if (typeof ch.isDatasetVisible === 'function' && !ch.isDatasetVisible(i)) return;
       var nd = Object.assign({}, d); nd.pointRadius=0; nd.pointHoverRadius=0;
-      if((nd.type||ch.config.type)==='line'){ nd.borderWidth=2.6*sc; if(d.borderDash) nd.borderDash=d.borderDash.map(function(v){return v*sc;}); nd.fill=false; }
+      if((nd.type||ch.config.type)==='line'){
+        nd.borderWidth=(d.borderWidth!=null?d.borderWidth:2.2)*sc*1.18;
+        if(d.borderDash) nd.borderDash=d.borderDash.map(function(v){return v*sc;});
+        // Preserve explicit area fills (valuation bands, 5-yr ranges, SPR area,
+        // stacked mixes: fill:'origin' / '+1' / {value:N}); only datasets with
+        // no fill config stay unfilled, as before.
+        nd.fill = (d.fill === undefined) ? false : d.fill;
+      }
       if(map || (theme && theme.barFill)){ nd.borderColor = remap(d.borderColor); nd.backgroundColor = remap(d.backgroundColor); }
       datasets.push(nd);
     });
@@ -346,6 +353,7 @@ window.EG = (function () {
       if(isX){ ns.ticks.maxRotation = 0; ns.ticks.autoSkip = true; ns.ticks.maxTicksLimit = 9; }
       if(s.min != null) ns.min = s.min;        // preserve fixed axis bounds (e.g. 3:1 locked axes)
       if(s.max != null) ns.max = s.max;
+      if(s.stacked != null) ns.stacked = s.stacked;   // preserve stacking (generation mix)
       if(s.stacked != null) ns.stacked = s.stacked;   // keep stacked bars stacked in exports
       if(s.title && s.title.text){ ns.title = {display:true, text:s.title.text, color:axis, font:{size:15*sc, weight:'700'}}; }
       out[k] = ns;
