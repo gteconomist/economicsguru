@@ -1,17 +1,17 @@
 {
-  "build_time": "2026-09-22T12:20:26.933752Z",
+  "build_time": "2026-09-22T17:38:02.258624Z",
   "checked_date": "2026-09-22",
   "stale_count": 0,
   "stale": [],
   "datasets": {
     "commodities.json": {
       "status": "ok",
-      "latest": "2026-09-20",
-      "age_days": 2,
+      "latest": "2026-09-21",
+      "age_days": 1,
       "max_age_days": 8,
-      "build_age_days": null,
+      "build_age_days": 0,
       "note": "Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier).",
-      "wrote_this_run": null,
+      "wrote_this_run": true,
       "consecutive_misses": 0
     },
     "consumer.json": {
@@ -40,8 +40,8 @@
     },
     "energy.json": {
       "status": "ok",
-      "latest": "2026-09-15",
-      "age_days": 7,
+      "latest": "2026-09-21",
+      "age_days": 1,
       "max_age_days": 16,
       "build_age_days": 0,
       "note": "EIA WPSR Wednesdays for the week ended Friday; retail fuel prices Mondays.",
@@ -68,8 +68,8 @@
         },
         "gasoline": {
           "status": "ok",
-          "latest": "2026-09-14",
-          "age_days": 8,
+          "latest": "2026-09-21",
+          "age_days": 1,
           "max_age_days": 12
         }
       }
@@ -118,8 +118,8 @@
     },
     "equities.json": {
       "status": "ok",
-      "latest": "2026-09-21",
-      "age_days": 1,
+      "latest": "2026-09-22",
+      "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily index closes.",
@@ -286,20 +286,20 @@
       "latest": "2026-08-31",
       "age_days": 22,
       "max_age_days": 55,
-      "build_age_days": 0,
+      "build_age_days": 11,
       "note": "CPI ~day 13 of the following month (R~13).",
-      "wrote_this_run": true,
-      "consecutive_misses": 0
+      "wrote_this_run": false,
+      "consecutive_misses": 1
     },
     "labor.json": {
       "status": "ok",
       "latest": "2026-08-31",
       "age_days": 22,
       "max_age_days": 45,
-      "build_age_days": 0,
+      "build_age_days": 11,
       "note": "Employment Situation lands ~1st Friday (R~6). JOLTS runs 2 months behind and is checked separately below.",
-      "wrote_this_run": true,
-      "consecutive_misses": 0,
+      "wrote_this_run": false,
+      "consecutive_misses": 1,
       "watch": {
         "jolts_openings": {
           "status": "ok",
@@ -348,10 +348,10 @@
       "latest": "2026-08-31",
       "age_days": 22,
       "max_age_days": 58,
-      "build_age_days": 0,
+      "build_age_days": 12,
       "note": "PPI ~day 16 (R~16).",
-      "wrote_this_run": true,
-      "consecutive_misses": 0
+      "wrote_this_run": false,
+      "consecutive_misses": 1
     },
     "treasuries.json": {
       "status": "ok",
