@@ -130,10 +130,14 @@ if (window.Chart && !window.__egEventLabels) {
         if(!ev.label) return;
         var idx=-1,i; for(i=0;i<dates.length;i++){ if(dates[i]>=ev.date){idx=i;break;} }
         if(idx<0) return; var x=xs.getPixelForValue(idx); if(x<area.left||x>area.right) return;
-        var right=x>(area.left+area.right)/2, fs=chart.$evFont||11;
+        // exportFontPx: set by chart-core's exOpts on the 2200x1000 branded
+        // exports (PNG downloads + the PowerPoint plugin) so the caption stays
+        // readable at slide size; on-screen charts keep the small 11px look.
+        var right=x>(area.left+area.right)/2, fs=opt.exportFontPx||chart.$evFont||11;
+        var pad=Math.max(6, Math.round(fs*0.5));
         ctx.font='600 '+fs+'px "Source Sans Pro", sans-serif'; ctx.fillStyle=ev.color||'#E04F39';
         ctx.textBaseline='top'; ctx.textAlign=right?'right':'left';
-        ctx.fillText(ev.label, x+(right?-6:6), area.top+4);
+        ctx.fillText(ev.label, x+(right?-pad:pad), area.top+pad*0.7);
       });
       ctx.restore();
     }

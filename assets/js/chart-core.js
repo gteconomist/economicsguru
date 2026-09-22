@@ -382,7 +382,20 @@ window.EG = (function () {
     // horizontal bar charts (county sector charts): keep orientation in exports
     if(srcOptions && srcOptions.indexAxis) o.indexAxis = srcOptions.indexAxis;
     var sp = srcOptions && srcOptions.plugins;   // preserve event lines / shading in exports
-    if(sp && sp.verticalEventLines) o.plugins.verticalEventLines = sp.verticalEventLines;
+    if(sp && sp.verticalEventLines){
+      // Scale the event lines (and hint the caption size) to export scale, the
+      // same way tick/legend fonts are scaled — otherwise a 1.6px line and an
+      // 11px caption vanish on the 2200x1000 export. energyEventLabels (and any
+      // other caption plugin) reads exportFontPx when present.
+      var vel = sp.verticalEventLines;
+      o.plugins.verticalEventLines = {
+        events: (vel.events||[]).map(function(e){
+          return Object.assign({}, e, { lineWidth:(e.lineWidth||1.25)*sc });
+        }),
+        origDates: vel.origDates,
+        exportFontPx: 15*sc
+      };
+    }
     if(sp && sp.politicalShading)  o.plugins.politicalShading  = sp.politicalShading;
     return o;
   }
