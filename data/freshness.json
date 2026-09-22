@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-09-22T17:38:02.258624Z",
+  "build_time": "2026-09-22T18:19:03.793715Z",
   "checked_date": "2026-09-22",
   "stale_count": 0,
   "stale": [],
@@ -9,9 +9,9 @@
       "latest": "2026-09-21",
       "age_days": 1,
       "max_age_days": 8,
-      "build_age_days": 0,
+      "build_age_days": null,
       "note": "Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier).",
-      "wrote_this_run": true,
+      "wrote_this_run": null,
       "consecutive_misses": 0
     },
     "consumer.json": {
@@ -286,20 +286,20 @@
       "latest": "2026-08-31",
       "age_days": 22,
       "max_age_days": 55,
-      "build_age_days": 11,
+      "build_age_days": 0,
       "note": "CPI ~day 13 of the following month (R~13).",
-      "wrote_this_run": false,
-      "consecutive_misses": 1
+      "wrote_this_run": true,
+      "consecutive_misses": 0
     },
     "labor.json": {
       "status": "ok",
       "latest": "2026-08-31",
       "age_days": 22,
       "max_age_days": 45,
-      "build_age_days": 11,
+      "build_age_days": 0,
       "note": "Employment Situation lands ~1st Friday (R~6). JOLTS runs 2 months behind and is checked separately below.",
-      "wrote_this_run": false,
-      "consecutive_misses": 1,
+      "wrote_this_run": true,
+      "consecutive_misses": 0,
       "watch": {
         "jolts_openings": {
           "status": "ok",
@@ -348,10 +348,10 @@
       "latest": "2026-08-31",
       "age_days": 22,
       "max_age_days": 58,
-      "build_age_days": 12,
+      "build_age_days": 0,
       "note": "PPI ~day 16 (R~16).",
-      "wrote_this_run": false,
-      "consecutive_misses": 1
+      "wrote_this_run": true,
+      "consecutive_misses": 0
     },
     "treasuries.json": {
       "status": "ok",
