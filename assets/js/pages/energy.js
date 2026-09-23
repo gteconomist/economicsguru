@@ -174,12 +174,15 @@ window.EG_PAGES.gas_electricity = function (data, EG) {
     ]}, options:o1 });
 
     // 2. Retail sales by sector (12mma) + ChatGPT marker
-    var sr=rd(sales.res); var sd=sr.map(function(x){return x[0];}); var ls=sd.map(EG.lab);
-    var o2=EG.singleOpts(enComma); enEvents(o2, data, sd);
+    // source JSON is million kWh; divide by 1,000 -> billion kWh, same as the generation chart above
+    var toBn=function(rows){ return (rows||[]).map(function(x){ return [x[0], x[1]==null?null:x[1]/1000]; }); };
+    var sr=toBn(rd(sales.res)); var sd=sr.map(function(x){return x[0];}); var ls=sd.map(EG.lab);
+    var o2=EG.singleOpts(enBnKwh); enEvents(o2, data, sd);
+    o2.scales.y.title={ display:true, text:'Billion kWh', font:{size:10} };
     EG.newChart('cEnRetailSales', { type:'line', data:{ labels:ls, datasets:[
-      EG.line(sr.map(function(x){return x[1];}), GOLD, { label:'Residential', borderWidth:2.3, tension:.15 }),
-      EG.line(enAlign(sr, sales.com), ELEC, { label:'Commercial (incl. data centers)', borderWidth:2.5, tension:.15, spanGaps:true }),
-      EG.line(enAlign(sr, sales.ind), ORANGE, { label:'Industrial', borderWidth:2.2, tension:.15, spanGaps:true })
+      EG.line(sr.map(function(x){return x[1];}), GOLD, { label:'Residential (billion kWh)', borderWidth:2.3, tension:.15 }),
+      EG.line(enAlign(sr, toBn(sales.com)), ELEC, { label:'Commercial, incl. data centers (billion kWh)', borderWidth:2.5, tension:.15, spanGaps:true }),
+      EG.line(enAlign(sr, toBn(sales.ind)), ORANGE, { label:'Industrial (billion kWh)', borderWidth:2.2, tension:.15, spanGaps:true })
     ]}, options:o2 });
 
     // 3. Data center construction spending vs electric power construction + ChatGPT marker
