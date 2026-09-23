@@ -40,15 +40,18 @@ window.EG_PAGES['income-divide'] = function (data, EG) {
 
     // 1. The K, as a ratio to the middle-income group (the BofA construction).
     var rh = mt(data.spend_ratio_high);
-    var oR = EG.dualOpts(idFmtRatio3, 'Low ÷ middle', idFmtRatio3, 'High ÷ middle');
+    // Both ratios share ONE axis so the vertical distance between the lines is
+    // the gap itself; the dashed 1.000 line is middle-income parity.
     EG.newChart('cIdRatio', { type:'line', data:{
       labels: rh.map(function (x) { return EG.lab(x[0]); }),
       datasets: [
         EG.line(idAlign(rh, data.spend_ratio_low), GOLD,
-                { label:'Lower income (<$40k) ÷ middle (left)', borderWidth:2.5, yAxisID:'y' }),
+                { label:'Lower income (<$40k) ÷ middle', borderWidth:2.5 }),
         EG.line(rh.map(function (x) { return x[1]; }), ELEC,
-                { label:'Higher income ($125k+) ÷ middle (right)', borderWidth:2.5, yAxisID:'y1' })
-      ]}, options:oR });
+                { label:'Higher income ($125k+) ÷ middle', borderWidth:2.5 }),
+        EG.line(rh.map(function () { return 1; }), '#8a9bb0',
+                { label:'Middle income = 1.000', borderWidth:1.2, borderDash:[5,4], pointHoverRadius:0 })
+      ]}, options:EG.singleOpts(idFmtRatio3) });
 
     // 2. Real retail spending index by income tier.
     var sm = mt(data.spend_mid);
