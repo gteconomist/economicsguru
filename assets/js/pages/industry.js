@@ -132,12 +132,13 @@ window.EG_PAGES.manufacturing = function (data, EG) {
     ]}, options:o6 });
 
     // 7. Electricity — 12-mo MA generation (left) + CPI electricity (right), dual axis
-    var gen = EG.tail(el.generation_12mma || [], n);
-    var genFmt = function(v){ return v==null?'n/a':Math.round(v).toLocaleString('en-US'); };
+    // source JSON is million kWh; divide by 1,000 -> billion kWh (same convention as the Energy page)
+    var gen = EG.tail(el.generation_12mma || [], n).map(function(r){ return [r[0], r[1]==null?null:r[1]/1000]; });
+    var genFmt = function(v){ return v==null?'n/a':(Number.isInteger(v)?v.toLocaleString('en-US'):v.toFixed(1)); };
     var cpiFmt = function(v){ return v==null?'n/a':v.toFixed(0); };
-    var o7 = EG.dualOpts(genFmt, 'Gen (M kWh)', cpiFmt, 'CPI elec.');
+    var o7 = EG.dualOpts(genFmt, 'Billion kWh', cpiFmt, 'CPI elec.');
     EG.newChart('cIndMfgElectricity', { type:'line', data:{ labels:gen.map(function(r){return EG.lab(r[0]);}), datasets:[
-      EG.line(gen.map(function(r){return r[1];}), GOLD, { label:'Net generation (M kWh, 12-mo MA)', borderWidth:2.4, yAxisID:'y', spanGaps:true }),
+      EG.line(gen.map(function(r){return r[1];}), GOLD, { label:'Net generation, 12-mo avg (billion kWh, left)', borderWidth:2.4, yAxisID:'y', spanGaps:true }),
       EG.line(indAlign(gen, el.cpi_electricity), YELLOW, { label:'CPI: electricity (right)', borderWidth:2.2, yAxisID:'y1', spanGaps:true })
     ]}, options:o7 });
   }
