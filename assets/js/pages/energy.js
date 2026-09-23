@@ -113,6 +113,7 @@ function enCents(v){ return v==null?'n/a':v.toFixed(1)+'¢'; }
 function enBcf(v){ return v==null?'n/a':Math.round(v).toLocaleString('en-US'); }
 function enBcfd(v){ return v==null?'n/a':v.toFixed(1); }
 function enIdx(v){ return v==null?'n/a':v.toFixed(0); }
+function enBnKwh(v){ return v==null?'n/a':(Number.isInteger(v)?v.toLocaleString('en-US'):v.toFixed(1)); }
 function enEvents(o, data, dates){ o.plugins.verticalEventLines={ events:(data.events||[]).map(function(e){ return {date:e.date, label:e.label, color:'#E04F39', lineWidth:1.6}; }), origDates:dates }; return o; }
 // Captions for the shared verticalEventLines plugin (which only draws the lines):
 // writes ev.label beside each line, flipping to the left when the line sits in
@@ -164,10 +165,11 @@ window.EG_PAGES.gas_electricity = function (data, EG) {
     range=r; EG.reset();
 
     // 1. Total generation 12mma vs CPI electricity + ChatGPT marker
-    var g=rd(data.generation_12mma); var gd=g.map(function(x){return x[0];}); var lg=gd.map(EG.lab);
-    var o1=EG.dualOpts(enComma, 'Million kWh', enIdx, 'CPI index'); enEvents(o1, data, gd);
+    // source JSON is million kWh; divide by 1,000 -> billion kWh (a.k.a. TWh) so the axis reads 290-370 not 290,000-370,000
+    var g=rd(data.generation_12mma).map(function(x){ return [x[0], x[1]==null?null:x[1]/1000]; }); var gd=g.map(function(x){return x[0];}); var lg=gd.map(EG.lab);
+    var o1=EG.dualOpts(enBnKwh, 'Billion kWh', enIdx, 'CPI index'); enEvents(o1, data, gd);
     EG.newChart('cEnGenCpi', { type:'line', data:{ labels:lg, datasets:[
-      EG.line(g.map(function(x){return x[1];}), ELEC, { label:'Net generation, 12-mo avg (million kWh, left)', borderWidth:2.5, tension:.15, yAxisID:'y' }),
+      EG.line(g.map(function(x){return x[1];}), ELEC, { label:'Net generation, 12-mo avg (billion kWh, left)', borderWidth:2.5, tension:.15, yAxisID:'y' }),
       EG.line(enAlign(g, data.cpi_electricity), GOLD, { label:'CPI: electricity (right)', borderWidth:2.2, tension:.15, spanGaps:true, yAxisID:'y1' })
     ]}, options:o1 });
 
