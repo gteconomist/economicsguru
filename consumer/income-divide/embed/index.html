@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Retail & Confidence Chart — Economics Guru</title>
+<title>Income Divide Chart — Economics Guru</title>
 <meta name="robots" content="noindex">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,7 +13,7 @@
 <link rel="stylesheet" href="/assets/css/components.css">
 <!--
   Single-chart embed for the deck control panel + rebuild pipeline.
-  Ported to the new engine (chart-core.js + pages/consumer.js); chart metadata
+  Ported to the new engine (chart-core.js + pages/income_divide.js); chart metadata
   now comes from the shared registry (assets/js/chart-registry.js) so the embed
   and the /deck/ panel stay in sync from one source.
 
@@ -57,7 +57,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="/assets/js/chart-registry.js"></script>
 <script src="/assets/js/chart-core.js"></script>
-<script src="/assets/js/pages/consumer.js"></script>
+<script src="/assets/js/pages/income_divide.js"></script>
 <script>
 (function () {
   function esc(s){ var d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; }
@@ -65,8 +65,8 @@
   var RANGES = {}; (REG.ranges||[]).forEach(function(r){ RANGES[r]=1; });
 
   var p = new URLSearchParams(location.search);
-  var chartKey = (p.get('chart') || 'crc-retail-mom').toLowerCase();
-  var hit = REG.findChart(chartKey) || REG.findChart('crc-retail-mom');
+  var chartKey = (p.get('chart') || 'div-ratio').toLowerCase();
+  var hit = REG.findChart(chartKey) || REG.findChart('div-ratio');
   var grp = hit.group, reg = hit.chart;
   var range = (p.get('range') || 'max').toLowerCase(); if (!RANGES[range]) range = '12m';
   var theme = (p.get('theme') || 'dark').toLowerCase(); if (theme !== 'light') theme = 'dark';

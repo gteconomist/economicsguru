@@ -2,27 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Redirecting…</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>body{font-family:-apple-system,sans-serif;color:#666;padding:20px;text-align:center}</style>
+<title>Redirecting&hellip;</title>
+<meta http-equiv="refresh" content="0; url=/consumer/retail-confidence/embed/">
+<style>body { font-family: sans-serif; padding: 20px; color: #666; }</style>
 </head>
 <body>
-<p>Redirecting…</p>
+<p>Redirecting to <a href="/consumer/retail-confidence/embed/">/consumer/retail-confidence/embed/</a>&hellip;</p>
 <script>
-// Backward-compat redirect for /consumer/embed/?chart=X&range=Y URLs that
-// shipped before the 2026-05-03 hub-split. Old chart keys mapped onto the
-// two new sub-pages: retail/sectors/umich/confboard now live under
-// /consumer/retail-confidence/embed/, and incomenom/incomereal under
-// /consumer/income-spending-debt/embed/.
-(function(){
-  var p = new URLSearchParams(window.location.search);
-  var key = (p.get('chart') || 'retail').toLowerCase();
-  var ISD = ['incomenom','incomereal','savingrate','interest','credit','revolving','delinquency'];
-  var target = ISD.indexOf(key) >= 0
-    ? '/consumer/income-spending-debt/embed/'
-    : '/consumer/retail-confidence/embed/';
-  window.location.replace(target + window.location.search);
-})();
+  // Preserve query string when redirecting (e.g. ?chart=headline&range=5y)
+  window.location.replace('/consumer/retail-confidence/embed/' + window.location.search);
 </script>
 </body>
 </html>

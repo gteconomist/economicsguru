@@ -111,6 +111,126 @@ window.EG_CHART_REGISTRY = {
       ]
     },
     {
+      topic: 'industry-surveys',
+      label: 'Business Surveys',
+      embed: '/industry/surveys/embed/',
+      data:  '/data/industry_surveys.json',
+      module:'surveys',
+      charts: [
+        {
+          key:'svy-ism-mfg', canvas:'cIndSurveysIsmMfg',
+          title:'ISM Manufacturing Index',
+          subtitle:'Diffusion index, SA; 50 = expansion / contraction threshold + sub-indices',
+          source:'Source: Institute for Supply Management — Manufacturing Report on Business.',
+          series:[
+            {key:'total',      label:'ISM Manufacturing PMI'},
+            {key:'employment', label:'Employment'},
+            {key:'new_orders', label:'New orders'},
+            {key:'backlog',    label:'Backlog of orders'},
+            {key:'prices_paid',label:'Commodity prices paid'}
+          ]
+        },
+        {
+          key:'svy-ism-mfg-components', canvas:'cIndSurveysIsmMfgComponents',
+          title:'ISM Manufacturing — Major Components',
+          subtitle:'Bars represent distance from 50; SA — total / employment / new orders / backlog / prices',
+          source:'Source: Institute for Supply Management — Manufacturing Report on Business.',
+          series:[
+            {key:'total',      label:'Total index'},
+            {key:'employment', label:'Employment'},
+            {key:'new_orders', label:'New orders'},
+            {key:'backlog',    label:'Backlog of orders'},
+            {key:'prices_paid',label:'Commodity prices paid'}
+          ]
+        },
+        {
+          key:'svy-ism-mfg-detail', canvas:'cIndSurveysIsmMfgDetail',
+          title:'ISM Manufacturing — Production & Supply Chain',
+          subtitle:'Production and supplier deliveries (SA) with new export orders and imports (NSA), vs. the 50 threshold',
+          source:'Source: Institute for Supply Management — Manufacturing Report on Business.',
+          series:[
+            {key:'production',          label:'Production (SA)'},
+            {key:'supplier_deliveries', label:'Supplier deliveries (SA)'},
+            {key:'export_orders',       label:'New export orders (NSA)'},
+            {key:'imports',             label:'Imports (NSA)'}
+          ]
+        },
+        {
+          key:'svy-ism-svc', canvas:'cIndSurveysIsmSvc',
+          title:'ISM Services Index',
+          subtitle:'Diffusion index, SA — composite + employment / new orders / prices',
+          source:'Source: Institute for Supply Management — Services Report on Business.',
+          series:[
+            {key:'composite',  label:'Composite index'},
+            {key:'employment', label:'Services employment'},
+            {key:'new_orders', label:'New orders'},
+            {key:'prices',     label:'Prices'}
+          ]
+        },
+        {
+          key:'svy-ism-svc-detail', canvas:'cIndSurveysIsmSvcDetail',
+          title:'ISM Services — Orders, Deliveries & Backlog',
+          subtitle:'Business activity (SA) with supplier deliveries, backlog and trade orders (NSA), vs. the 50 threshold',
+          source:'Source: Institute for Supply Management — Services Report on Business.',
+          series:[
+            {key:'business_activity',   label:'Business activity (SA)'},
+            {key:'supplier_deliveries', label:'Supplier deliveries (NSA)'},
+            {key:'backlog',             label:'Backlog of orders (NSA)'},
+            {key:'export_orders',       label:'New export orders (NSA)'},
+            {key:'imports',             label:'Imports (NSA)'}
+          ]
+        },
+        {
+          key:'svy-ism-svc-inventories', canvas:'cIndSurveysIsmSvcInventories',
+          title:'ISM Services — Inventories vs. Inventory Sentiment',
+          subtitle:'Sentiment above 50 = respondents judge their inventories too high; NSA',
+          source:'Source: Institute for Supply Management — Services Report on Business.',
+          series:[
+            {key:'inventories',         label:'Inventories (NSA)'},
+            {key:'inventory_sentiment', label:'Inventory sentiment (NSA)'}
+          ]
+        },
+        {
+          key:'svy-pmi-composite', canvas:'cIndSurveysPmiComposite',
+          title:'Composite PMI — Manufacturing vs. Services',
+          subtitle:'ISM Manufacturing total + ISM Services composite, with the 50 threshold',
+          source:'Source: Institute for Supply Management — Manufacturing & Services Reports on Business.',
+          series:[
+            {key:'mfg', label:'ISM Manufacturing PMI'},
+            {key:'svc', label:'ISM Services composite'}
+          ]
+        },
+        {
+          key:'svy-cass-yoy', canvas:'cIndSurveysCassYoy',
+          title:'Cass Freight Shipments — Year-over-Year %',
+          subtitle:'Volume index, % change vs. same month a year ago — negative = freight recession',
+          source:'Source: Cass Information Systems — Cass Freight Index (shipments).',
+          series:[]
+        },
+        {
+          key:'svy-nfib-optimism', canvas:'cIndSurveysNfibOptimism',
+          title:'NFIB Small Business Optimism Index',
+          subtitle:'Diffusion-style index, SA; 1986 = 100; ~98 long-run average shown dashed',
+          source:'Source: National Federation of Independent Business — Small Business Economic Trends (SBET).',
+          series:[]
+        },
+        {
+          key:'svy-nfib-uncertainty', canvas:'cIndSurveysNfibUncertainty',
+          title:'NFIB Small Business Uncertainty Index',
+          subtitle:'Net %, SA; higher = more uncertain; ~68 historical average shown dashed',
+          source:'Source: National Federation of Independent Business — SBET.',
+          series:[]
+        },
+        {
+          key:'svy-nfib-problems', canvas:'cIndSurveysNfibProblems',
+          title:'NFIB — Single Most Important Problem (latest survey)',
+          subtitle:'Share of owners citing each issue as their top problem; NSA',
+          source:'Source: National Federation of Independent Business — SBET, single most important problem.',
+          series:[]
+        }
+      ]
+    },
+    {
       topic: 'inflation-cpi',
       label: 'Inflation · CPI',
       embed: '/inflation/cpi/embed/',
@@ -171,6 +291,328 @@ window.EG_CHART_REGISTRY = {
             {key:'gas',        label:'Gasoline'},
             {key:'energy_all', label:'Energy (all)'}
           ]
+        }
+      ]
+    },
+    {
+      topic: 'inflation-ppi',
+      label: 'Inflation · PPI',
+      embed: '/inflation/ppi/embed/',
+      data:  '/data/ppi.json',
+      module:'ppi',
+      charts: [
+        {
+          key:'ppi-yoy', canvas:'cPpiYoy',
+          title:'Headline vs Core PPI',
+          subtitle:'Year-over-year percent change',
+          source:'Source: BLS — WPUFD4 (Headline), WPUFD49104 (Core).',
+          series:[
+            {key:'headline', label:'Headline'},
+            {key:'core',     label:'Core'}
+          ]
+        },
+        {
+          key:'ppi-mom', canvas:'cPpiMom',
+          title:'Monthly PPI Change by Aggregate',
+          subtitle:'Month-over-month, seasonally adjusted',
+          source:'Source: BLS — WPSFD4 (Final Demand), WPSFD49104 (Core), WPSFD413 (Core Goods), WPSFD42 (Services).',
+          series:[
+            {key:'final_demand', label:'Final Demand'},
+            {key:'core',         label:'Core'},
+            {key:'core_goods',   label:'Core Goods'},
+            {key:'services',     label:'Services'}
+          ]
+        },
+        {
+          key:'ppi-components', canvas:'cPpiComp',
+          title:'PPI Components',
+          subtitle:'Year-over-year percent change',
+          source:'Source: BLS — Goods (WPUFD41), Services (WPUFD42), Foods (WPUFD411), Energy (WPUFD412).',
+          series:[
+            {key:'goods',    label:'Goods'},
+            {key:'services', label:'Services'},
+            {key:'foods',    label:'Foods'},
+            {key:'energy',   label:'Energy'}
+          ]
+        },
+        {
+          key:'ppi-spotlight', canvas:'cPpiSpotlight',
+          title:'Goods vs Services, Indexed',
+          subtitle:'Start of selected range = 100',
+          source:'Source: BLS — WPSFD41 (Goods), WPSFD42 (Services).',
+          series:[
+            {key:'goods',    label:'Goods'},
+            {key:'services', label:'Services'}
+          ]
+        }
+      ]
+    },
+    {
+      topic: 'inflation-pce',
+      label: 'Inflation · PCE',
+      embed: '/inflation/pce/embed/',
+      data:  '/data/pce.json',
+      module:'pce',
+      charts: [
+        {
+          key:'pce-yoy', canvas:'cPceYoy',
+          title:'Headline vs Core PCE',
+          subtitle:'Year-over-year percent change',
+          source:'Source: BEA NIPA T20804 — DPCERG (Headline), DPCCRG (Core).',
+          series:[
+            {key:'headline', label:'Headline'},
+            {key:'core',     label:'Core'}
+          ]
+        },
+        {
+          key:'pce-mom', canvas:'cPceMom',
+          title:'Monthly PCE Change',
+          subtitle:'Month-over-month, seasonally adjusted',
+          source:'Source: BEA NIPA T20804 — DPCERG (Headline), DPCCRG (Core), supercore (services ex housing & energy).',
+          series:[
+            {key:'headline', label:'Headline'},
+            {key:'core',     label:'Core'}
+          ]
+        },
+        {
+          key:'pce-components', canvas:'cPceComp',
+          title:'PCE Components',
+          subtitle:'Year-over-year: goods, services, supercore, energy',
+          source:'Source: BEA NIPA T20804 — DGDSRG (Goods), DSERRG (Services), IA001260 (Supercore), DNRGRG (Energy).',
+          series:[
+            {key:'goods',     label:'Goods'},
+            {key:'services',  label:'Services'},
+            {key:'supercore', label:'Supercore'},
+            {key:'energy',    label:'Energy'}
+          ]
+        },
+        {
+          key:'pce-spotlight', canvas:'cPceSpotlight',
+          title:'Durables vs Nondurables vs Services, Indexed',
+          subtitle:'Start of selected range = 100',
+          source:'Source: BEA NIPA T20804 — DDURRG (Durables), DNDGRG (Nondurables), DSERRG (Services).',
+          series:[
+            {key:'durables',    label:'Durables'},
+            {key:'nondurables', label:'Nondurables'},
+            {key:'services',    label:'Services'}
+          ]
+        }
+      ]
+    },
+    {
+      topic: 'consumer-income-spending',
+      label: 'Consumer · Income & Spending',
+      embed: '/consumer/income-spending-debt/embed/',
+      data:  '/data/consumer.json',
+      module:'income-spending-debt',
+      charts: [
+        {
+          key:'cis-income-nominal', canvas:'cCsIncomeNominal',
+          title:'Personal Income & Consumption — Nominal MoM',
+          subtitle:'% change MoM; income, disposable income, consumption — current dollars',
+          source:'Source: U.S. Bureau of Economic Analysis via FRED — personal income, DPI, PCE (nominal).',
+          series:[
+            {key:'income',            label:'Personal income'},
+            {key:'disposable_income', label:'Disposable personal income'},
+            {key:'consumption',       label:'Personal consumption'}
+          ]
+        },
+        {
+          key:'cis-income-real', canvas:'cCsIncomeReal',
+          title:'Personal Income & Consumption — Real MoM',
+          subtitle:'% change MoM; chained 2017 dollars — deflated by the PCE price index',
+          source:'Source: U.S. Bureau of Economic Analysis via FRED — real personal income, DPI, PCE.',
+          series:[
+            {key:'income',            label:'Real personal income'},
+            {key:'disposable_income', label:'Real disposable PI'},
+            {key:'consumption',       label:'Real personal consumption'}
+          ]
+        },
+        {
+          key:'cis-saving-rate', canvas:'cCsSavingRate',
+          title:'Personal Saving Rate',
+          subtitle:'Personal saving as a % of disposable personal income, monthly, SA',
+          source:'Source: U.S. Bureau of Economic Analysis via FRED — personal saving rate.',
+          series:[]
+        },
+        {
+          key:'cis-interest-payments', canvas:'cCsInterestPayments',
+          title:'Personal Interest Payments',
+          subtitle:'Personal interest payments, $ billions, SAAR',
+          source:'Source: U.S. Bureau of Economic Analysis via FRED — personal interest payments (B069RC1).',
+          series:[]
+        },
+        {
+          key:'cis-consumer-credit', canvas:'cCsConsumerCredit',
+          title:'Consumer Credit — Household Debt Less Mortgage',
+          subtitle:'Stacked area, $ trillions: credit card, home equity, auto, student, other — total line over the stack',
+          source:'Source: Federal Reserve Bank of New York — Quarterly Report on Household Debt and Credit (non-mortgage components).',
+          series:[]
+        },
+        {
+          key:'cis-revolving', canvas:'cCsRevolving',
+          title:'Revolving Consumer Credit — Total & YoY %',
+          subtitle:'Dual axis — left: total revolving credit ($T, SA); right: YoY % change',
+          source:'Source: Federal Reserve G.19 via FRED — revolving consumer credit (REVOLSL).',
+          series:[
+            {key:'level', label:'Revolving credit ($T)'},
+            {key:'yoy',   label:'YoY % change (right)'}
+          ]
+        },
+        {
+          key:'cis-credit-change', canvas:'cCsCreditChange',
+          title:'Consumer Credit — Monthly Change',
+          subtitle:'Stacked bars, $B SA: monthly change in revolving & nonrevolving consumer credit',
+          source:'Source: Federal Reserve G.19 via FRED — revolving (REVOLSL) & nonrevolving (NONREVSL) consumer credit, monthly change.',
+          series:[
+            {key:'revolving',    label:'Revolving'},
+            {key:'nonrevolving', label:'Nonrevolving'}
+          ]
+        },
+        {
+          key:'cis-delinquency', canvas:'cCsDelinquency',
+          title:'Percent of Balances 90+ Days Delinquent',
+          subtitle:'Credit card, mortgage, auto, student — % of category balance, quarterly',
+          source:'Source: Federal Reserve Bank of New York — Quarterly Report on Household Debt and Credit, 90+ day delinquency.',
+          series:[
+            {key:'credit_card', label:'Credit cards'},
+            {key:'mortgage',    label:'Mortgages'},
+            {key:'auto',        label:'Auto loans'},
+            {key:'student',     label:'Student loans'}
+          ]
+        }
+      ]
+    },
+    {
+      topic: 'consumer-retail-confidence',
+      label: 'Consumer · Retail & Confidence',
+      embed: '/consumer/retail-confidence/embed/',
+      data:  '/data/consumer.json',
+      module:'retail-confidence',
+      charts: [
+        {
+          key:'crc-retail-mom', canvas:'cCsRetailMom',
+          title:'Retail Sales — Monthly Change',
+          subtitle:'MoM % bars (total / ex-MV / control); Total YoY line on the right axis',
+          source:'Source: U.S. Census Bureau, Advance Monthly Retail Trade — total, ex-motor-vehicles, and control group.',
+          series:[
+            {key:'total_mom',   label:'Total retail MoM'},
+            {key:'ex_mv_mom',   label:'Ex motor vehicles'},
+            {key:'control_mom', label:'Control group (core)'},
+            {key:'total_yoy',   label:'Total retail YoY (right)'}
+          ]
+        },
+        {
+          key:'crc-retail-sectors', canvas:'cCsRetailSectors',
+          title:'Retail Sales — Contribution by Sector',
+          subtitle:"Stacked bars sum to total MoM %; each segment is a sector's contribution in pp",
+          source:'Source: U.S. Census Bureau — 12 NAICS retail categories, contribution to total retail MoM.',
+          series:[]   // sectors are data-driven (retail_sectors) — all stay on
+        },
+        {
+          key:'crc-umich', canvas:'cCsUmich',
+          title:'UMich Consumer Sentiment',
+          subtitle:'Index, 1966 Q1 = 100; total + Expectations and Current Conditions',
+          source:'Source: University of Michigan — Surveys of Consumers.',
+          series:[
+            {key:'total',   label:'Total (ICS)'},
+            {key:'expect',  label:'Expectations (ICE)'},
+            {key:'current', label:'Current conditions (ICC)'}
+          ]
+        },
+        {
+          key:'crc-conf-board', canvas:'cCsConfBoard',
+          title:'Conference Board Consumer Confidence',
+          subtitle:'Index, 1985 = 100; CCI + Expectations and Present Situation',
+          source:'Source: The Conference Board — Consumer Confidence Index.',
+          series:[
+            {key:'total',   label:'CCI (total)'},
+            {key:'expect',  label:'Expectations index'},
+            {key:'present', label:'Present situation index'}
+          ]
+        }
+      ]
+    },
+    {
+      topic: 'consumer-income-divide',
+      label: 'Consumer · Income Divide',
+      embed: '/consumer/income-divide/embed/',
+      data:  '/data/income_divide.json',
+      module:'income-divide',
+      charts: [
+        {
+          key:'div-ratio', canvas:'cIdRatio',
+          title:'Spending Relative to Middle-Income Households',
+          subtitle:'Ratio of real retail spending index to the middle-income index, 3-month average — left: lower income (<$40k); right: higher income ($125k+)',
+          source:'Source: Federal Reserve Bank of New York, Economic Heterogeneity Indicators (Numerator panel). Ratios computed by Economics Guru from the published index levels. This is the same construction used on the widely circulated bank card-spending exhibits, but a different underlying panel — it is not a reproduction of them, and the two do not currently agree.',
+          series:[
+            {key:'low',  label:'Lower income (<$40k) ÷ middle (left)'},
+            {key:'high', label:'Higher income ($125k+) ÷ middle (right)'}
+          ]
+        },
+        {
+          key:'div-tiers', canvas:'cIdTiers',
+          title:'Real Retail Spending by Income Tier',
+          subtitle:'Cumulative growth index, January 2020 = 100, monthly',
+          source:'Source: Federal Reserve Bank of New York, Economic Heterogeneity Indicators — real retail spending, excluding autos.',
+          series:[
+            {key:'low',  label:'Low income (<$40k)'},
+            {key:'mid',  label:'Middle income ($40k–$125k)'},
+            {key:'high', label:'High income ($125k+)'}
+          ]
+        },
+        {
+          key:'div-yoy', canvas:'cIdYoy',
+          title:'Real Retail Spending — Year-over-Year',
+          subtitle:'% change vs. the same month a year earlier, computed from the published index levels',
+          source:"Source: Federal Reserve Bank of New York, Economic Heterogeneity Indicators. Year-over-year calculated by Economics Guru from the index, not taken from the workbook's own year-over-year columns.",
+          series:[
+            {key:'low',  label:'Low income'},
+            {key:'mid',  label:'Middle income'},
+            {key:'high', label:'High income'}
+          ]
+        },
+        {
+          key:'div-top', canvas:'cIdTop',
+          title:'Inside the Top — Spending by High-Income Bracket',
+          subtitle:'Cumulative growth index, January 2023 = 100 — the only base on which the sub-brackets are published, so these series begin in 2023',
+          source:'Source: Federal Reserve Bank of New York, Economic Heterogeneity Indicators — real retail spending by household income bracket.',
+          series:[
+            {key:'b125_175', label:'$125k–$175k'},
+            {key:'b175_225', label:'$175k–$225k'},
+            {key:'b225_250', label:'$225k–$250k'},
+            {key:'b250p',    label:'$250k+'}
+          ]
+        },
+        {
+          key:'div-foodbev', canvas:'cIdFoodBev',
+          title:'Staples — Real Food & Beverage Spending by Income Tier',
+          subtitle:'Cumulative growth index, January 2020 = 100 — the necessities counterweight to the retail series',
+          source:'Source: Federal Reserve Bank of New York, Economic Heterogeneity Indicators — real food and beverage spending.',
+          series:[
+            {key:'low',  label:'Low income (<$40k)'},
+            {key:'mid',  label:'Middle income ($40k–$125k)'},
+            {key:'high', label:'High income ($125k+)'}
+          ]
+        },
+        {
+          key:'div-inflation', canvas:'cIdInflation',
+          title:'Inflation Actually Experienced, by Income Group',
+          subtitle:"Year-over-year %, reconstructed as the headline rate plus each group's published inflation gap",
+          source:'Source: Federal Reserve Bank of New York, Economic Heterogeneity Indicators — headline inflation and inflation gaps by income group. Group rates are the sum of the two, computed by Economics Guru.',
+          series:[
+            {key:'bottom40', label:'Bottom 40% of incomes'},
+            {key:'mid40',    label:'Middle 40%'},
+            {key:'top20',    label:'Top 20%'},
+            {key:'headline', label:'Headline (all households)'}
+          ]
+        },
+        {
+          key:'div-edu', canvas:'cIdEdu',
+          title:'The Education Divide — Unemployment Gap',
+          subtitle:'College minus non-college unemployment rate, percentage points; more negative = a wider advantage for college graduates',
+          source:'Source: Federal Reserve Bank of New York, Economic Heterogeneity Indicators — unemployment gaps by educational attainment.',
+          series:[]
         }
       ]
     },
@@ -757,6 +1199,130 @@ window.EG_CHART_REGISTRY = {
       ]
     },
     {
+      topic: 'rates-treasuries',
+      label: 'Rates · Treasuries',
+      embed: '/rates/treasuries/embed/',
+      data:  '/data/treasuries.json',
+      module:'treasuries',
+      charts: [
+        {
+          key:'trs-curve', canvas:'cTrCurve',
+          title:'Yield Curve — Today vs. One Year Ago',
+          subtitle:'Treasury constant-maturity yields, %',
+          source:'Source: Federal Reserve via FRED — constant-maturity yields (3M / 2Y / 5Y / 10Y / 30Y).',
+          series:[
+            {key:'today',    label:'Today'},
+            {key:'year_ago', label:'~1 year ago'}
+          ]
+        },
+        {
+          key:'trs-10y', canvas:'cTr10y',
+          title:'10-Year Treasury Yield',
+          subtitle:'Constant-maturity yield, %',
+          source:'Source: Federal Reserve via FRED — DGS10.',
+          series:[]
+        },
+        {
+          key:'trs-spread', canvas:'cTrSpread',
+          title:'10-Year Minus 2-Year Spread',
+          subtitle:'Recession indicator — below zero = inverted curve',
+          source:'Source: Federal Reserve via FRED — T10Y2Y.',
+          series:[]
+        },
+        {
+          key:'trs-ffr-vs-10y', canvas:'cTrFfrVs10y',
+          title:'Fed Funds vs. 10-Year Treasury',
+          subtitle:'Policy rate vs. long-term market yield',
+          source:'Source: Federal Reserve via FRED — DGS10, DFF.',
+          series:[
+            {key:'y10y', label:'10-year Treasury'},
+            {key:'ffr',  label:'Fed funds (effective)'}
+          ]
+        },
+        {
+          key:'trs-real', canvas:'cTrReal',
+          title:'Real 10-Year Yield & Inflation Expectations',
+          subtitle:'Nominal 10Y = real yield (TIPS) + 10Y breakeven; available 2003-',
+          source:'Source: Federal Reserve via FRED — DGS10, DFII10, T10YIE.',
+          series:[
+            {key:'nominal',   label:'Nominal 10Y Treasury'},
+            {key:'real',      label:'Real 10Y (TIPS)'},
+            {key:'breakeven', label:'10Y breakeven inflation'}
+          ]
+        },
+        {
+          key:'trs-credit', canvas:'cTrCredit',
+          title:'Corporate Credit Spreads (IG vs. HY)',
+          subtitle:'Option-adjusted spread to Treasuries, % — dual axis',
+          source:'Source: ICE BofA via FRED — BAMLC0A0CM (IG OAS), BAMLH0A0HYM2 (HY OAS).',
+          series:[
+            {key:'hy_oas', label:'High yield OAS (left)'},
+            {key:'ig_oas', label:'Investment grade OAS (right)'}
+          ]
+        }
+      ]
+    },
+    {
+      topic: 'rates-commodities',
+      label: 'Rates · Commodities',
+      embed: '/rates/commodities/embed/',
+      data:  '/data/commodities.json',
+      module:'commodities',
+      charts: [
+        {
+          key:'cmd-gold-silver', canvas:'cCmGoldSilver',
+          title:'Gold & Silver',
+          subtitle:'Spot prices, $/oz — gold left axis, silver right (different scales)',
+          source:'Source: London Fix via Kitco (history) + MetalPriceAPI (daily spot).',
+          series:[
+            {key:'gold',   label:'Gold ($/oz, left)'},
+            {key:'silver', label:'Silver ($/oz, right)'}
+          ]
+        },
+        {
+          key:'cmd-gs-ratio', canvas:'cCmGsRatio',
+          title:'Gold-to-Silver Ratio',
+          subtitle:'Ounces of silver per ounce of gold; <~60 silver-strong, >~80 risk-off',
+          source:'Source: derived from gold and silver spot prices.',
+          series:[]
+        },
+        {
+          key:'cmd-crude', canvas:'cCmCrude',
+          title:'Crude Oil — WTI vs. Brent',
+          subtitle:'Spot prices, $/barrel — US vs. international benchmark',
+          source:'Source: EIA via FRED — DCOILWTICO (WTI), DCOILBRENTEU (Brent).',
+          series:[
+            {key:'wti',   label:'WTI crude ($/bbl)'},
+            {key:'brent', label:'Brent crude ($/bbl)'}
+          ]
+        },
+        {
+          key:'cmd-natgas', canvas:'cCmNatgas',
+          title:'Henry Hub Natural Gas',
+          subtitle:'US spot price, $/MMBtu — weather-driven, domestic-supply sensitive',
+          source:'Source: EIA via FRED — DHHNGSP.',
+          series:[]
+        },
+        {
+          key:'cmd-platinum', canvas:'cCmPlatinum',
+          title:'Platinum',
+          subtitle:'Spot price, $/oz — heavy industrial demand makes it more cyclical than gold',
+          source:'Source: London PM Fix via Kitco + MetalPriceAPI (daily spot).',
+          series:[]
+        },
+        {
+          key:'cmd-composite', canvas:'cCmComposite',
+          title:'Energy vs. Metals (Rebased to 100)',
+          subtitle:'Each indexed to 100 at the start of the window — relative performance',
+          source:'Source: energy = WTI/Brent avg; precious metals = blended gold/silver/platinum.',
+          series:[
+            {key:'energy', label:'Energy (WTI/Brent avg)'},
+            {key:'metals', label:'Precious metals (gold/silver/platinum)'}
+          ]
+        }
+      ]
+    },
+    {
       topic: 'gdp',
       label: 'GDP',
       embed: '/gdp/embed/',
@@ -807,6 +1373,65 @@ window.EG_CHART_REGISTRY = {
           series:[
             {key:'gdp_yoy', label:'Real GDP YoY %'},
             {key:'gdi_yoy', label:'Real GDI YoY %'}
+          ]
+        }
+      ]
+    },
+    {
+      topic: 'gdp-leading',
+      label: 'Leading Indicators',
+      embed: '/gdp/leading-indicators/embed/',
+      data:  '/data/leading.json',
+      module:'leading',
+      charts: [
+        {
+          key:'lei-level', canvas:'cLeiLevel',
+          title:'Index of Leading Economic Indicators',
+          subtitle:'Conference Board LEI — index level, 2016 = 100, seasonally adjusted',
+          source:'Source: The Conference Board — Composite Index of Leading Indicators (2016=100, SA). Shaded bands: NBER recessions.',
+          series:[]
+        },
+        {
+          key:'lei-tri-index', canvas:'cTriIndex',
+          title:'Leading, Coincident & Lagging Indexes',
+          subtitle:'The three composite business-cycle indexes — 2016 = 100, SA. Leading turns first; lagging turns last.',
+          source:'Source: The Conference Board — Composite Indexes of Leading, Coincident & Lagging Indicators (2016=100, SA). Shaded bands: NBER recessions.',
+          series:[
+            {key:'leading',    label:'Leading'},
+            {key:'coincident', label:'Coincident'},
+            {key:'lagging',    label:'Lagging'}
+          ]
+        },
+        {
+          key:'lei-growth', canvas:'cLeiGrowth',
+          title:'LEI — Six-Month Growth Rate',
+          subtitle:'Annualized % change over the prior six months — the classic recession signal',
+          source:'Source: The Conference Board — ((LEI₍t₎ / LEI₍t-6₎)² − 1) × 100. Shaded bands: NBER recessions.',
+          series:[]
+        },
+        {
+          key:'lei-mom', canvas:'cLeiMom',
+          title:'LEI — Month-over-Month Change',
+          subtitle:'% change from the prior month, SA',
+          source:'Source: The Conference Board — Composite Index of Leading Indicators, monthly % change.',
+          series:[]
+        },
+        {
+          key:'lei-components', canvas:'cLeiComponents',
+          title:'LEI Components — Standardized 6-Month Change',
+          subtitle:"Each component's own 6-month swing, standardized (z-score), sign-oriented so positive = supportive of growth. A contribution proxy — toggle series in the legend.",
+          source:'Sources: FRED (weekly hours, jobless claims, consumer- & capital-goods orders, building permits, 10yr–fed funds spread, consumer expectations), in-house (ISM new orders, S&P 500), and The Conference Board (Leading Credit Index). Standardization is in-house; not the Conference Board\'s official weighted contributions.',
+          series:[
+            {key:'awhman',   label:'Avg weekly hours (mfg)', off:true},
+            {key:'claims',   label:'Initial jobless claims (inv.)'},
+            {key:'cons_ord', label:'Consumer-goods orders', off:true},
+            {key:'ism_no',   label:'ISM new orders', off:true},
+            {key:'cap_ord',  label:'Capital-goods orders', off:true},
+            {key:'permits',  label:'Building permits'},
+            {key:'sp500',    label:'S&P 500'},
+            {key:'lci',      label:'Leading Credit Index (inv.)', off:true},
+            {key:'spread',   label:'Yield spread (10y–FFR)'},
+            {key:'cons_exp', label:'Consumer expectations', off:true}
           ]
         }
       ]
