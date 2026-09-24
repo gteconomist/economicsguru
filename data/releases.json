@@ -1,6 +1,19 @@
 {
  "releases": [
   {
+   "id": "newhomes",
+   "name": "New Home Sales",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "684K annual rate",
+   "url": "/housing/new-homes/",
+   "where": "Housing › New Homes",
+   "seen": "2026-09-24"
+  },
+  {
    "id": "lei",
    "name": "Leading Economic Index",
    "period": "Aug 2026",
@@ -34,7 +47,7 @@
     2026,
     8
    ],
-   "value": "1,394K permits",
+   "value": "1,403K permits",
    "url": "/housing/permits-starts/",
    "where": "Housing › Permits & Starts",
    "seen": "2026-09-17"
@@ -232,19 +245,6 @@
    "value": "89.4",
    "url": "/consumer/retail-confidence/#cCsConfBoard",
    "where": "Consumer › Retail & Confidence",
-   "seen": "2026-08-25"
-  },
-  {
-   "id": "newhomes",
-   "name": "New Home Sales",
-   "period": "Jul 2026",
-   "period_key": [
-    2026,
-    7
-   ],
-   "value": "607K annual rate",
-   "url": "/housing/new-homes/",
-   "where": "Housing › New Homes",
    "seen": "2026-08-25"
   },
   {
