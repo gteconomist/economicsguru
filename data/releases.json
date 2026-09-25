@@ -1,6 +1,19 @@
 {
  "releases": [
   {
+   "id": "umich",
+   "name": "UMich Consumer Sentiment",
+   "period": "Sep 2026",
+   "period_key": [
+    2026,
+    9
+   ],
+   "value": "48.1",
+   "url": "/consumer/retail-confidence/#cCsUmich",
+   "where": "Consumer › Retail & Confidence",
+   "seen": "2026-09-25"
+  },
+  {
    "id": "newhomes",
    "name": "New Home Sales",
    "period": "Aug 2026",
@@ -194,19 +207,6 @@
    "url": "/industry/surveys/",
    "where": "Growth › Business Surveys",
    "seen": "2026-09-01"
-  },
-  {
-   "id": "umich",
-   "name": "UMich Consumer Sentiment",
-   "period": "Aug 2026",
-   "period_key": [
-    2026,
-    8
-   ],
-   "value": "51.7",
-   "url": "/consumer/retail-confidence/#cCsUmich",
-   "where": "Consumer › Retail & Confidence",
-   "seen": "2026-08-28"
   },
   {
    "id": "pce",
