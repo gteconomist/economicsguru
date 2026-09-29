@@ -1,6 +1,32 @@
 {
  "releases": [
   {
+   "id": "jolts",
+   "name": "JOLTS Job Openings",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "7.08M openings",
+   "url": "/labor/jobs/#cJolts",
+   "where": "Labor › Jobs & Unemployment",
+   "seen": "2026-09-29"
+  },
+  {
+   "id": "cb",
+   "name": "Conference Board Confidence",
+   "period": "Sep 2026",
+   "period_key": [
+    2026,
+    9
+   ],
+   "value": "81.9",
+   "url": "/consumer/retail-confidence/#cCsConfBoard",
+   "where": "Consumer › Retail & Confidence",
+   "seen": "2026-09-29"
+  },
+  {
    "id": "umich",
    "name": "UMich Consumer Sentiment",
    "period": "Sep 2026",
@@ -73,7 +99,7 @@
     2026,
     8
    ],
-   "value": "+1.2% MoM",
+   "value": "+1.1% MoM",
    "url": "/consumer/retail-confidence/",
    "where": "Consumer › Retail & Confidence",
    "seen": "2026-09-16"
@@ -183,19 +209,6 @@
    "seen": "2026-09-02"
   },
   {
-   "id": "jolts",
-   "name": "JOLTS Job Openings",
-   "period": "Jul 2026",
-   "period_key": [
-    2026,
-    7
-   ],
-   "value": "7.27M openings",
-   "url": "/labor/jobs/#cJolts",
-   "where": "Labor › Jobs & Unemployment",
-   "seen": "2026-09-01"
-  },
-  {
    "id": "ism_mfg",
    "name": "ISM Manufacturing",
    "period": "Aug 2026",
@@ -233,19 +246,6 @@
    "url": "/consumer/income-spending-debt/",
    "where": "Consumer › Income & Spending",
    "seen": "2026-08-26"
-  },
-  {
-   "id": "cb",
-   "name": "Conference Board Confidence",
-   "period": "Aug 2026",
-   "period_key": [
-    2026,
-    8
-   ],
-   "value": "89.4",
-   "url": "/consumer/retail-confidence/#cCsConfBoard",
-   "where": "Consumer › Retail & Confidence",
-   "seen": "2026-08-25"
   },
   {
    "id": "gdp",
