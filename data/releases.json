@@ -1,6 +1,32 @@
 {
  "releases": [
   {
+   "id": "pce",
+   "name": "PCE Price Index",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "core 3.0% YoY",
+   "url": "/inflation/pce/",
+   "where": "Inflation › PCE",
+   "seen": "2026-09-30"
+  },
+  {
+   "id": "income",
+   "name": "Personal Income & Spending",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "income +0.2% MoM",
+   "url": "/consumer/income-spending-debt/",
+   "where": "Consumer › Income & Spending",
+   "seen": "2026-09-30"
+  },
+  {
    "id": "jolts",
    "name": "JOLTS Job Openings",
    "period": "Aug 2026",
@@ -222,32 +248,6 @@
    "seen": "2026-09-01"
   },
   {
-   "id": "pce",
-   "name": "PCE Price Index",
-   "period": "Jul 2026",
-   "period_key": [
-    2026,
-    7
-   ],
-   "value": "core 3.3% YoY",
-   "url": "/inflation/pce/",
-   "where": "Inflation › PCE",
-   "seen": "2026-08-26"
-  },
-  {
-   "id": "income",
-   "name": "Personal Income & Spending",
-   "period": "Jul 2026",
-   "period_key": [
-    2026,
-    7
-   ],
-   "value": "income +0.4% MoM",
-   "url": "/consumer/income-spending-debt/",
-   "where": "Consumer › Income & Spending",
-   "seen": "2026-08-26"
-  },
-  {
    "id": "gdp",
    "name": "Real GDP",
    "period": "Q2 2026",
@@ -255,7 +255,7 @@
     2026,
     6
    ],
-   "value": "+1.5% annualized",
+   "value": "+2.2% annualized",
    "url": "/gdp/",
    "where": "Growth › GDP",
    "seen": "2026-07-30"
