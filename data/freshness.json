@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-09-30T13:24:06.350132Z",
+  "build_time": "2026-09-30T18:09:27.408688Z",
   "checked_date": "2026-09-30",
   "stale_count": 0,
   "stale": [],
@@ -50,20 +50,20 @@
       "watch": {
         "rigs_oil": {
           "status": "ok",
-          "latest": "2026-09-18",
-          "age_days": 12,
+          "latest": "2026-09-25",
+          "age_days": 5,
           "max_age_days": 16
         },
         "brent": {
           "status": "ok",
-          "latest": "2026-09-22",
-          "age_days": 8,
+          "latest": "2026-09-29",
+          "age_days": 1,
           "max_age_days": 8
         },
         "spr_monthly": {
           "status": "ok",
-          "latest": "2026-06-30",
-          "age_days": 92,
+          "latest": "2026-07-31",
+          "age_days": 61,
           "max_age_days": 105
         },
         "gasoline": {
@@ -76,8 +76,8 @@
     },
     "energy_power.json": {
       "status": "ok",
-      "latest": "2026-09-22",
-      "age_days": 8,
+      "latest": "2026-09-29",
+      "age_days": 1,
       "max_age_days": 16,
       "build_age_days": 0,
       "note": "EIA weekly gas storage Thursdays; monthly electricity ~2 months behind; Census C30 ~day 1.",
@@ -98,8 +98,8 @@
         },
         "henry_hub": {
           "status": "ok",
-          "latest": "2026-09-22",
-          "age_days": 8,
+          "latest": "2026-09-29",
+          "age_days": 1,
           "max_age_days": 8
         },
         "sales_12mma.com": {
@@ -110,16 +110,16 @@
         },
         "gas_production_bcfd": {
           "status": "ok",
-          "latest": "2026-06-30",
-          "age_days": 92,
+          "latest": "2026-07-31",
+          "age_days": 61,
           "max_age_days": 100
         }
       }
     },
     "equities.json": {
       "status": "ok",
-      "latest": "2026-09-29",
-      "age_days": 1,
+      "latest": "2026-09-30",
+      "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily index closes.",
