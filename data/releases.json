@@ -1,6 +1,19 @@
 {
  "releases": [
   {
+   "id": "ism_mfg",
+   "name": "ISM Manufacturing",
+   "period": "Sep 2026",
+   "period_key": [
+    2026,
+    9
+   ],
+   "value": "54.5",
+   "url": "/industry/surveys/",
+   "where": "Growth › Business Surveys",
+   "seen": "2026-10-01"
+  },
+  {
    "id": "pce",
    "name": "PCE Price Index",
    "period": "Aug 2026",
@@ -233,19 +246,6 @@
    "url": "/industry/manufacturing/#cIndMfgFactoryOrders",
    "where": "Growth › Manufacturing",
    "seen": "2026-09-02"
-  },
-  {
-   "id": "ism_mfg",
-   "name": "ISM Manufacturing",
-   "period": "Aug 2026",
-   "period_key": [
-    2026,
-    8
-   ],
-   "value": "54.6",
-   "url": "/industry/surveys/",
-   "where": "Growth › Business Surveys",
-   "seen": "2026-09-01"
   },
   {
    "id": "gdp",
