@@ -14,6 +14,19 @@
    "seen": "2026-10-02"
   },
   {
+   "id": "orders",
+   "name": "Factory Orders",
+   "period": "Aug 2026",
+   "period_key": [
+    2026,
+    8
+   ],
+   "value": "+0.1% MoM",
+   "url": "/industry/manufacturing/#cIndMfgFactoryOrders",
+   "where": "Growth › Manufacturing",
+   "seen": "2026-10-02"
+  },
+  {
    "id": "ism_mfg",
    "name": "ISM Manufacturing",
    "period": "Sep 2026",
@@ -233,19 +246,6 @@
    "url": "/industry/surveys/#cIndSurveysIsmSvc",
    "where": "Growth › Business Surveys",
    "seen": "2026-09-03"
-  },
-  {
-   "id": "orders",
-   "name": "Factory Orders",
-   "period": "Jul 2026",
-   "period_key": [
-    2026,
-    7
-   ],
-   "value": "+0.9% MoM",
-   "url": "/industry/manufacturing/#cIndMfgFactoryOrders",
-   "where": "Growth › Manufacturing",
-   "seen": "2026-09-02"
   },
   {
    "id": "gdp",

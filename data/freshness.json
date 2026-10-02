@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-10-02T13:27:20.409189Z",
+  "build_time": "2026-10-02T18:11:17.340082Z",
   "checked_date": "2026-10-02",
   "stale_count": 0,
   "stale": [],
@@ -118,8 +118,8 @@
     },
     "equities.json": {
       "status": "ok",
-      "latest": "2026-10-01",
-      "age_days": 1,
+      "latest": "2026-10-02",
+      "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily index closes.",
