@@ -1,6 +1,19 @@
 {
  "releases": [
   {
+   "id": "jobs",
+   "name": "Jobs Report",
+   "period": "Sep 2026",
+   "period_key": [
+    2026,
+    9
+   ],
+   "value": "+29K payrolls",
+   "url": "/labor/jobs/",
+   "where": "Labor › Jobs & Unemployment",
+   "seen": "2026-10-02"
+  },
+  {
    "id": "ism_mfg",
    "name": "ISM Manufacturing",
    "period": "Sep 2026",
@@ -207,19 +220,6 @@
    "url": "/industry/surveys/#cIndSurveysNfibOptimism",
    "where": "Growth › Business Surveys",
    "seen": "2026-09-08"
-  },
-  {
-   "id": "jobs",
-   "name": "Jobs Report",
-   "period": "Aug 2026",
-   "period_key": [
-    2026,
-    8
-   ],
-   "value": "+162K payrolls",
-   "url": "/labor/jobs/",
-   "where": "Labor › Jobs & Unemployment",
-   "seen": "2026-09-04"
   },
   {
    "id": "ism_svc",
