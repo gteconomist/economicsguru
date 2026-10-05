@@ -82,7 +82,7 @@
 <body>
 <header>
   <h1>Economics <span class="g">Guru</span> PowerTools</h1>
-  <p class="lede">Insert live charts. Refresh them all before every talk. <span style="opacity:.55">· build 2026-10-05b</span></p>
+  <p class="lede">Insert live charts. Refresh them all before every talk. <span style="opacity:.55">· build 2026-10-05c</span></p>
 </header>
 
 <div class="refreshbar">
@@ -111,7 +111,7 @@
   var TAG = PT.TAG_NAME;                       // "EGCHART"
   var AUTO_KEY = 'EG_AutoRefreshOnOpen';
   var busy = false;
-  var BUILD = 'build 2026-10-05b';
+  var BUILD = 'build 2026-10-05c';
 
   // ---------------- status log ----------------
   var statusEl = document.getElementById('status');
@@ -252,9 +252,15 @@
   // after setSelectedDataAsync, so we find it by diffing the slide's shape IDs
   // before and after the insert. Selection is only a last-resort fallback.
   function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
-  // Snapshot of every shape ID in the deck (not just one slide): on Mac the
-  // picture can land on a different slide than the one we navigated to.
-  function allShapeIds(){
+  // Finding the picture we just inserted.
+  // On PowerPoint for Mac the new picture is never reported as "selected",
+  // and shape IDs are small per-slide numbers that get reused (a deleted
+  // picture's ID can be handed straight to its replacement). So we key shapes
+  // by slide + ID, and for refreshes we first look for the untagged picture
+  // sitting at the old chart's exact position and size.
+  var lastDiag = [];
+  function key(slId, shId){ return slId + '#' + shId; }
+  function allShapeKeys(){
     return PowerPoint.run(function(ctx){
       var slides = ctx.presentation.slides;
       slides.load('items/id');
@@ -262,18 +268,44 @@
         slides.items.forEach(function(sl){ sl.shapes.load('items/id'); });
         return ctx.sync();
       }).then(function(){
-        var ids = [];
-        slides.items.forEach(function(sl){ sl.shapes.items.forEach(function(x){ ids.push(x.id); }); });
-        return ids;
+        var keys = [];
+        slides.items.forEach(function(sl){ sl.shapes.items.forEach(function(x){ keys.push(key(sl.id, x.id)); }); });
+        return keys;
       });
     }).catch(function(e){ lastDiag.push('snapshot failed: ' + (e && e.message)); return null; });
   }
-  var lastDiag = [];
   function applyTag(sh, tagValue){
     sh.tags.add(TAG, PT.makeTag(tagValue.url));
     try { sh.name = 'EG Chart — ' + tagValue.title; } catch(e){}
   }
-  function tagViaDiff(beforeIds, tagValue){
+  function near(a, b, tol){ return Math.abs((a || 0) - (b || 0)) <= tol; }
+  // Untagged picture on the given slide matching the geometry (position+size
+  // first, then size only, in case Mac ignored the requested position).
+  function tagViaGeometry(slideId, geo, tagValue){
+    return PowerPoint.run(function(ctx){
+      var shapes = ctx.presentation.slides.getItem(slideId).shapes;
+      shapes.load('items/id,items/type,items/left,items/top,items/width,items/height');
+      return ctx.sync().then(function(){
+        shapes.items.forEach(function(x){ x.tags.load('key'); });
+        return ctx.sync();
+      }).then(function(){
+        var untagged = shapes.items.filter(function(x){
+          var t = x.tags.items || [];
+          for (var i = 0; i < t.length; i++) if (String(t[i].key).toUpperCase() === TAG) return false;
+          return String(x.type) === 'Image' || x.type == null;
+        });
+        var exact = untagged.filter(function(x){
+          return near(x.left, geo.left, 3) && near(x.top, geo.top, 3) && near(x.width, geo.width, 3) && near(x.height, geo.height, 3);
+        });
+        var sized = untagged.filter(function(x){ return near(x.width, geo.width, 3) && near(x.height, geo.height, 3); });
+        var pick = exact.length ? exact : (sized.length === 1 ? sized : []);
+        if (!pick.length) { lastDiag.push('no match by position (' + untagged.length + ' untagged pictures on slide)'); return false; }
+        applyTag(pick[pick.length - 1], tagValue);
+        return ctx.sync().then(function(){ return true; });
+      });
+    }).catch(function(e){ lastDiag.push('geometry error: ' + (e && (e.code ? e.code + ' ' : '') + e.message)); return false; });
+  }
+  function tagViaDiff(beforeKeys, tagValue){
     return PowerPoint.run(function(ctx){
       var slides = ctx.presentation.slides;
       slides.load('items/id');
@@ -283,7 +315,7 @@
       }).then(function(){
         var fresh = [];
         slides.items.forEach(function(sl){
-          sl.shapes.items.forEach(function(x){ if (beforeIds.indexOf(x.id) === -1) fresh.push(x); });
+          sl.shapes.items.forEach(function(x){ if (beforeKeys.indexOf(key(sl.id, x.id)) === -1) fresh.push(x); });
         });
         if (!fresh.length) { lastDiag.push('no new shape yet'); return false; }
         var pics = fresh.filter(function(x){ return String(x.type) === 'Image'; });
@@ -303,15 +335,17 @@
       });
     }).catch(function(e){ lastDiag.push('selection error: ' + (e && (e.code ? e.code + ' ' : '') + e.message)); return false; });
   }
-  // Retries the diff for ~6 s (the new picture can take a moment to register
-  // on Mac), then falls back to the selection.
-  function tagNewShape(beforeIds, tagValue){
+  // opts: { beforeKeys, slideId, geo }. Retries for ~6 s, then selection.
+  function tagNewShape(opts, tagValue){
     var tries = 0;
-    lastDiag = beforeIds ? [] : lastDiag;
     function attempt(){
       tries++;
-      var p = beforeIds ? tagViaDiff(beforeIds, tagValue) : Promise.resolve(false);
+      var p = Promise.resolve(false);
+      if (opts.slideId && opts.geo) p = tagViaGeometry(opts.slideId, opts.geo, tagValue);
       return p.then(function(ok){
+        if (ok || !opts.beforeKeys) return ok;
+        return tagViaDiff(opts.beforeKeys, tagValue);
+      }).then(function(ok){
         if (ok) return true;
         if (tries < 8) return wait(200 * tries).then(attempt);
         return tagViaSelection(tagValue);
@@ -334,12 +368,12 @@
     PT.renderChartPng(url).then(function(png){
       btn.textContent = 'Inserting…';
       lastDiag = [];
-      return allShapeIds().then(function(ids){
+      return allShapeKeys().then(function(ids){
         beforeIds = ids;
         return setSelectedImage(png.base64, { imageWidth: 660 });   // points; ~9.2in wide
       });
     }).then(function(){
-      return tagNewShape(beforeIds, { url:url, title:chart.title }).catch(function(e){
+      return tagNewShape({ beforeKeys: beforeIds }, { url:url, title:chart.title }).catch(function(e){
         log('Inserted, but tagging failed ('+e.message+'). Set the picture’s alt text to: ' + PT.makeTag(url), 'err');
       });
     }).then(function(){
@@ -418,7 +452,7 @@
       });
     }).then(function(){
       lastDiag = [];
-      return allShapeIds();
+      return allShapeKeys();
     }).then(function(ids){
       beforeIds = ids;
       return setSelectedImage(png.base64, {
@@ -426,7 +460,8 @@
         imageWidth: entry.width, imageHeight: entry.height
       });
     }).then(function(){
-      return tagNewShape(beforeIds, { url: entry.url, title: entry.title || 'refreshed chart' })
+      return tagNewShape({ beforeKeys: beforeIds, slideId: entry.slideId,
+          geo: { left: entry.left, top: entry.top, width: entry.width, height: entry.height } }, { url: entry.url, title: entry.title || 'refreshed chart' })
         .catch(function(e){ log('Refreshed a chart but could not re-tag it ('+e.message+'). Alt text to set: '+PT.makeTag(entry.url), 'err'); });
     });
   }
