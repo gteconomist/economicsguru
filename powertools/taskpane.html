@@ -82,7 +82,7 @@
 <body>
 <header>
   <h1>Economics <span class="g">Guru</span> PowerTools</h1>
-  <p class="lede">Insert live charts. Refresh them all before every talk.</p>
+  <p class="lede">Insert live charts. Refresh them all before every talk. <span style="opacity:.55">· build 2026-10-05b</span></p>
 </header>
 
 <div class="refreshbar">
@@ -111,6 +111,7 @@
   var TAG = PT.TAG_NAME;                       // "EGCHART"
   var AUTO_KEY = 'EG_AutoRefreshOnOpen';
   var busy = false;
+  var BUILD = 'build 2026-10-05b';
 
   // ---------------- status log ----------------
   var statusEl = document.getElementById('status');
@@ -251,65 +252,76 @@
   // after setSelectedDataAsync, so we find it by diffing the slide's shape IDs
   // before and after the insert. Selection is only a last-resort fallback.
   function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
-  function currentSlideId(){
+  // Snapshot of every shape ID in the deck (not just one slide): on Mac the
+  // picture can land on a different slide than the one we navigated to.
+  function allShapeIds(){
     return PowerPoint.run(function(ctx){
-      var sel = ctx.presentation.getSelectedSlides();
-      sel.load('items/id');
-      return ctx.sync().then(function(){ return sel.items.length ? sel.items[0].id : null; });
-    }).catch(function(){ return null; });
+      var slides = ctx.presentation.slides;
+      slides.load('items/id');
+      return ctx.sync().then(function(){
+        slides.items.forEach(function(sl){ sl.shapes.load('items/id'); });
+        return ctx.sync();
+      }).then(function(){
+        var ids = [];
+        slides.items.forEach(function(sl){ sl.shapes.items.forEach(function(x){ ids.push(x.id); }); });
+        return ids;
+      });
+    }).catch(function(e){ lastDiag.push('snapshot failed: ' + (e && e.message)); return null; });
   }
-  function shapeIdsOn(slideId){
-    if (!slideId) return Promise.resolve(null);
-    return PowerPoint.run(function(ctx){
-      var shapes = ctx.presentation.slides.getItem(slideId).shapes;
-      shapes.load('items/id');
-      return ctx.sync().then(function(){ return shapes.items.map(function(x){ return x.id; }); });
-    }).catch(function(){ return null; });
-  }
+  var lastDiag = [];
   function applyTag(sh, tagValue){
     sh.tags.add(TAG, PT.makeTag(tagValue.url));
     try { sh.name = 'EG Chart — ' + tagValue.title; } catch(e){}
-    try { if ('altTextDescription' in sh) sh.altTextDescription = PT.makeTag(tagValue.url); } catch(e){}
   }
-  function tagViaDiff(slideId, beforeIds, tagValue){
+  function tagViaDiff(beforeIds, tagValue){
     return PowerPoint.run(function(ctx){
-      var shapes = ctx.presentation.slides.getItem(slideId).shapes;
-      shapes.load('items/id,items/type');
+      var slides = ctx.presentation.slides;
+      slides.load('items/id');
       return ctx.sync().then(function(){
-        var fresh = shapes.items.filter(function(x){ return beforeIds.indexOf(x.id) === -1; });
-        if (!fresh.length) return false;
+        slides.items.forEach(function(sl){ sl.shapes.load('items/id,items/type'); });
+        return ctx.sync();
+      }).then(function(){
+        var fresh = [];
+        slides.items.forEach(function(sl){
+          sl.shapes.items.forEach(function(x){ if (beforeIds.indexOf(x.id) === -1) fresh.push(x); });
+        });
+        if (!fresh.length) { lastDiag.push('no new shape yet'); return false; }
         var pics = fresh.filter(function(x){ return String(x.type) === 'Image'; });
         applyTag((pics.length ? pics : fresh).slice(-1)[0], tagValue);
         return ctx.sync().then(function(){ return true; });
       });
-    });
+    }).catch(function(e){ lastDiag.push('diff/tag error: ' + (e && (e.code ? e.code + ' ' : '') + e.message)); return false; });
   }
   function tagViaSelection(tagValue){
     return PowerPoint.run(function(ctx){
       var sel = ctx.presentation.getSelectedShapes();
       sel.load('items');
       return ctx.sync().then(function(){
-        if (!sel.items.length) return false;
+        if (!sel.items.length) { lastDiag.push('selection empty'); return false; }
         applyTag(sel.items[sel.items.length-1], tagValue);
         return ctx.sync().then(function(){ return true; });
       });
-    });
+    }).catch(function(e){ lastDiag.push('selection error: ' + (e && (e.code ? e.code + ' ' : '') + e.message)); return false; });
   }
-  // Tries the diff a few times (the new shape can take a moment to appear),
-  // then falls back to the selection. Rejects if nothing worked.
-  function tagNewShape(slideId, beforeIds, tagValue){
+  // Retries the diff for ~6 s (the new picture can take a moment to register
+  // on Mac), then falls back to the selection.
+  function tagNewShape(beforeIds, tagValue){
     var tries = 0;
+    lastDiag = beforeIds ? [] : lastDiag;
     function attempt(){
       tries++;
-      var p = (slideId && beforeIds) ? tagViaDiff(slideId, beforeIds, tagValue) : Promise.resolve(false);
-      return p.catch(function(){ return false; }).then(function(ok){
+      var p = beforeIds ? tagViaDiff(beforeIds, tagValue) : Promise.resolve(false);
+      return p.then(function(ok){
         if (ok) return true;
-        if (tries < 4) return wait(250 * tries).then(attempt);
-        return tagViaSelection(tagValue).catch(function(){ return false; });
+        if (tries < 8) return wait(200 * tries).then(attempt);
+        return tagViaSelection(tagValue);
       });
     }
     return attempt().then(function(ok){
-      if (!ok) throw new Error('could not find the new picture to tag');
+      if (!ok) {
+        var seen = {}, d = lastDiag.filter(function(x){ return seen[x] ? false : (seen[x] = true); });
+        throw new Error('could not find the new picture [' + BUILD + '; ' + d.join(' | ') + ']');
+      }
     });
   }
 
@@ -318,17 +330,16 @@
     if (busy) return;
     busy = true; btn.disabled = true; btn.textContent = 'Rendering…';
     var url = embedUrl(group, chart, s);
-    var slideId = null, beforeIds = null;
+    var beforeIds = null;
     PT.renderChartPng(url).then(function(png){
       btn.textContent = 'Inserting…';
-      return currentSlideId().then(function(id){
-        slideId = id; return shapeIdsOn(id);
-      }).then(function(ids){
+      lastDiag = [];
+      return allShapeIds().then(function(ids){
         beforeIds = ids;
         return setSelectedImage(png.base64, { imageWidth: 660 });   // points; ~9.2in wide
       });
     }).then(function(){
-      return tagNewShape(slideId, beforeIds, { url:url, title:chart.title }).catch(function(e){
+      return tagNewShape(beforeIds, { url:url, title:chart.title }).catch(function(e){
         log('Inserted, but tagging failed ('+e.message+'). Set the picture’s alt text to: ' + PT.makeTag(url), 'err');
       });
     }).then(function(){
@@ -406,7 +417,8 @@
         return ctx.sync();
       });
     }).then(function(){
-      return shapeIdsOn(entry.slideId);
+      lastDiag = [];
+      return allShapeIds();
     }).then(function(ids){
       beforeIds = ids;
       return setSelectedImage(png.base64, {
@@ -414,8 +426,8 @@
         imageWidth: entry.width, imageHeight: entry.height
       });
     }).then(function(){
-      return tagNewShape(entry.slideId, beforeIds, { url: entry.url, title: entry.title || 'refreshed chart' })
-        .catch(function(){ log('Refreshed a chart but could not re-tag it; set its alt text to: '+PT.makeTag(entry.url), 'err'); });
+      return tagNewShape(beforeIds, { url: entry.url, title: entry.title || 'refreshed chart' })
+        .catch(function(e){ log('Refreshed a chart but could not re-tag it ('+e.message+'). Alt text to set: '+PT.makeTag(entry.url), 'err'); });
     });
   }
 
