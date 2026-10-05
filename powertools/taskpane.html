@@ -246,17 +246,70 @@
       Office.context.document.goToByIdAsync(index1, Office.GoToType.Index, function(){ res(); });
     });
   }
-  function tagSelectedShape(tagValue){
+  // Tagging the picture we just inserted.
+  // PowerPoint for Mac does not reliably report the new picture as "selected"
+  // after setSelectedDataAsync, so we find it by diffing the slide's shape IDs
+  // before and after the insert. Selection is only a last-resort fallback.
+  function wait(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+  function currentSlideId(){
+    return PowerPoint.run(function(ctx){
+      var sel = ctx.presentation.getSelectedSlides();
+      sel.load('items/id');
+      return ctx.sync().then(function(){ return sel.items.length ? sel.items[0].id : null; });
+    }).catch(function(){ return null; });
+  }
+  function shapeIdsOn(slideId){
+    if (!slideId) return Promise.resolve(null);
+    return PowerPoint.run(function(ctx){
+      var shapes = ctx.presentation.slides.getItem(slideId).shapes;
+      shapes.load('items/id');
+      return ctx.sync().then(function(){ return shapes.items.map(function(x){ return x.id; }); });
+    }).catch(function(){ return null; });
+  }
+  function applyTag(sh, tagValue){
+    sh.tags.add(TAG, PT.makeTag(tagValue.url));
+    try { sh.name = 'EG Chart — ' + tagValue.title; } catch(e){}
+    try { if ('altTextDescription' in sh) sh.altTextDescription = PT.makeTag(tagValue.url); } catch(e){}
+  }
+  function tagViaDiff(slideId, beforeIds, tagValue){
+    return PowerPoint.run(function(ctx){
+      var shapes = ctx.presentation.slides.getItem(slideId).shapes;
+      shapes.load('items/id,items/type');
+      return ctx.sync().then(function(){
+        var fresh = shapes.items.filter(function(x){ return beforeIds.indexOf(x.id) === -1; });
+        if (!fresh.length) return false;
+        var pics = fresh.filter(function(x){ return String(x.type) === 'Image'; });
+        applyTag((pics.length ? pics : fresh).slice(-1)[0], tagValue);
+        return ctx.sync().then(function(){ return true; });
+      });
+    });
+  }
+  function tagViaSelection(tagValue){
     return PowerPoint.run(function(ctx){
       var sel = ctx.presentation.getSelectedShapes();
       sel.load('items');
       return ctx.sync().then(function(){
-        if (!sel.items.length) throw new Error('Inserted, but could not find the new shape to tag.');
-        var sh = sel.items[sel.items.length-1];
-        sh.tags.add(TAG, PT.makeTag(tagValue.url));
-        try { sh.name = 'EG Chart — ' + tagValue.title; } catch(e){}
-        return ctx.sync();
+        if (!sel.items.length) return false;
+        applyTag(sel.items[sel.items.length-1], tagValue);
+        return ctx.sync().then(function(){ return true; });
       });
+    });
+  }
+  // Tries the diff a few times (the new shape can take a moment to appear),
+  // then falls back to the selection. Rejects if nothing worked.
+  function tagNewShape(slideId, beforeIds, tagValue){
+    var tries = 0;
+    function attempt(){
+      tries++;
+      var p = (slideId && beforeIds) ? tagViaDiff(slideId, beforeIds, tagValue) : Promise.resolve(false);
+      return p.catch(function(){ return false; }).then(function(ok){
+        if (ok) return true;
+        if (tries < 4) return wait(250 * tries).then(attempt);
+        return tagViaSelection(tagValue).catch(function(){ return false; });
+      });
+    }
+    return attempt().then(function(ok){
+      if (!ok) throw new Error('could not find the new picture to tag');
     });
   }
 
@@ -265,11 +318,17 @@
     if (busy) return;
     busy = true; btn.disabled = true; btn.textContent = 'Rendering…';
     var url = embedUrl(group, chart, s);
+    var slideId = null, beforeIds = null;
     PT.renderChartPng(url).then(function(png){
       btn.textContent = 'Inserting…';
-      return setSelectedImage(png.base64, { imageWidth: 660 });   // points; ~9.2in wide
+      return currentSlideId().then(function(id){
+        slideId = id; return shapeIdsOn(id);
+      }).then(function(ids){
+        beforeIds = ids;
+        return setSelectedImage(png.base64, { imageWidth: 660 });   // points; ~9.2in wide
+      });
     }).then(function(){
-      return tagSelectedShape({ url:url, title:chart.title }).catch(function(e){
+      return tagNewShape(slideId, beforeIds, { url:url, title:chart.title }).catch(function(e){
         log('Inserted, but tagging failed ('+e.message+'). Set the picture’s alt text to: ' + PT.makeTag(url), 'err');
       });
     }).then(function(){
@@ -289,7 +348,7 @@
       slides.load('items/id');
       return ctx.sync().then(function(){
         slides.items.forEach(function(sl){
-          sl.shapes.load('items/id,items/left,items/top,items/width,items/height');
+          sl.shapes.load('items/id,items/name,items/left,items/top,items/width,items/height');
         });
         return ctx.sync();
       }).then(function(){
@@ -311,7 +370,8 @@
               if (url) found.push({
                 slideIndex: h.slideIndex, slideId: h.slideId, shapeId: h.shape.id,
                 left: h.shape.left, top: h.shape.top, width: h.shape.width, height: h.shape.height,
-                url: url
+                url: url,
+                title: String(h.shape.name || '').replace(/^EG Chart — /, '') || null
               });
             }
           });
@@ -339,18 +399,22 @@
   function replaceViaSelection(entry, png){
     // GA-only path: jump to the slide, delete the old picture, insert at the
     // exact same geometry (points), then tag the new selection.
+    var beforeIds = null;
     return goToSlideIndex(entry.slideIndex + 1).then(function(){
       return PowerPoint.run(function(ctx){
         ctx.presentation.slides.getItem(entry.slideId).shapes.getItem(entry.shapeId).delete();
         return ctx.sync();
       });
     }).then(function(){
+      return shapeIdsOn(entry.slideId);
+    }).then(function(ids){
+      beforeIds = ids;
       return setSelectedImage(png.base64, {
         imageLeft: entry.left, imageTop: entry.top,
         imageWidth: entry.width, imageHeight: entry.height
       });
     }).then(function(){
-      return tagSelectedShape({ url: entry.url, title: 'refreshed chart' })
+      return tagNewShape(entry.slideId, beforeIds, { url: entry.url, title: entry.title || 'refreshed chart' })
         .catch(function(){ log('Refreshed a chart but could not re-tag it; set its alt text to: '+PT.makeTag(entry.url), 'err'); });
     });
   }
