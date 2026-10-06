@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-10-06T13:24:00.763027Z",
+  "build_time": "2026-10-06T18:08:44.994200Z",
   "checked_date": "2026-10-06",
   "stale_count": 0,
   "stale": [],
@@ -40,8 +40,8 @@
     },
     "energy.json": {
       "status": "ok",
-      "latest": "2026-09-30",
-      "age_days": 6,
+      "latest": "2026-10-05",
+      "age_days": 1,
       "max_age_days": 16,
       "build_age_days": 0,
       "note": "EIA WPSR Wednesdays for the week ended Friday; retail fuel prices Mondays.",
@@ -68,8 +68,8 @@
         },
         "gasoline": {
           "status": "ok",
-          "latest": "2026-09-28",
-          "age_days": 8,
+          "latest": "2026-10-05",
+          "age_days": 1,
           "max_age_days": 12
         }
       }
@@ -118,8 +118,8 @@
     },
     "equities.json": {
       "status": "ok",
-      "latest": "2026-10-05",
-      "age_days": 1,
+      "latest": "2026-10-06",
+      "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily index closes.",
@@ -275,8 +275,8 @@
         },
         "ism_services.business_activity": {
           "status": "ok",
-          "latest": "2026-08-31",
-          "age_days": 36,
+          "latest": "2026-09-30",
+          "age_days": 6,
           "max_age_days": 48
         }
       }

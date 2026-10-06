@@ -1,6 +1,19 @@
 {
  "releases": [
   {
+   "id": "ism_svc",
+   "name": "ISM Services",
+   "period": "Sep 2026",
+   "period_key": [
+    2026,
+    9
+   ],
+   "value": "54.9",
+   "url": "/industry/surveys/#cIndSurveysIsmSvc",
+   "where": "Growth › Business Surveys",
+   "seen": "2026-10-06"
+  },
+  {
    "id": "jobs",
    "name": "Jobs Report",
    "period": "Sep 2026",
@@ -233,19 +246,6 @@
    "url": "/industry/surveys/#cIndSurveysNfibOptimism",
    "where": "Growth › Business Surveys",
    "seen": "2026-09-08"
-  },
-  {
-   "id": "ism_svc",
-   "name": "ISM Services",
-   "period": "Aug 2026",
-   "period_key": [
-    2026,
-    8
-   ],
-   "value": "55.4",
-   "url": "/industry/surveys/#cIndSurveysIsmSvc",
-   "where": "Growth › Business Surveys",
-   "seen": "2026-09-03"
   },
   {
    "id": "gdp",
