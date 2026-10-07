@@ -10,7 +10,7 @@ var CON_SECTORS = ['#B3A369','#64CCC9','#E04F39','#3A5DAE','#A4D233','#5F249F',
 function conQlab(s){ var m=/(\d{4})Q(\d)/.exec(s); return m ? ("Q"+m[2]+" '"+m[1].slice(2)) : s; }
 function conAlign(basis, series){ var mp={}; (series||[]).forEach(function(r){mp[r[0]]=r[1];}); return basis.map(function(r){return mp[r[0]]==null?null:mp[r[0]];}); }
 function conFmtB(v){ return v==null?'n/a':'$'+Math.round(v)+'B'; }
-function conFmtT(v){ return v==null?'n/a':'$'+v.toFixed(1)+'T'; }
+function conFmtT(v){ return v==null?'n/a':'$'+v.toFixed(Math.abs(v)<10?2:1)+'T'; }   // 2 decimals below $10T (revolving ~$1.2T), else 1
 
 /* ---------------- Retail & Consumer Confidence ---------------- */
 window.EG_PAGES['retail-confidence'] = function (data, EG) {
