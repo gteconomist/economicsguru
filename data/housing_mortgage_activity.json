@@ -15348,9 +15348,9 @@
     ]
   ],
   "mba_latest_week": "2026-10-02",
-  "mba_refi_share": 37.0,
+  "mba_refi_share": 38.3,
   "mba_arm_share": 10.3,
-  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/10/07/mortgage-applications-decrease-in-latest-mba-weekly-survey",
+  "mba_latest_source": "https://www.redbooklumberdata.com/2026/09/30/mortgage-applications-decrease-in-latest-mba-weekly-survey-68",
   "mortgage_30y": [
     [
       "1971-04-02",
@@ -26939,6 +26939,10 @@
     [
       "2026-10-01",
       7.28
+    ],
+    [
+      "2026-10-08",
+      7.4
     ]
   ],
   "mortgage_15y": [
@@ -34269,6 +34273,10 @@
     [
       "2026-10-01",
       6.6
+    ],
+    [
+      "2026-10-08",
+      6.73
     ]
   ],
   "treasury_10y": [
@@ -45859,6 +45867,10 @@
     [
       "2026-10-01",
       5.24
+    ],
+    [
+      "2026-10-08",
+      5.28
     ]
   ],
   "spread_30y_10y": [
@@ -57449,6 +57461,10 @@
     [
       "2026-10-01",
       2.04
+    ],
+    [
+      "2026-10-08",
+      2.12
     ]
   ],
   "mortgage_30y_m": [
@@ -60118,7 +60134,7 @@
     ],
     [
       "2026-10-01",
-      7.28
+      7.34
     ]
   ],
   "eff_rate_outstanding": [
@@ -68509,19 +68525,19 @@
   ],
   "kpis": {
     "mortgage_30y": {
-      "value": 7.28,
-      "delta": 0.25,
-      "label": "2026-10-01"
+      "value": 7.4,
+      "delta": 0.12,
+      "label": "2026-10-08"
     },
     "mortgage_15y": {
-      "value": 6.6,
-      "delta": 0.18,
-      "label": "2026-10-01"
+      "value": 6.73,
+      "delta": 0.13,
+      "label": "2026-10-08"
     },
     "spread_30y_10y": {
-      "value": 2.04,
-      "delta": 0.05,
-      "label": "2026-10-01"
+      "value": 2.12,
+      "delta": 0.08,
+      "label": "2026-10-08"
     },
     "purchase_index": {
       "value": 145.1,
@@ -68534,14 +68550,14 @@
       "label": "2026-10-02"
     },
     "refi_share": {
-      "value": 37.0,
+      "value": 38.3,
       "delta": null,
-      "label": "2026-10-02"
+      "label": "2026-09-25"
     },
     "arm_share": {
       "value": 10.3,
       "delta": null,
-      "label": "2026-10-02"
+      "label": "2026-09-25"
     },
     "delinquency_rate": {
       "value": 1.86,
@@ -68565,7 +68581,7 @@
     }
   },
   "latest_label": "2026-10-02",
-  "build_time": "2026-10-08T12:03:45Z",
+  "build_time": "2026-10-08T18:06:24Z",
   "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
