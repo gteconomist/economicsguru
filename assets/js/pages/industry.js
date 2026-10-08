@@ -100,10 +100,9 @@ window.EG_PAGES.manufacturing = function (data, EG) {
     ]}, options:indHideZero(EG.singleOpts(EG.fmtPct1s)) });
 
     // 5b. Core capital goods LEVELS — shipments vs. new orders, $ millions SA.
-    // Full history (1992-) regardless of the range toggle, with NBER recession
-    // shading, so the capex trend is visible; the MoM bars above cover the short view.
+    // Follows the range toggle (history back to 1992 on "max"); NBER recession shading.
     var cc = data.core_capital_goods || {};
-    var ccs = cc.shipments_level || [];
+    var ccs = EG.tail(cc.shipments_level || [], n);
     var ccDates = ccs.map(function(r){ return r[0]; });
     var ccBn = function(v){ return v==null?'n/a':'$'+(v/1000).toFixed(v>=100000?0:1)+'B'; };   // $ millions -> $B
     var o5b = EG.singleOpts(ccBn);
