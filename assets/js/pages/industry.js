@@ -99,6 +99,20 @@ window.EG_PAGES.manufacturing = function (data, EG) {
       indZero(lab5)
     ]}, options:indHideZero(EG.singleOpts(EG.fmtPct1s)) });
 
+    // 5b. Core capital goods LEVELS — shipments vs. new orders, $ millions SA.
+    // Full history (1992-) regardless of the range toggle, with NBER recession
+    // shading, so the capex trend is visible; the MoM bars above cover the short view.
+    var cc = data.core_capital_goods || {};
+    var ccs = cc.shipments_level || [];
+    var ccDates = ccs.map(function(r){ return r[0]; });
+    var ccBn = function(v){ return v==null?'n/a':'$'+(v/1000).toFixed(v>=100000?0:1)+'B'; };   // $ millions -> $B
+    var o5b = EG.singleOpts(ccBn);
+    o5b.plugins.politicalShading = { regions:(data.recessions||[]).map(function(t){ return {start:t[0], end:t[1], color:'rgba(255,255,255,1)', alpha:0.16}; }), origDates:ccDates };
+    EG.newChart('cIndMfgCoreCapexLevels', { type:'line', data:{ labels:ccs.map(function(r){return EG.lab(r[0]);}), datasets:[
+      EG.line(ccs.map(function(r){return r[1];}), GOLD, { label:'Shipments', borderWidth:2.4, tension:.15 }),
+      EG.line(indAlign(ccs, cc.new_orders_level), ELEC, { label:'New orders', borderWidth:2.0, tension:.15, spanGaps:true })
+    ]}, options:o5b });
+
     // 6. Advance durable goods — MoM bars; 5 on left, Defense on right at fixed 3:1
     var adt = EG.tail(ad.total_mom || [], n);
     var lab6 = adt.map(function(r){ return EG.lab(r[0]); });

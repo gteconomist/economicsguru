@@ -33,6 +33,7 @@ Computed series
 - ip_mfg_mom / ip_mfg_ex_mv_mom percent changes from IPMAN / IPXXX001S
 - factory_orders M-M%           from AMTMNO / AMXTNO / ADXTNO levels
 - capital_goods_shipments M-M%  from ATCGVS / ANDEVS / ANXAVS levels
+- core_capital_goods LEVELS     ANXAVS shipments + NEWORDER orders ($ millions, SA)
 - electricity 12-month MA       trailing 12-month average of monthly NSA gen
 
 Output
@@ -64,6 +65,14 @@ FRED_BASE = "https://api.stlouisfed.org/fred/series/observations"
 EIA_BASE  = "https://api.eia.gov/v2/electricity/electric-power-operational-data/data/"
 
 HISTORY_START = "1990-01-01"
+
+# NBER-dated US recessions (gray shading on the core capital goods levels chart).
+RECESSIONS = [
+    ["1990-07", "1991-03"],
+    ["2001-03", "2001-11"],
+    ["2007-12", "2009-06"],
+    ["2020-02", "2020-04"],
+]
 DEFAULT_UA    = "Mozilla/5.0 (compatible; economicsguru.com data refresh; +https://economicsguru.com/about/)"
 
 
@@ -328,6 +337,12 @@ def main():
     sh_ndef  = pct_change_mom(fred_data.get("ANDEVS", []))
     sh_nx    = pct_change_mom(fred_data.get("ANXAVS", []))
 
+    # ----- Core capital goods LEVELS ($ millions, SA) — shipments vs. new orders -----
+    # Same two series as the MoM charts, but as dollar levels so the capex
+    # trend is visible (the Moody's-style "Value of Shipments" view).
+    cc_ship_lvl  = fred_data.get("ANXAVS",   [])
+    cc_order_lvl = fred_data.get("NEWORDER", [])
+
     # ----- Advance Durable Goods - New Orders (Census M3 advance report) -----
     # Six M-M% series in the display order of the advance report. Five share
     # the left axis; Defense (ADEFNO) is far more volatile and is plotted on a
@@ -401,6 +416,13 @@ def main():
             "nondef_capital_mom":         to_label_pairs(sh_ndef, decimals=2),
             "nondef_capital_ex_air_mom":  to_label_pairs(sh_nx,   decimals=2),
         },
+
+        # Core capital goods (nondefense ex aircraft) — LEVELS, $ millions SA
+        "core_capital_goods": {
+            "shipments_level":  to_label_pairs(cc_ship_lvl,  decimals=0),
+            "new_orders_level": to_label_pairs(cc_order_lvl, decimals=0),
+        },
+        "recessions": RECESSIONS,
 
         # Advance Durable Goods - New Orders (Census M3 advance report), M-M%.
         # Display order matches the report; Defense plotted on a right axis.
