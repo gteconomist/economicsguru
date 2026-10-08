@@ -74,6 +74,40 @@ window.EG = (function () {
         var txt = [];
         for(i=0;i<n;i++){ var L = ticks[i].label; if(L == null) L = '';
           txt.push(Array.isArray(L) ? L.join(' ') : String(L)); }
+        // Daily/weekly series carry full-date labels ('Oct 7, 2026') for hover + CSV.
+        // On the axis, show 'Mon YY' at the first point of each month only, then
+        // thin those month marks exactly as a monthly axis would.
+        if(FULL_RE.test(txt[n-1]) && FULL_RE.test(txt[0])){
+          var cand = [], lastKey = null;
+          for(i=0;i<n;i++){ var k = FULL_RE.exec(txt[i]); if(!k){ ticks[i].label=''; continue; }
+            var key = k[3]+'-'+k[1];
+            if(key !== lastKey && i > 0){ cand.push(i); }   // i>0: a partial first month gets no label
+            lastKey = key; ticks[i].label = ''; }
+          if(!cand.length) cand.push(n-1);
+          var mtxt = cand.map(function(ci){ return labMonth(txt[ci]); });
+          var cx = scale.ctx, pf = cx.font, mw = 0;
+          cx.font = (f && f.weight ? f.weight+' ' : '') + size + 'px ' +
+                    ((f && f.family) || Chart.defaults.font.family || 'sans-serif');
+          for(i=0;i<mtxt.length;i++){ var mm = cx.measureText(mtxt[i]).width; if(mm > mw) mw = mm; }
+          cx.font = pf;
+          var cn = cand.length, mstride = 1;
+          if(cn * (mw + Math.max(5, size*0.6)) > avail){
+            if(cn <= FIT_MAX && f && typeof f.size === 'number'){
+              var mfit = Math.floor((avail / (cn * (mw/size + 0.55))) * 2) / 2;
+              if(mfit > size) mfit = size;
+              if(mfit >= MIN_FONT){ f.size = mfit; }
+              else mstride = 0;
+            } else mstride = 0;
+            if(!mstride){
+              var mbudget = Math.max(2, Math.floor(avail / (mw*1.9)));
+              var mneed = Math.ceil(cn / mbudget);
+              for(i=0;i<STRIDES_M.length;i++){ if(STRIDES_M[i] >= mneed){ mstride = STRIDES_M[i]; break; } }
+              if(!mstride) mstride = mneed;
+            }
+          }
+          for(i = cn-1; i >= 0; i -= mstride) ticks[cand[i]].label = mtxt[i];   // newest month first
+          return;
+        }
         var ctx = scale.ctx, prev = ctx.font, wide = 0;
         ctx.font = (f && f.weight ? f.weight+' ' : '') + size + 'px ' +
                    ((f && f.family) || Chart.defaults.font.family || 'sans-serif');
@@ -144,7 +178,28 @@ window.EG = (function () {
   }
 
   // ---- formatting / data helpers ----
-  function lab(s){ var p=String(s).split('-'); return new Date(p[0], (p[1]||1)-1).toLocaleString('en-US',{month:'short',year:'2-digit'}); }
+  // 'YYYY-MM' -> 'Oct 26'. 'YYYY-MM-DD' -> 'Oct 7, 2026' so hover titles and the CSV
+  // export carry the exact date for daily/weekly series. newChart() collapses the
+  // full-date form back to 'Oct 26' when the series turns out to be monthly or
+  // coarser (FRED-style '-01' months, quarter-end dates), and anchorXTicks draws
+  // full-date axes as 'Mon YY' at month boundaries, so the axis itself never changes.
+  var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var FULL_RE = /^([A-Z][a-z]{2}) (\d{1,2}), (\d{4})$/;
+  function lab(s){ var p=String(s).split('-'); var y=+p[0], m=(+p[1]||1)-1;
+    if(p.length>=3 && p[2]!=='' && !isNaN(+p[2])) return MON[m]+' '+(+p[2])+', '+y;
+    return MON[m]+' '+String(y).slice(-2); }
+  function labMonth(s){ var k=FULL_RE.exec(s); return k ? k[1]+' '+k[3].slice(-2) : s; }
+  function labDate(s){ var k=FULL_RE.exec(s); return k ? new Date(+k[3], MON.indexOf(k[1]), +k[2]) : null; }
+  // If every label is a full date but consecutive points are >= 27 days apart, the
+  // series is monthly/quarterly/annual: show 'Mon YY' as before.
+  function collapseMonthly(labels){
+    if(!Array.isArray(labels) || labels.length < 2) return labels;
+    var i, prev=null, minGap=Infinity;
+    for(i=0;i<labels.length;i++){ var d=labDate(labels[i]); if(!d) return labels;
+      if(prev){ var g=(d-prev)/864e5; if(g<minGap) minGap=g; } prev=d; }
+    if(minGap < 27) return labels;
+    return labels.map(labMonth);
+  }
   function tail(a,n){ return n>=a.length ? a.slice() : a.slice(-n); }
   function pd(s){ return new Date(s.length===7 ? s+'-01' : s); }   // parse 'YYYY-MM' or 'YYYY-MM-DD'
   // date-window filter (for weekly/daily/quarterly series where point-count tailing is wrong)
@@ -163,6 +218,7 @@ window.EG = (function () {
   function reset(){ charts.forEach(function(c){c.destroy();}); charts.length = 0; }
   function newChart(id, cfg, meta){
     var el = document.getElementById(id); if(!el) return null;
+    if(cfg && cfg.data && cfg.data.labels) cfg.data.labels = collapseMonthly(cfg.data.labels);
     var c = new Chart(el, cfg);
     if(meta){ c.$pct = meta.pct; c.$y1 = meta.y1; }
     charts.push(c); return c;
