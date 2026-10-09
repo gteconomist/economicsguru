@@ -50,6 +50,16 @@ window.EG_CHART_REGISTRY = {
           ]
         },
         {
+          key:'ip-index', canvas:'cIndMfgIpIndex',
+          title:'Industrial Production — Index Level',
+          subtitle:'Index 2017=100, SA — total industrial production and manufacturing',
+          source:'Source: Federal Reserve G.17 — INDPRO (total) and IPMAN (manufacturing, NAICS).',
+          series:[
+            {key:'ip_index_total', label:'Total industrial production'},
+            {key:'ip_index_mfg', label:'Manufacturing'}
+          ]
+        },
+        {
           key:'cap-util', canvas:'cIndMfgCapUtil',
           title:'Capacity Utilization',
           subtitle:'Percent of potential output in use, SA — lower = more slack',
@@ -71,6 +81,16 @@ window.EG_CHART_REGISTRY = {
             {key:'fo_core_durable', label:'Core durable goods'},
             {key:'fo_nondurable',   label:'Nondurable goods'},
             {key:'fo_core_capex',   label:'Core capex'}
+          ]
+        },
+        {
+          key:'core-capex-levels', canvas:'cIndMfgCoreCapexLevels',
+          title:'Core Capital Goods — Shipments vs. New Orders',
+          subtitle:'Nondefense capital goods excluding aircraft, value of shipments and new orders, $ billions, SA — data since 1992; gray bands = NBER recessions',
+          source:'Source: U.S. Census Bureau M3 via FRED — ANXAVS (shipments), NEWORDER (new orders). Orders lead shipments by roughly 1–3 months.',
+          series:[
+            {key:'cc_shipments', label:'Shipments'},
+            {key:'cc_new_orders', label:'New orders'}
           ]
         },
         {
@@ -283,6 +303,19 @@ window.EG_CHART_REGISTRY = {
           ]
         },
         {
+          key:'components-detail', canvas:'cComp2',
+          title:'CPI Component Detail',
+          subtitle:'Year-over-year percent change',
+          source:'Source: BLS — SAM2, SAM1, SETE, SAS4, SAA. Medical care services and transportation services are both components of Services; motor vehicle insurance is a component of transportation services.',
+          series:[
+            {key:'med_services', label:'Medical care services'},
+            {key:'med_commodities', label:'Medical care commodities'},
+            {key:'motor_ins', label:'Motor vehicle insurance'},
+            {key:'transport_svcs', label:'Transportation services'},
+            {key:'apparel', label:'Apparel'}
+          ]
+        },
+        {
           key:'energy', canvas:'cEnergy',
           title:'Energy Prices, Indexed',
           subtitle:'Start of selected range = 100',
@@ -290,6 +323,16 @@ window.EG_CHART_REGISTRY = {
           series:[
             {key:'gas',        label:'Gasoline'},
             {key:'energy_all', label:'Energy (all)'}
+          ]
+        },
+        {
+          key:'vintage', canvas:'cVintage',
+          title:'CPI: 1970s vs. Now',
+          subtitle:'Year-over-year percent change, aligned on a shared elapsed-time axis',
+          source:'Source: BLS — CUUR0000SA0. Teal: Jan 1971 – 1983. Gold: Aug 2018 – present, aligned to start at the Jan-1971 x position. Gray bands: NBER recessions (1973–75, 1980, 1981–82).',
+          series:[
+            {key:'cpi_1970s', label:'CPI (1971 – 1983)'},
+            {key:'cpi_now', label:'CPI (2018 – Current)'}
           ]
         }
       ]
@@ -479,6 +522,16 @@ window.EG_CHART_REGISTRY = {
             {key:'mortgage',    label:'Mortgages'},
             {key:'auto',        label:'Auto loans'},
             {key:'student',     label:'Student loans'}
+          ]
+        },
+        {
+          key:'cis-auto-abs', canvas:'cCsAutoAbs',
+          title:'Auto Loan Delinquencies — 60+ Days, Prime vs. Subprime',
+          subtitle:'% of securitized auto-loan balances 60+ days past due, monthly since 1994 — Fitch U.S. Auto ABS indices',
+          source:'Source: Fitch Ratings — U.S. Auto ABS 60+ day delinquency indices (prime and subprime). Subprime = loans securitized in subprime ABS pools (roughly FICO below 640).',
+          series:[
+            {key:'subprime', label:'Subprime 60+ days'},
+            {key:'prime', label:'Prime 60+ days'}
           ]
         }
       ]
@@ -697,6 +750,25 @@ window.EG_CHART_REGISTRY = {
           subtitle:'Total public debt ÷ nominal GDP, %, quarterly',
           source:'Source: Federal Reserve via FRED — GFDEGDQ188S.',
           series:[ {key:'debt_to_gdp', label:'Federal debt / nominal GDP (%)'} ]
+        },
+        {
+          key:'wealth-debt-ratio', canvas:'cGovWealthRatio',
+          title:'Top-10% Household Assets per $1 of Federal Debt',
+          subtitle:'Total assets of the top 10% of households by wealth ÷ total public debt, quarterly — gray bands = NBER recessions',
+          source:'Source: Federal Reserve Distributional Financial Accounts (WFRBLN09027 + WFRBLT01000) and U.S. Treasury (GFDEBTN) via FRED; ratio derived in-house.',
+          series:[]
+        },
+        {
+          key:'wealth-debt-levels', canvas:'cGovWealthLevels',
+          title:'Top-10% Household Assets vs. Federal Debt',
+          subtitle:'Total assets of the top 10% (with its two components) and total public debt, $ trillions, quarterly',
+          source:'Source: Federal Reserve Distributional Financial Accounts (WFRBLN09027 + WFRBLT01000) and U.S. Treasury (GFDEBTN) via FRED.',
+          series:[
+            {key:'top10', label:'Top 10% total assets'},
+            {key:'p90_99', label:'of which: 90th–99th percentiles'},
+            {key:'top1', label:'of which: top 1%'},
+            {key:'fed_debt', label:'Federal debt (total public debt)'}
+          ]
         }
       ]
     },
@@ -928,6 +1000,28 @@ window.EG_CHART_REGISTRY = {
           ]
         },
         {
+          key:'ps-completions', canvas:'cPsCompletions',
+          title:'Housing Completions',
+          subtitle:'Privately-owned units completed — SAAR; total, single- and multi-family',
+          source:'Source: US Census Bureau, Survey of Construction via FRED — COMPUTSA, COMPU1USA; multi-family derived as total minus single-family. History from January 1968.',
+          series:[
+            {key:'comp_total', label:'Total completions'},
+            {key:'comp_sf', label:'Single-family'},
+            {key:'comp_mf', label:'Multi-family (2+ units)'}
+          ]
+        },
+        {
+          key:'ps-starts-vs-comp', canvas:'cPsStartsVsComp',
+          title:'Starts vs. Completions',
+          subtitle:'Total SAAR (left) and the pipeline gap, starts minus completions (right)',
+          source:'Source: US Census Bureau via FRED — HOUST and COMPUTSA. A positive gap means units are accumulating in the under-construction backlog; negative means the backlog is draining.',
+          series:[
+            {key:'starts', label:'Total starts (left)'},
+            {key:'completions', label:'Total completions (left)'},
+            {key:'gap', label:'Pipeline gap: starts − completions (right)'}
+          ]
+        },
+        {
           key:'ps-permits-vs-starts', canvas:'cPsPvsS',
           title:'Permits vs. Starts',
           subtitle:'Total SAAR — permits lead starts by ~1 month',
@@ -1031,6 +1125,58 @@ window.EG_CHART_REGISTRY = {
       ]
     },
     {
+      topic: 'housing-rents',
+      label: 'Housing · Rents',
+      embed: '/housing/rents/embed/',
+      data:  '/data/housing_rents.json',
+      module:'rents',
+      charts: [
+        {
+          key:'rent-yoy', canvas:'cRentYoy',
+          title:'Apartment Rents — Year-over-Year % Change',
+          subtitle:'Apartment List national rent estimate, NSA; CPI rent of primary residence for comparison',
+          source:'Sources: Apartment List, Inc. — Historic Rent Estimates (new-lease asking rents, all bedroom sizes); BLS via FRED — CUSR0000SEHA. Market rents typically lead CPI rent by about a year.',
+          series:[
+            {key:'al_us_yoy', label:'Apartment List national rent YoY'},
+            {key:'cpi_rent_yoy', label:'CPI rent of primary residence YoY'}
+          ]
+        },
+        {
+          key:'rent-measures', canvas:'cRentMeasures',
+          title:'Three Measures of Rent Inflation',
+          subtitle:'Year-over-year % change',
+          source:'Sources: Apartment List (apartments, NSA); Zillow Observed Rent Index (all rental types incl. single-family, smoothed, SA); BLS CPI rent of primary residence (SA). Each is published on its own schedule, so the latest month differs.',
+          series:[
+            {key:'apartment_list', label:'Apartment List (new leases)'},
+            {key:'zori', label:'Zillow ZORI (asking rents)'},
+            {key:'cpi_rent', label:'CPI rent of primary residence'}
+          ]
+        },
+        {
+          key:'rent-level', canvas:'cRentLevel',
+          title:'Median Apartment Rent',
+          subtitle:'Dollars per month, NSA — U.S., Atlanta metro, Georgia',
+          source:'Source: Apartment List, Inc. — Historic Rent Estimates (Atlanta–Sandy Springs–Alpharetta MSA).',
+          series:[
+            {key:'us', label:'United States'},
+            {key:'atl', label:'Atlanta metro'},
+            {key:'ga', label:'Georgia'}
+          ]
+        },
+        {
+          key:'rent-yoy-metro', canvas:'cRentYoyAtl',
+          title:'Rent Growth — U.S. vs. Atlanta vs. Georgia',
+          subtitle:'Year-over-year % change, NSA',
+          source:'Source: Apartment List, Inc. — Historic Rent Estimates.',
+          series:[
+            {key:'us', label:'United States'},
+            {key:'atl', label:'Atlanta metro'},
+            {key:'ga', label:'Georgia'}
+          ]
+        }
+      ]
+    },
+    {
       topic: 'labor',
       label: 'Labor',
       embed: '/labor/embed/',
@@ -1073,6 +1219,31 @@ window.EG_CHART_REGISTRY = {
           series:[ {key:'pay_3mma', label:'3-mo avg'} ]
         },
         {
+          key:'lab-health-share', canvas:'cJobsSectorShare',
+          title:'Health Care\'s Share of Job Growth',
+          subtitle:'Share of the 12-month change in nonfarm payrolls; latest month',
+          source:'Source: BLS CES — CES6562000001 (health care & social assistance) vs. CES0000000001 (total nonfarm), SA. When the other sectors net out negative, health care\'s share exceeds 100% and the chart shows 100%.',
+          series:[]
+        },
+        {
+          key:'lab-sectors', canvas:'cJobsSectors',
+          title:'Job Growth by Sector — Last 12 Months',
+          subtitle:'Change in payroll employment, thousands, SA; latest month vs. a year earlier',
+          source:'Source: BLS CES supersectors (Table B-1), seasonally adjusted.',
+          series:[]
+        },
+        {
+          key:'lab-jobs-12m', canvas:'cJobs12m',
+          title:'12-Month Job Growth — Health Care vs. Everything Else',
+          subtitle:'Change in payroll employment over the prior 12 months, thousands, SA',
+          source:'Source: BLS CES — CES0000000001 (total), CES6562000001 (health care & social assistance); "all other" = total minus health care.',
+          series:[
+            {key:'total', label:'Total nonfarm'},
+            {key:'health', label:'Health care & social assistance'},
+            {key:'other', label:'All other sectors'}
+          ]
+        },
+        {
           key:'lab-wages', canvas:'cWages',
           title:'Wages & Hours',
           subtitle:'Total private; AHE YoY (left) and avg weekly hours (right)',
@@ -1081,6 +1252,13 @@ window.EG_CHART_REGISTRY = {
             {key:'ahe_yoy', label:'Avg hourly earnings YoY'},
             {key:'hours',   label:'Avg weekly hours'}
           ]
+        },
+        {
+          key:'lab-real-wages', canvas:'cRealWages',
+          title:'Real Wage Growth',
+          subtitle:'Avg hourly earnings in 1982-84 dollars; year-over-year percent change, SA',
+          source:'Source: BLS CES — CES0500000013 (AHE deflated by CPI-U). Published with the CPI release, about a week after the jobs report.',
+          series:[]
         },
         {
           key:'lab-ft-pt', canvas:'cFtPt',
@@ -1135,6 +1313,16 @@ window.EG_CHART_REGISTRY = {
             {key:'openings', label:'Openings'},
             {key:'hires',    label:'Hires'},
             {key:'quits',    label:'Quits'}
+          ]
+        },
+        {
+          key:'lab-challenger', canvas:'cChallenger',
+          title:'Announced Job Cuts',
+          subtitle:'U.S. employers\' announced cuts, NSA monthly, with the 3-month average — announcements are intentions, and lead actual separations',
+          source:'Source: Challenger, Gray & Christmas, Inc. — Job Cut Report.',
+          series:[
+            {key:'cuts', label:'Announced cuts'},
+            {key:'cuts_3mma', label:'3-month average'}
           ]
         }
       ]
