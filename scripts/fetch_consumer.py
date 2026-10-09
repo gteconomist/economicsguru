@@ -48,6 +48,7 @@ UMICH_CSV      = HISTORICAL_DIR / "umich_sentiment.csv"
 CB_CSV         = HISTORICAL_DIR / "conference_board.csv"
 NYFED_DEBT_CSV = HISTORICAL_DIR / "nyfed_household_debt.csv"
 NYFED_DELQ_CSV = HISTORICAL_DIR / "nyfed_delinquency.csv"
+FITCH_ABS_CSV  = HISTORICAL_DIR / "fitch_auto_abs_delinquency.csv"   # Fitch U.S. Auto ABS 60+ day DQ, % (prime/subprime), monthly 1994+; appended by fetch_fitch_auto_abs.py
 
 START_YEAR = dt.date.today().year - 25
 UA = "economicsguru.com data refresh"
@@ -912,6 +913,9 @@ def main():
     delq_cols = ["credit_card", "mortgage", "auto", "student"]
     delq = _read_quarterly_csv(NYFED_DELQ_CSV, delq_cols)
 
+    print(f"Reading Fitch auto ABS delinquency from {FITCH_ABS_CSV}...", flush=True)
+    auto_abs = _read_csv_series(FITCH_ABS_CSV, ["prime", "subprime"])
+
     saving_rate_kpi   = _kpi_from_series(saving_rate, dp=1)
     ip_kpi            = _kpi_from_series(interest_payments, dp=1)
     revolving_kpi     = _kpi_from_series(revolsl, dp=1)
@@ -920,6 +924,10 @@ def main():
                          if debt_total else
                          {"value": None, "delta": None, "label": None,
                           "note": "Add data to data/historical/nyfed_household_debt.csv"})
+    auto_abs_sub_kpi  = (_kpi_from_series(auto_abs["subprime"], dp=2)
+                         if auto_abs["subprime"] else
+                         {"value": None, "delta": None, "label": None,
+                          "note": "Add data to data/historical/fitch_auto_abs_delinquency.csv"})
     delq_cc_kpi       = (_kpi_from_series(delq["credit_card"], dp=1)
                          if delq["credit_card"] else
                          {"value": None, "delta": None, "label": None,
@@ -940,6 +948,7 @@ def main():
         "revolving_yoy":    revolving_yoy_kpi,
         "debt_total":       debt_total_kpi,
         "delq_credit_card": delq_cc_kpi,
+        "auto_abs_subprime": auto_abs_sub_kpi,
     }
 
     latest_label   = retail_total_mom[-1][0] if retail_total_mom else None
@@ -990,6 +999,10 @@ def main():
             "auto":        delq["auto"],
             "student":     delq["student"],
         },
+        "auto_abs": {                      # Fitch U.S. Auto ABS 60+ day delinquency indices, % of balances, monthly
+            "prime":    auto_abs["prime"],
+            "subprime": auto_abs["subprime"],
+        },
         "umich_components_loaded":    bool(umich_expect and umich_current),
         "cb_loaded":                  bool(cb_total),
         "umich_scrape_succeeded":     bool(umich_scraped),
@@ -1000,6 +1013,7 @@ def main():
         "nyfed_debt_loaded":          bool(debt_total),
         "nyfed_delinquency_loaded":   bool(delq["credit_card"] or delq["mortgage"]
                                             or delq["auto"] or delq["student"]),
+        "auto_abs_loaded":            bool(auto_abs["subprime"]),
     }
 
     notes = []
@@ -1041,6 +1055,7 @@ def main():
     print(f"  Revolving YoY:  {kpis['revolving_yoy']}", flush=True)
     print(f"  Debt total:     {kpis['debt_total']}", flush=True)
     print(f"  CC delq 90+:    {kpis['delq_credit_card']}", flush=True)
+    print(f"  Fitch subprime: {kpis['auto_abs_subprime']}", flush=True)
     print(f"  UMich:          {kpis['umich_sentiment']}", flush=True)
     print(f"  CB:             {kpis['cb_confidence']}", flush=True)
     print(f"  UMich scrape:   succeeded={payload['umich_scrape_succeeded']}, "

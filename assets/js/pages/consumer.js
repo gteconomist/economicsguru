@@ -175,6 +175,16 @@ window.EG_PAGES['income-spending-debt'] = function (data, EG) {
     EG.newChart('cCsDelinquency', { type:'line', data:{ labels:lab7, datasets: dq.map(function(s){
       return EG.line(conAlign(basis, delq[s[0]]), s[2], { label:s[1], borderWidth:2.2, spanGaps:false });
     }) }, options:EG.singleOpts(EG.fmtPct1) });
+
+    // 8. Fitch auto ABS 60+ day delinquencies -- prime vs subprime, monthly (%)
+    // Values are % of securitized balances; prime sits near 0.3% so a shared axis
+    // is deliberate -- the gap IS the chart.
+    var abs = data.auto_abs || {};
+    var sub = mt(abs.subprime);
+    EG.newChart('cCsAutoAbs', { type:'line', data:{ labels:sub.map(function(r){return EG.lab(r[0]);}), datasets:[
+      EG.line(sub.map(function(r){return r[1];}), ORANGE, { label:'Subprime 60+ days', borderWidth:2.4 }),
+      EG.line(conAlign(sub, abs.prime), GOLD, { label:'Prime 60+ days', borderWidth:2.4, spanGaps:false })
+    ]}, options:EG.singleOpts(EG.fmtPct2) });
   }
 
   return draw;
