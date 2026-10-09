@@ -36,6 +36,21 @@
     <div class="src">Source: BLS CES — CES0000000001 (3-month trailing average).</div>
   </div>
   <div class="card">
+    <div class="top"><div><div class="ct">Health Care's Share of Job Growth</div><div class="cs">Share of the 12-month change in nonfarm payrolls; latest month</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cJobsSectorShare"></canvas></div>
+    <div class="src">Source: BLS CES — CES6562000001 (health care &amp; social assistance) vs. CES0000000001 (total nonfarm), SA. When the other sectors net out negative, health care's share exceeds 100% and the chart shows 100%; see the KPI and the sector chart for the exact figures.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Job Growth by Sector — Last 12 Months</div><div class="cs">Change in payroll employment, thousands, SA; latest month vs. a year earlier</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cJobsSectors"></canvas></div>
+    <div class="src">Source: BLS CES supersectors (Table B-1), seasonally adjusted.</div>
+  </div>
+  <div class="card span2">
+    <div class="top"><div><div class="ct">12-Month Job Growth — Health Care vs. Everything Else</div><div class="cs">Change in payroll employment over the prior 12 months, thousands, SA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cJobs12m"></canvas></div>
+    <div class="src">Source: BLS CES — CES0000000001 (total), CES6562000001 (health care &amp; social assistance); "all other" = total minus health care.</div>
+  </div>
+  <div class="card">
     <div class="top"><div><div class="ct">Full-Time vs Part-Time Employment</div><div class="cs">Seasonally adjusted; start of selected range = 100</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
     <div class="plot"><canvas id="cFtPt"></canvas></div>
     <div class="src">Source: BLS CPS — LNS12500000 (FT), LNS12600000 (PT).</div>

@@ -421,3 +421,79 @@ window.EG_PAGES['mortgage-activity'] = function (data, EG) {
 
   return draw;
 };
+
+/* ---------------- Rents ---------------- */
+// Apartment List national/Georgia/Atlanta rent estimates (NSA, $/mo) with Zillow
+// ZORI and CPI rent of primary residence as companion measures. Data from
+// scripts/fetch_housing_rents.py -> data/housing_rents.json.
+window.EG_PAGES.rents = function (data, EG) {
+  var C = EG.T.series; // [gold, electric, orange, blue, lime, purple, yellow, teal]
+  var SILVER = 'rgba(255,255,255,.42)';
+
+  EG.renderKpis('kpis', [
+    { key:'rent_us',      label:'U.S. apartment rent', valueFmt:function(v){ return '$' + Math.round(v).toLocaleString() + '/mo'; }, deltaFmt:function(v){ return '$' + Math.round(v); }, neutral:true },
+    { key:'rent_us_yoy',  label:'Rent growth (YoY)',   unit:'%', decimals:1, deltaUnit:'pp', deltaDecimals:2, signed:true, goodDir:'down' },
+    { key:'rent_atl_yoy', label:'Atlanta rent (YoY)',  unit:'%', decimals:1, deltaUnit:'pp', deltaDecimals:2, signed:true, goodDir:'down' },
+    { key:'zori_us_yoy',  label:'Zillow ZORI (YoY)',   unit:'%', decimals:1, deltaUnit:'pp', deltaDecimals:2, signed:true, goodDir:'down' },
+    { key:'cpi_rent_yoy', label:'CPI rent (YoY)',      unit:'%', decimals:1, deltaUnit:'pp', deltaDecimals:2, signed:true, goodDir:'down' }
+  ], data.kpis);
+
+  function st(key, n){ return EG.tail(data[key] || [], n); }
+  function alignTo(basisRows, series){
+    var m = {}; (series || []).forEach(function(r){ m[r[0]] = r[1]; });
+    return basisRows.map(function(r){ return (m[r[0]] == null) ? null : m[r[0]]; });
+  }
+  function zeroLine(labels){
+    return { type:'line', label:'Zero', data:labels.map(function(){return 0;}), borderColor:SILVER,
+             borderWidth:1, pointRadius:0, borderDash:[4,4], fill:false };
+  }
+  function pctOpts(){
+    var o = EG.singleOpts(EG.fmtPct1s);
+    o.plugins.legend.labels.filter = function(it){ return it.text.indexOf('Zero') === -1; };
+    return o;
+  }
+
+  function draw(range){
+    var n = EG.months(range); EG.reset();
+
+    // 1. Apartment rent YoY — sign-colored bars, CPI rent (the lagging official
+    //    measure) as a dashed line on the same % axis
+    var y = st('rent_us_yoy', n);
+    var yv = y.map(function(r){ return r[1]; });
+    var labels1 = y.map(function(r){ return EG.lab(r[0]); });
+    EG.newChart('cRentYoy', { type:'bar', data:{ labels:labels1, datasets:[
+      { type:'bar', label:'Apartment List national rent YoY', data:yv, borderRadius:3, barPercentage:.95, categoryPercentage:.8,
+        backgroundColor: yv.map(function(v){ return v == null ? C[0] : (v < 0 ? C[2] : C[4]); }) },
+      EG.line(alignTo(y, data.cpi_rent_yoy), C[1], { label:'CPI rent of primary residence YoY (SA)', borderWidth:2, borderDash:[6,4], spanGaps:true }),
+      zeroLine(labels1)
+    ]}, options:pctOpts() });
+
+    // 2. Three measures of rent inflation — Apartment List, Zillow ZORI, CPI rent
+    var labels2 = labels1;
+    EG.newChart('cRentMeasures', { type:'line', data:{ labels:labels2, datasets:[
+      EG.line(yv, C[0], { label:'Apartment List (new leases, NSA)', borderWidth:2.5 }),
+      EG.line(alignTo(y, data.zori_us_yoy), C[4], { label:'Zillow ZORI (asking rents, SA)', borderWidth:2.2, spanGaps:true }),
+      EG.line(alignTo(y, data.cpi_rent_yoy), C[1], { label:'CPI rent of primary residence (all tenants, SA)', borderWidth:2.2, borderDash:[6,4], spanGaps:true }),
+      zeroLine(labels2)
+    ]}, options:pctOpts() });
+
+    // 3. Rent level — U.S. vs. Atlanta metro ($/mo)
+    var lv = st('rent_us', n);
+    EG.newChart('cRentLevel', { type:'line', data:{ labels:lv.map(function(r){return EG.lab(r[0]);}), datasets:[
+      EG.line(lv.map(function(r){return r[1];}), C[0], { label:'United States', borderWidth:2.5 }),
+      EG.line(alignTo(lv, data.rent_atl), C[1], { label:'Atlanta metro', borderWidth:2.2 }),
+      EG.line(alignTo(lv, data.rent_ga), C[3], { label:'Georgia', borderWidth:1.8, borderDash:[4,3] })
+    ]}, options:EG.singleOpts(function(v){ return v==null ? 'n/a' : '$' + Math.round(v).toLocaleString(); }) });
+
+    // 4. Rent YoY — U.S. vs. Atlanta metro vs. Georgia
+    var labels4 = labels1;
+    EG.newChart('cRentYoyAtl', { type:'line', data:{ labels:labels4, datasets:[
+      EG.line(yv, C[0], { label:'United States', borderWidth:2.5 }),
+      EG.line(alignTo(y, data.rent_atl_yoy), C[1], { label:'Atlanta metro', borderWidth:2.2 }),
+      EG.line(alignTo(y, data.rent_ga_yoy), C[3], { label:'Georgia', borderWidth:1.8, borderDash:[4,3] }),
+      zeroLine(labels4)
+    ]}, options:pctOpts() });
+  }
+
+  return draw;
+};

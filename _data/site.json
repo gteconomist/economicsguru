@@ -259,6 +259,28 @@
             "delinquency",
             "affordability"
           ]
+        },
+        {
+          "slug": "rents",
+          "title": "US Apartment Rents",
+          "nav": "Rents",
+          "subtitle": "Apartment rent levels and year-over-year growth for the U.S., Atlanta, and Georgia, with Zillow and CPI rent for comparison — sourced from Apartment List, Zillow, and BLS.",
+          "card": "Apartment rent growth — U.S., Atlanta, Georgia; Zillow ZORI and CPI rent. Source: Apartment List.",
+          "data": "/data/housing_rents.json",
+          "module": "housing",
+          "page": "rents",
+          "status": "new",
+          "keywords": [
+            "rent",
+            "rents",
+            "apartment",
+            "apartment list",
+            "zori",
+            "zillow",
+            "cpi rent",
+            "shelter",
+            "atlanta"
+          ]
         }
       ]
     },

@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Housing — Economics Guru</title>
-<meta name="description" content="Sales, permits &amp; starts, prices, mortgage activity.">
+<title>US Apartment Rents — Economics Guru</title>
+<meta name="description" content="Apartment rent levels and year-over-year growth for the U.S., Atlanta, and Georgia, with Zillow and CPI rent for comparison — sourced from Apartment List, Zillow, and BLS.">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,7 +27,42 @@
 </header>
 
 <main class="wrap">
-<div class="crumb"><a href="/">Home</a><span class="sep">/</span>Housing</div><div class="pagehead"><div><h1>Housing</h1><p class="sub">Sales, permits &amp; starts, prices, mortgage activity.</p></div></div><div class="hub-grid"><a class="hub-card" href="/housing/existing/"><div class="badge">7 charts</div><h3>US Existing Home Market</h3><p>Existing home sales, median price, inventory, Case-Shiller HPI, mortgage rate. Source: FRED.</p></a><a class="hub-card" href="/housing/new-homes/"><div class="badge">9 charts</div><h3>US New Home Market</h3><p>New home sales, median &amp; average price, inventory, regional sales, NAHB sentiment. Source: Census, FRED, NAHB.</p></a><a class="hub-card" href="/housing/permits-starts/"><div class="badge">10 charts</div><h3>US Building Permits &amp; Housing Starts</h3><p>Permits &amp; starts — total, single-family, multi-family, MoM by type, permits-to-starts ratio. Source: Census/FRED.</p></a><a class="hub-card" href="/housing/mortgage-activity/"><div class="badge">8 charts</div><h3>US Mortgage Activity</h3><p>MBA applications, 30Y/15Y rates, spread, the golden handcuff, delinquency, debt, affordability. Source: MBA, Freddie Mac, Fed, BEA.</p></a><a class="hub-card" href="/housing/rents/"><div class="badge">4 charts</div><h3>US Apartment Rents</h3><p>Apartment rent growth — U.S., Atlanta, Georgia; Zillow ZORI and CPI rent. Source: Apartment List.</p></a></div>
+<div class="crumb"><a href="/">Home</a><span class="sep">/</span><a href="/housing/">Housing</a><span class="sep">/</span>Rents</div><div class="pagehead"><div><h1>US Apartment Rents</h1><p class="sub">Apartment rent levels and year-over-year growth for the U.S., Atlanta, and Georgia, with Zillow and CPI rent for comparison — sourced from Apartment List, Zillow, and BLS.</p></div><div class="latest">Latest data &nbsp;<b id="latest">…</b></div></div><nav class="pills" aria-label="Housing pages"><a href="/housing/existing/">Existing</a><a href="/housing/new-homes/">New Homes</a><a href="/housing/permits-starts/">Permits &amp; Starts</a><a href="/housing/mortgage-activity/">Mortgage Activity</a><a href="/housing/rents/" class="active">Rents</a></nav><div class="notice" id="notice" style="display:none"><strong>Data note:</strong> <span id="notice-text"></span></div>
+
+<div id="kpis" class="kpis"></div>
+
+<div class="controls">
+  <div class="seg" id="range">
+    <button data-r="12m">12 mo</button>
+    <button data-r="5y" class="active">5 yr</button>
+    <button data-r="max">Max</button>
+  </div>
+  <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
+</div>
+
+<div class="grid">
+  <div class="card span2">
+    <div class="top"><div><div class="ct">Apartment Rents — Year-over-Year % Change</div><div class="cs">Apartment List national rent estimate, NSA; CPI rent of primary residence for comparison</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cRentYoy"></canvas></div>
+    <div class="src">Sources: Apartment List, Inc. — Historic Rent Estimates (new-lease asking rents, all bedroom sizes); BLS via FRED — CUSR0000SEHA. Market rents typically lead CPI rent by about a year.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Three Measures of Rent Inflation</div><div class="cs">Year-over-year % change</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cRentMeasures"></canvas></div>
+    <div class="src">Sources: Apartment List (apartments, NSA); Zillow Observed Rent Index (all rental types incl. single-family, smoothed, SA); BLS CPI rent of primary residence (SA). Each is published on its own schedule, so the latest month differs.</div>
+  </div>
+  <div class="card">
+    <div class="top"><div><div class="ct">Median Apartment Rent</div><div class="cs">Dollars per month, NSA — U.S., Atlanta metro, Georgia</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cRentLevel"></canvas></div>
+    <div class="src">Source: Apartment List, Inc. — Historic Rent Estimates (Atlanta–Sandy Springs–Alpharetta MSA).</div>
+  </div>
+  <div class="card span2">
+    <div class="top"><div><div class="ct">Rent Growth — U.S. vs. Atlanta vs. Georgia</div><div class="cs">Year-over-year % change, NSA</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="plot"><canvas id="cRentYoyAtl"></canvas></div>
+    <div class="src">Source: Apartment List, Inc. — Historic Rent Estimates.</div>
+  </div>
+</div>
+
 </main>
 
 <footer class="foot">
@@ -39,6 +74,9 @@
 
 <script src="/assets/js/nav.js" defer></script>
 <script>document.getElementById('yr').textContent = '2023-' + new Date().getFullYear();</script>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="/assets/js/chart-core.js"></script>
+<script src="/assets/js/pages/housing.js"></script>
+<script>EG.boot("/data/housing_rents.json", "rents");</script>
 </body>
 </html>

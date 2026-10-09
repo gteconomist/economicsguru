@@ -123,10 +123,7 @@ TOLERANCES = {
     "consumer.json":     dict(max_age_days=48,
                               note="Conference Board confidence prints the last Tuesday of the SAME month; UMich mid-month.",
                               watch={"debt.credit_card":        145,  # NY Fed HHDC, quarterly, ~6wk after quarter end
-                                     "delinquency.credit_card": 145,
-                                     # Fitch auto ABS 60+ DQ: monthly, but the public release is
-                                     # irregular and scraped best-effort; see fetch_fitch_auto_abs.py.
-                                     "auto_abs.subprime":       75}),
+                                     "delinquency.credit_card": 145}),
     # The EHIs do NOT follow the quarterly formula used elsewhere in this table.
     # They are released three times a year -- February, May and September -- so
     # the longest gap between releases is May->September, four months, not
@@ -140,6 +137,11 @@ TOLERANCES = {
                               note="NY Fed EHIs, released Feb/May/Sep; monthly data ~1 month behind at release. "
                                    "Longest inter-release gap is May->Sep (4 months)."),
     "housing_existing.json": dict(max_age_days=62, note="NAR existing-home sales ~day 22 (R~22)."),
+    # Apartment List publishes month M's estimate in the last week of M-1, so the
+    # newest observation is never more than ~5 weeks old; ZORI (mid-month) and CPI
+    # rent (~day 13) in the same file are older by design, hence the watch.
+    "housing_rents.json": dict(max_age_days=45, note="Apartment List monthly, ~day 25-30 of the PRIOR month.",
+                              watch={"rent_us": 45}),
     "housing_new.json":  dict(max_age_days=66,  note="Census new residential sales ~day 25 (R~25)."),
     "housing_permits.json": dict(max_age_days=58, note="Census permits/starts ~day 18 (R~18)."),
     "industry_manufacturing.json": dict(max_age_days=56, note="Fed G.17 industrial production ~day 16 (R~16)."),
@@ -327,10 +329,6 @@ SNOOZE_UNTIL = {
     # answer GitHub-runner connections (2026-09-16), so the series is frozen
     # at EIA's Feb-2026 monthly value until a different route is wired up.
     "energy.json:rigs_oil":  "2026-10-16",
-    # Fitch auto ABS 60+ DQ: baseline loaded 2026-10-09 ends at 2025-08 (Fitch
-    # restated the index in Jul-2026; the newer months need a fresh export or
-    # the scraper to catch them). Snoozed until a current series is in place.
-    "consumer.json:auto_abs.subprime":  "2026-12-31",
     # delinquency_rate (DRSFRMACBS) was NEVER stale -- it was a false alarm
     # from reading quarter-start dates as monthly. Fixed in _series_latest.
 }

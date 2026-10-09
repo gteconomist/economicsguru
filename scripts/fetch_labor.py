@@ -72,6 +72,30 @@ CPS_NSA_IDS = [
 JOLTS_IDS = ["JTS000000000000000JOL", "JTS000000000000000HIL", "JTS000000000000000QUL"]
 ALL_IDS = CES_IDS + CPS_SA_IDS + CPS_NSA_IDS + JOLTS_IDS
 
+# CES supersectors (SA, all employees, thousands) for the "where did the jobs
+# come from" charts: 12-month change by sector, and health care & social
+# assistance's share of net job growth. Fetched separately over a short window
+# so the main pull is untouched. Order = BLS Table B-1 order. IDs verified
+# against the live API 2026-10-09 (the 15 sum to CES0000000001).
+SECTOR_IDS = [
+    ("mining",       "CES1000000001", "Mining & logging"),
+    ("construction", "CES2000000001", "Construction"),
+    ("manuf",        "CES3000000001", "Manufacturing"),
+    ("wholesale",    "CES4142000001", "Wholesale trade"),
+    ("retail",       "CES4200000001", "Retail trade"),
+    ("transport",    "CES4300000001", "Transportation & warehousing"),
+    ("utilities",    "CES4422000001", "Utilities"),
+    ("info",         "CES5000000001", "Information"),
+    ("finance",      "CES5500000001", "Financial activities"),
+    ("profbus",      "CES6000000001", "Professional & business services"),
+    ("educ",         "CES6561000001", "Private education"),
+    ("health",       "CES6562000001", "Health care & social assistance"),
+    ("leisure",      "CES7000000001", "Leisure & hospitality"),
+    ("other",        "CES8000000001", "Other services"),
+    ("govt",         "CES9000000001", "Government"),
+]
+SECTOR_YEARS = 6   # enough history for a 5-year window of 12-month changes
+
 # Labor force participation rate by age — full history back to 1948.
 # BLS publishes SA participation rates for 16-19, 20-24, 25-54 and 55+ only;
 # the 55-64 and 65+ splits exist unadjusted only, so those two are shown as a
@@ -209,6 +233,52 @@ def diff_level(rows, decimals=0):
 
 def values(rows, decimals=2):
     return [[f"{y}-{m:02d}", round(v, decimals)] for (y, m, v) in rows]
+
+
+def diff_12m(rows, decimals=0):
+    """12-month change in level as [YYYY-MM, delta], for months with a prior-year match."""
+    by = {(y, m): v for (y, m, v) in rows}
+    return [
+        [f"{y}-{m:02d}", round(v - by[(y - 1, m)], decimals)]
+        for (y, m, v) in rows
+        if (y - 1, m) in by
+    ]
+
+
+def sector_breakdown(total_rows, sector_raw):
+    """Sector payload: latest 12-month change by supersector, health care's share
+    of net growth, and 12-month-change series for total / health / all other.
+    Returns {} on any problem so the page never depends on it."""
+    total_12m = diff_12m(total_rows)
+    if not total_12m:
+        return {}
+    month = total_12m[-1][0]
+    rows = []
+    for key, sid, label in SECTOR_IDS:
+        d = diff_12m(sector_raw.get(sid) or [])
+        if d and d[-1][0] == month:
+            rows.append({"key": key, "id": sid, "label": label, "change": d[-1][1]})
+    if len(rows) < len(SECTOR_IDS) - 1:
+        return {}
+    rows.sort(key=lambda r: r["change"], reverse=True)
+    total  = total_12m[-1][1]
+    health = next((r["change"] for r in rows if r["key"] == "health"), None)
+    # Share is undefined when net growth is <= 0; it can exceed 100% when the
+    # other sectors net out negative (true in Sept 2026: +520k vs +496k total).
+    share  = round(health / total * 100, 1) if (health is not None and total and total > 0) else None
+    hc_series = diff_12m(sector_raw.get("CES6562000001") or [])
+    hc_by = dict(hc_series)
+    ex_hc = [[d, round(v - hc_by[d], 0)] for d, v in total_12m if d in hc_by]
+    return {
+        "month":  month,
+        "total":  total,
+        "health": health,
+        "health_share_pct": share,
+        "rows":   rows,
+        "jobs_12m":           total_12m,
+        "health_jobs_12m":    hc_series,
+        "ex_health_jobs_12m": ex_hc,
+    }
 
 
 def _prev_month(y, m, back=1):
@@ -362,6 +432,16 @@ def main():
             for (y, m, v) in moving_avg(age_raw[sid], 12, min_obs=11)
         ]
 
+    # Payroll change by supersector: short separate pull, best-effort.
+    sectors = {}
+    try:
+        sector_raw = fetch_long([sid for _, sid, _ in SECTOR_IDS], today.year - SECTOR_YEARS, today.year)
+        sectors = sector_breakdown(raw["CES0000000001"], sector_raw)
+        if not sectors:
+            print("sector breakdown skipped: incomplete sector data", file=sys.stderr)
+    except Exception as e:
+        print(f"sector breakdown failed (non-fatal): {e}", file=sys.stderr)
+
     cps_latest   = "{}-{:02d}".format(*raw["LNS14000000"][-1][:2])
     ces_latest   = "{}-{:02d}".format(*raw["CES0000000001"][-1][:2])
     jolts_latest = "{}-{:02d}".format(*raw["JTS000000000000000JOL"][-1][:2])
@@ -391,6 +471,7 @@ def main():
         "jolts_hires":       jolts_hires,
         "jolts_quits":       jolts_quits,
         "challenger_layoffs": challenger,
+        "sectors":           sectors,
         "kpis": {
             "unemployment": kpi(unemployment_rate, unit="pp"),
             "u6":           kpi(u6_rate,           unit="pp"),
@@ -401,6 +482,9 @@ def main():
             "openings":     kpi(jolts_openings,    unit="k"),
             "quits":        kpi(jolts_quits,       unit="k"),
             "challenger":   kpi(challenger,      unit="k") if challenger else None,
+            "health_share": ({"value": sectors["health_share_pct"], "delta": 0, "unit": "pp",
+                              "label": sectors["month"]}
+                             if sectors.get("health_share_pct") is not None else None),
         },
         "latest_label":  cps_latest,
         "ces_latest":    ces_latest,

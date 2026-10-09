@@ -11,7 +11,7 @@ window.EG_PAGES.labor = function (data, EG) {
   // KPI strip follows the page: wage KPIs on Wages & Workforce, jobs KPIs elsewhere.
   var wagesPage = !!document.getElementById('cWages') && !document.getElementById('cPayrolls');
   var KPI_PAGE = wagesPage ? { ahe_yoy:1, real_ahe_yoy:1, lfp:1, quits:1 }
-                           : { unemployment:1, u6:1, payrolls:1, lfp:1, openings:1, challenger:1 };
+                           : { unemployment:1, u6:1, payrolls:1, lfp:1, openings:1, challenger:1, health_share:1 };
   EG.renderKpis('kpis', [
     { key:'unemployment', label:'Unemployment',  unit:'%', decimals:1, deltaUnit:'pp', deltaDecimals:1, goodDir:'down' },
     { key:'u6',           label:'U-6 Underemp.',  unit:'%', decimals:1, deltaUnit:'pp', deltaDecimals:1, goodDir:'down' },
@@ -21,7 +21,8 @@ window.EG_PAGES.labor = function (data, EG) {
     { key:'real_ahe_yoy', label:'Real wage growth',unit:'%', decimals:1, deltaUnit:'pp', deltaDecimals:1, signed:true, goodDir:'up' },
     { key:'quits',        label:'Quits',          unit:'M', scale:0.001, decimals:2, deltaUnit:'M', deltaDecimals:2, goodDir:'up' },
     { key:'openings',     label:'Job openings',   unit:'M', scale:0.001, decimals:2, deltaUnit:'M', deltaDecimals:2, goodDir:'up' },
-    { key:'challenger',   label:'Announced cuts', unit:'k', scale:0.001, decimals:1, deltaUnit:'k', deltaDecimals:1, signed:true, goodDir:'down' }
+    { key:'challenger',   label:'Announced cuts', unit:'k', scale:0.001, decimals:1, deltaUnit:'k', deltaDecimals:1, signed:true, goodDir:'down' },
+    { key:'health_share', label:'Health care share of 12-mo job growth', unit:'%', decimals:0, noDelta:true }
   ].filter(function(k){ return KPI_PAGE[k.key]; }), data.kpis);
 
   function st(key, n){ return EG.tail(data[key] || [], n); }
@@ -87,6 +88,55 @@ window.EG_PAGES.labor = function (data, EG) {
     EG.newChart('cPay3mma', { type:'bar', data:{ labels:m3.map(function(p){return EG.lab(p[0]);}), datasets:[
       { label:'3-mo avg', data:EG.val(m3), backgroundColor:C[0], borderRadius:3, barPercentage:.95, categoryPercentage:.8 }
     ]}, options:EG.baseOpts(false) });
+
+    // 4b. Where the jobs came from: CES supersectors, 12-month change.
+    //     Health care & social assistance vs. everything else as a doughnut
+    //     (clamped: its share can exceed 100% when other sectors net negative),
+    //     the full sector ranking as sign-colored horizontal bars, and the
+    //     12-month change over time for total vs. health vs. all other.
+    var sec = data.sectors || {};
+    if (sec.rows && sec.rows.length) {
+      var hc = sec.health || 0, tot = sec.total || 0, rest = tot - hc;
+      var hcShare = tot > 0 ? Math.min(100, Math.max(0, hc / tot * 100)) : (hc > 0 ? 100 : 0);
+      var hcLabel = 'Health care & social assistance';
+      var restLabel = rest >= 0 ? 'All other sectors' : 'All other sectors (net loss, shown as 0)';
+      EG.newChart('cJobsSectorShare', { type:'doughnut', data:{
+        labels:[hcLabel, restLabel],
+        datasets:[{ data:[Math.round(hcShare*10)/10, Math.round((100-hcShare)*10)/10],
+          backgroundColor:[C[1], 'rgba(255,255,255,.28)'], borderColor:'#04263f', borderWidth:2 }]
+      }, options:{
+        responsive:true, maintainAspectRatio:false, cutout:'55%',
+        plugins:{
+          legend:{ position:'bottom', labels:{ color:EG.T.ink, boxWidth:10, padding:12, font:{size:12, weight:'600'}, usePointStyle:true, pointStyle:'circle' } },
+          tooltip:{ backgroundColor:EG.T.tooltipBg, titleColor:'#fff', bodyColor:'#fff', callbacks:{
+            label:function(c){ var k = c.dataIndex === 0 ? hc : rest; return ' '+c.label+': '+c.parsed.toFixed(1)+'% ('+(k>=0?'+':'')+Math.round(k)+'k)'; } } }
+        }
+      } });
+
+      var rows = sec.rows;
+      var bv = rows.map(function(r){ return r.change; });
+      var oSec = EG.singleOpts(function(v){ return (v>=0?'+':'')+Math.round(v)+'k'; });
+      oSec.indexAxis = 'y';
+      oSec.plugins.legend.display = false;
+      oSec.scales = { x:{ grid:EG.grid, border:{display:false}, ticks:{ font:{size:11}, callback:function(v){ return (v>=0?'+':'')+v+'k'; } } },
+                      y:{ grid:{display:false}, ticks:{ font:{size:11}, autoSkip:false } } };
+      oSec.plugins.tooltip.callbacks.label = function(c){ return ' '+(c.parsed.x>=0?'+':'')+Math.round(c.parsed.x)+'k over 12 months'; };
+      EG.newChart('cJobsSectors', { type:'bar', data:{ labels:rows.map(function(r){ return r.label; }), datasets:[
+        { label:'12-month change', data:bv, borderRadius:3, barPercentage:.85, categoryPercentage:.8,
+          backgroundColor: bv.map(function(v){ return v < 0 ? C[2] : C[4]; }) }
+      ]}, options:oSec });
+
+      var j12 = EG.tail(sec.jobs_12m || [], n);
+      var l12 = j12.map(function(p){ return EG.lab(p[0]); });
+      var o12 = EG.singleOpts(function(v){ return (v>=0?'+':'')+EG.fmtBig(v*1000); });
+      o12.plugins.legend.labels.filter = function(it){ return it.text.indexOf('Zero') === -1; };
+      EG.newChart('cJobs12m', { type:'line', data:{ labels:l12, datasets:[
+        EG.line(EG.val(j12), C[0], { label:'Total nonfarm', borderWidth:2.6 }),
+        EG.line(align(j12.map(function(p){return p[0];}), sec.health_jobs_12m), C[1], { label:'Health care & social assistance', borderWidth:2.2 }),
+        EG.line(align(j12.map(function(p){return p[0];}), sec.ex_health_jobs_12m), C[2], { label:'All other sectors', borderWidth:2.2 }),
+        { type:'line', label:'Zero', data:l12.map(function(){return 0;}), borderColor:'rgba(255,255,255,.42)', borderWidth:1, pointRadius:0, borderDash:[4,4], fill:false }
+      ]}, options:o12 });
+    }
 
     // 5. Wages (AHE YoY %, left) + avg weekly hours (right)
     var ahe = st('ahe_yoy', n), hrs = st('avg_weekly_hours', n);

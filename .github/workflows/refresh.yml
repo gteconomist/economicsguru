@@ -102,6 +102,17 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_housing_existing.py
 
+      # Rents: Apartment List research page -> current CSV on Contentful CDN
+      # (hash path changes monthly, so the page is re-read each run); Zillow
+      # ZORI public CSV as companion/fallback; CPI rent (CUSR0000SEHA) from
+      # FRED. Baseline at data/historical/apartment_list_rent.csv is rewritten
+      # on a good scrape (Apartment List revises history) and auto-committed.
+      - name: Refresh Rents data from Apartment List + Zillow + FRED
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        continue-on-error: true
+        run: python scripts/fetch_housing_rents.py
+
       - name: Install xlrd (for NAHB Table 4 .xls parsing)
         run: pip install "xlrd==1.2.0"
 
@@ -152,16 +163,6 @@ jobs:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         continue-on-error: true
         run: python scripts/fetch_leading.py
-
-      # Fitch U.S. Auto ABS 60+ day delinquencies (prime / subprime). Proprietary
-      # index with no API: scraped from Fitch's monthly commentary and the trade
-      # press that quotes it, upserted into data/historical/fitch_auto_abs_delinquency.csv.
-      # Best-effort -- most runs find nothing new. Must run BEFORE fetch_consumer.py.
-      - name: Refresh Fitch auto ABS delinquencies
-        env:
-          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
-        continue-on-error: true
-        run: python scripts/fetch_fitch_auto_abs.py
 
       - name: Refresh Consumer data from FRED + manual CSVs
         env:
