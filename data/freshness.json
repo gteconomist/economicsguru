@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-10-09T14:38:56.235859Z",
+  "build_time": "2026-10-09T14:57:38.412867Z",
   "checked_date": "2026-10-09",
   "stale_count": 0,
   "stale": [],
@@ -35,12 +35,6 @@
           "latest": "2026-06-30",
           "age_days": 101,
           "max_age_days": 145
-        },
-        "auto_abs.subprime": {
-          "status": "ok",
-          "latest": "2026-09-30",
-          "age_days": 9,
-          "max_age_days": 75
         }
       }
     },
@@ -230,6 +224,24 @@
       "note": "Census permits/starts ~day 18 (R~18).",
       "wrote_this_run": true,
       "consecutive_misses": 0
+    },
+    "housing_rents.json": {
+      "status": "ok",
+      "latest": "2026-09-30",
+      "age_days": 9,
+      "max_age_days": 45,
+      "build_age_days": 0,
+      "note": "Apartment List monthly, ~day 25-30 of the PRIOR month.",
+      "wrote_this_run": true,
+      "consecutive_misses": 0,
+      "watch": {
+        "rent_us": {
+          "status": "ok",
+          "latest": "2026-09-30",
+          "age_days": 9,
+          "max_age_days": 45
+        }
+      }
     },
     "income_divide.json": {
       "status": "ok",
