@@ -1220,9 +1220,9 @@ window.EG_CHART_REGISTRY = {
         },
         {
           key:'lab-health-share', canvas:'cJobsSectorShare',
-          title:'Health Care\'s Share of Job Growth',
-          subtitle:'Share of the 12-month change in nonfarm payrolls; latest month',
-          source:'Source: BLS CES — CES6562000001 (health care & social assistance) vs. CES0000000001 (total nonfarm), SA. When the other sectors net out negative, health care\'s share exceeds 100% and the chart shows 100%.',
+          title:'Health Care vs. Everything Else — Last 12 Months',
+          subtitle:'Change in payroll employment, thousands, SA; health care, then all other sectors, then the total',
+          source:'Source: BLS CES — CES6562000001 (health care & social assistance), CES0000000001 (total nonfarm), SA. The middle bar steps from health care\'s gain to the total: when it points down, every other sector combined lost jobs.',
           series:[]
         },
         {

@@ -90,28 +90,36 @@ window.EG_PAGES.labor = function (data, EG) {
     ]}, options:EG.baseOpts(false) });
 
     // 4b. Where the jobs came from: CES supersectors, 12-month change.
-    //     Health care & social assistance vs. everything else as a doughnut
-    //     (clamped: its share can exceed 100% when other sectors net negative),
-    //     the full sector ranking as sign-colored horizontal bars, and the
-    //     12-month change over time for total vs. health vs. all other.
+    //     Health care & social assistance vs. everything else as a 3-step
+    //     waterfall (its share can exceed 100% when other sectors net negative,
+    //     which a pie cannot show), the full sector ranking as sign-colored
+    //     horizontal bars, and the 12-month change over time for total vs.
+    //     health vs. all other.
     var sec = data.sectors || {};
     if (sec.rows && sec.rows.length) {
       var hc = sec.health || 0, tot = sec.total || 0, rest = tot - hc;
-      var hcShare = tot > 0 ? Math.min(100, Math.max(0, hc / tot * 100)) : (hc > 0 ? 100 : 0);
-      var hcLabel = 'Health care & social assistance';
-      var restLabel = rest >= 0 ? 'All other sectors' : 'All other sectors (net loss, shown as 0)';
-      EG.newChart('cJobsSectorShare', { type:'doughnut', data:{
-        labels:[hcLabel, restLabel],
-        datasets:[{ data:[Math.round(hcShare*10)/10, Math.round((100-hcShare)*10)/10],
-          backgroundColor:[C[1], 'rgba(255,255,255,.28)'], borderColor:'#04263f', borderWidth:2 }]
-      }, options:{
-        responsive:true, maintainAspectRatio:false, cutout:'55%',
-        plugins:{
-          legend:{ position:'bottom', labels:{ color:EG.T.ink, boxWidth:10, padding:12, font:{size:12, weight:'600'}, usePointStyle:true, pointStyle:'circle' } },
-          tooltip:{ backgroundColor:EG.T.tooltipBg, titleColor:'#fff', bodyColor:'#fff', callbacks:{
-            label:function(c){ var k = c.dataIndex === 0 ? hc : rest; return ' '+c.label+': '+c.parsed.toFixed(1)+'% ('+(k>=0?'+':'')+Math.round(k)+'k)'; } } }
-        }
-      } });
+      // Waterfall (floating bars): health care from 0, all other sectors as a
+      // step from there to the total, then the total from 0. When the other
+      // sectors net negative the middle bar points DOWN, which is the point:
+      // health care added more jobs than the economy as a whole.
+      var steps = [
+        { label:'Health care & social assistance', range:[0, hc],  delta:hc },
+        { label:'All other sectors (net)',          range:[hc, tot], delta:rest },
+        { label:'Total nonfarm',                    range:[0, tot], delta:tot }
+      ];
+      var fmtK = function(v){ return (v>=0?'+':'')+Math.round(v)+'k'; };
+      var oWf = EG.singleOpts(fmtK);
+      oWf.plugins.legend.display = false;
+      oWf.scales.x.ticks.font = { size:11 };
+      oWf.scales.y.ticks.callback = function(v){ return fmtK(v); };
+      oWf.plugins.tooltip.callbacks.label = function(c){ var st = steps[c.dataIndex]; return ' '+fmtK(st.delta)+' over 12 months'; };
+      oWf.plugins.tooltip.callbacks.title = function(items){ return items.length ? steps[items[0].dataIndex].label : ''; };
+      EG.newChart('cJobsSectorShare', { type:'bar', data:{
+        labels: steps.map(function(st){ return st.label; }),
+        datasets:[{ label:'12-month change', data: steps.map(function(st){ return st.range; }),
+          backgroundColor: [ hc < 0 ? C[2] : C[4], rest < 0 ? C[2] : C[4], C[0] ],
+          borderRadius:3, barPercentage:.7, categoryPercentage:.8, borderSkipped:false }]
+      }, options:oWf });
 
       var rows = sec.rows;
       var bv = rows.map(function(r){ return r.change; });

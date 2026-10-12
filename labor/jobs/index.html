@@ -43,7 +43,7 @@
   <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
 </div>
 
-<nav class="jump" aria-label="Charts on this page"><span class="jl">On this page</span><a href="#cUrLfp">Unemployment &amp; Participation</a><a href="#cPayrolls">Monthly Change in Nonfarm Payrolls</a><a href="#cPayrollsHh">Payrolls vs Household Employment</a><a href="#cPay3mma">Payrolls — 3-Month Moving Average</a><a href="#cJobsSectorShare">Health Care&#x27;s Share of Job Growth</a><a href="#cJobsSectors">Job Growth by Sector — Last 12 Months</a><a href="#cJobs12m">12-Month Job Growth — Health Care vs. Everything Else</a><a href="#cFtPt">Full-Time vs Part-Time Employment</a><a href="#cJolts">JOLTS — Openings, Hires, Quits</a><a href="#cChallenger">Announced Job Cuts</a></nav>
+<nav class="jump" aria-label="Charts on this page"><span class="jl">On this page</span><a href="#cUrLfp">Unemployment &amp; Participation</a><a href="#cPayrolls">Monthly Change in Nonfarm Payrolls</a><a href="#cPayrollsHh">Payrolls vs Household Employment</a><a href="#cPay3mma">Payrolls — 3-Month Moving Average</a><a href="#cJobsSectorShare">Health Care vs. Everything Else — Last 12 Months</a><a href="#cJobsSectors">Job Growth by Sector — Last 12 Months</a><a href="#cJobs12m">12-Month Job Growth — Health Care vs. Everything Else</a><a href="#cFtPt">Full-Time vs Part-Time Employment</a><a href="#cJolts">JOLTS — Openings, Hires, Quits</a><a href="#cChallenger">Announced Job Cuts</a></nav>
 
 <div class="grid">
   <div class="card">
@@ -67,9 +67,9 @@
     <div class="src">Source: BLS CES — CES0000000001 (3-month trailing average).</div>
   </div>
   <div class="card">
-    <div class="top"><div><div class="ct">Health Care's Share of Job Growth</div><div class="cs">Share of the 12-month change in nonfarm payrolls; latest month</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="top"><div><div class="ct">Health Care vs. Everything Else — Last 12 Months</div><div class="cs">Change in payroll employment, thousands, SA; health care, then all other sectors, then the total</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
     <div class="plot"><canvas id="cJobsSectorShare"></canvas></div>
-    <div class="src">Source: BLS CES — CES6562000001 (health care &amp; social assistance) vs. CES0000000001 (total nonfarm), SA. When the other sectors net out negative, health care's share exceeds 100% and the chart shows 100%; see the KPI and the sector chart for the exact figures.</div>
+    <div class="src">Source: BLS CES — CES6562000001 (health care &amp; social assistance), CES0000000001 (total nonfarm), SA. The middle bar steps from health care's gain to the total: when it points down, every other sector combined lost jobs and health care accounts for more than 100% of net growth.</div>
   </div>
   <div class="card">
     <div class="top"><div><div class="ct">Job Growth by Sector — Last 12 Months</div><div class="cs">Change in payroll employment, thousands, SA; latest month vs. a year earlier</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>

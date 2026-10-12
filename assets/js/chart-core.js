@@ -537,7 +537,8 @@ window.EG = (function () {
     var title=(card.querySelector('.ct')||{textContent:'chart'}).textContent.trim();
     var L=ch.data.labels, ds=ch.data.datasets;
     var rows=[['Date'].concat(ds.map(function(d){return d.label;}))];
-    L.forEach(function(lb,i){ rows.push([lb].concat(ds.map(function(d){var v=d.data[i];return v==null?'':v;}))); });
+    // Floating bars ([start,end], e.g. the jobs waterfall) export as the step size.
+    L.forEach(function(lb,i){ rows.push([lb].concat(ds.map(function(d){var v=d.data[i];return v==null?'':(Array.isArray(v)?v[1]-v[0]:v);}))); });
     var csv=rows.map(function(r){return r.map(function(c){return '"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
     saveBlob(slug(title)+'.csv', new Blob([csv],{type:'text/csv'}));
   }
