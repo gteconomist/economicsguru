@@ -90,35 +90,32 @@ window.EG_PAGES.labor = function (data, EG) {
     ]}, options:EG.baseOpts(false) });
 
     // 4b. Where the jobs came from: CES supersectors, 12-month change.
-    //     Health care & social assistance vs. everything else as a 3-step
-    //     waterfall (its share can exceed 100% when other sectors net negative,
+    //     Health care & social assistance vs. everything else as three bars
+    //     from zero (its share can exceed 100% when other sectors net negative,
     //     which a pie cannot show), the full sector ranking as sign-colored
     //     horizontal bars, and the 12-month change over time for total vs.
     //     health vs. all other.
     var sec = data.sectors || {};
     if (sec.rows && sec.rows.length) {
       var hc = sec.health || 0, tot = sec.total || 0, rest = tot - hc;
-      // Waterfall (floating bars): health care from 0, all other sectors as a
-      // step from there to the total, then the total from 0. When the other
-      // sectors net negative the middle bar points DOWN, which is the point:
+      // Three bars from zero: health care's 12-month gain, every other sector
+      // combined (net), and total nonfarm. When the middle bar is below zero,
       // health care added more jobs than the economy as a whole.
       var steps = [
-        { label:'Health care & social assistance', range:[0, hc],  delta:hc },
-        { label:'All other sectors (net)',          range:[hc, tot], delta:rest },
-        { label:'Total nonfarm',                    range:[0, tot], delta:tot }
+        { label:'Health care & social assistance', value:hc },
+        { label:'All other sectors combined',      value:rest },
+        { label:'Total nonfarm',                   value:tot }
       ];
       var fmtK = function(v){ return (v>=0?'+':'')+Math.round(v)+'k'; };
       var oWf = EG.singleOpts(fmtK);
       oWf.plugins.legend.display = false;
-      oWf.scales.x.ticks.font = { size:11 };
       oWf.scales.y.ticks.callback = function(v){ return fmtK(v); };
-      oWf.plugins.tooltip.callbacks.label = function(c){ var st = steps[c.dataIndex]; return ' '+fmtK(st.delta)+' over 12 months'; };
-      oWf.plugins.tooltip.callbacks.title = function(items){ return items.length ? steps[items[0].dataIndex].label : ''; };
+      oWf.plugins.tooltip.callbacks.label = function(c){ return ' '+fmtK(c.parsed.y)+' over 12 months'; };
       EG.newChart('cJobsSectorShare', { type:'bar', data:{
         labels: steps.map(function(st){ return st.label; }),
-        datasets:[{ label:'12-month change', data: steps.map(function(st){ return st.range; }),
+        datasets:[{ label:'12-month change', data: steps.map(function(st){ return st.value; }),
           backgroundColor: [ hc < 0 ? C[2] : C[4], rest < 0 ? C[2] : C[4], C[0] ],
-          borderRadius:3, barPercentage:.7, categoryPercentage:.8, borderSkipped:false }]
+          borderRadius:3, barPercentage:.7, categoryPercentage:.8 }]
       }, options:oWf });
 
       var rows = sec.rows;

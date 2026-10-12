@@ -1221,8 +1221,8 @@ window.EG_CHART_REGISTRY = {
         {
           key:'lab-health-share', canvas:'cJobsSectorShare',
           title:'Health Care vs. Everything Else — Last 12 Months',
-          subtitle:'Change in payroll employment, thousands, SA; health care, then all other sectors, then the total',
-          source:'Source: BLS CES — CES6562000001 (health care & social assistance), CES0000000001 (total nonfarm), SA. The middle bar steps from health care\'s gain to the total: when it points down, every other sector combined lost jobs.',
+          subtitle:'Change in payroll employment, thousands, SA; health care vs. every other sector combined',
+          source:'Source: BLS CES — CES6562000001 (health care & social assistance), CES0000000001 (total nonfarm), SA. When the middle bar is below zero, every other sector combined lost jobs.',
           series:[]
         },
         {
