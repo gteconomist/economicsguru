@@ -15348,9 +15348,9 @@
     ]
   ],
   "mba_latest_week": "2026-10-02",
-  "mba_refi_share": 39.3,
-  "mba_arm_share": 9.8,
-  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/09/23/mortgage-applications-decrease-in-latest-mba-weekly-survey",
+  "mba_refi_share": 37.0,
+  "mba_arm_share": 10.3,
+  "mba_latest_source": "https://www.redbooklumberdata.com/2026/10/07/mortgage-applications-decrease-in-latest-mba-weekly-survey-69",
   "mortgage_30y": [
     [
       "1971-04-02",
@@ -65707,6 +65707,10 @@
     [
       "2026-08-01",
       107.9
+    ],
+    [
+      "2026-09-01",
+      105.5
     ]
   ],
   "price_income_ratio": [
@@ -68550,14 +68554,14 @@
       "label": "2026-10-02"
     },
     "refi_share": {
-      "value": 39.3,
+      "value": 37.0,
       "delta": null,
-      "label": "2026-09-18"
+      "label": "2026-10-02"
     },
     "arm_share": {
-      "value": 9.8,
+      "value": 10.3,
       "delta": null,
-      "label": "2026-09-18"
+      "label": "2026-10-02"
     },
     "delinquency_rate": {
       "value": 1.86,
@@ -68570,9 +68574,9 @@
       "label": "2026-03-01"
     },
     "affordability": {
-      "value": 107.9,
-      "delta": 0.2,
-      "label": "2026-08-01"
+      "value": 105.5,
+      "delta": -2.4,
+      "label": "2026-09-01"
     },
     "price_income_ratio": {
       "value": 4.66,
@@ -68581,7 +68585,7 @@
     }
   },
   "latest_label": "2026-10-02",
-  "build_time": "2026-10-13T13:26:28Z",
+  "build_time": "2026-10-13T14:51:12Z",
   "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
@@ -68592,9 +68596,9 @@
   "mba_history_rows": 1918,
   "hai_csv_loaded": true,
   "hai_csv_rows": 548,
-  "hai_csv_rows_appended_this_run": 0,
-  "hai_scrape_succeeded": false,
-  "hai_scrape_source": null,
+  "hai_csv_rows_appended_this_run": 1,
+  "hai_scrape_succeeded": true,
+  "hai_scrape_source": "FRED FIXHAI",
   "hai_factor_window_months": 36,
   "hai_basis": "NAR Housing Affordability Index, seasonally adjusted in-house using monthly factors derived from the historical SA/NSA overlap. Trailing months from the NAR press release via Tavily.",
   "price_income_ratio_rows": 224,

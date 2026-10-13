@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-10-13T13:28:35.518816Z",
+  "build_time": "2026-10-13T14:53:22.881586Z",
   "checked_date": "2026-10-13",
   "stale_count": 0,
   "stale": [],
@@ -118,8 +118,8 @@
     },
     "equities.json": {
       "status": "ok",
-      "latest": "2026-10-12",
-      "age_days": 1,
+      "latest": "2026-10-13",
+      "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily index closes.",
@@ -180,8 +180,8 @@
         },
         "affordability_index": {
           "status": "ok",
-          "latest": "2026-08-31",
-          "age_days": 43,
+          "latest": "2026-09-30",
+          "age_days": 13,
           "max_age_days": 75
         },
         "eff_rate_outstanding": {
