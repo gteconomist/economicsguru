@@ -175,6 +175,43 @@ window.EG = (function () {
         ctx.globalAlpha=1; ctx.restore();
       }
     });
+    // Dual-axis charts: when every series on one y axis has been toggled off in the
+    // legend, hide that axis instead of leaving an empty scale (Chart.js otherwise
+    // pins it to a meaningless $0-$1 range). If that leaves only a right-hand axis,
+    // move it to the left and give it the left axis's gridlines, so the chart reads
+    // like an ordinary single-axis chart. Everything is undone from the originals
+    // on each update, so re-enabling a series restores the two-axis layout.
+    // Runs for the on-screen charts AND the 1100x500 exports (exportData drops the
+    // hidden datasets, so the export chart sees the same state).
+    Chart.register({
+      id:'autoYAxes',
+      beforeLayout:function(chart){
+        try{
+          var ys = Object.keys(chart.scales).map(function(k){ return chart.scales[k]; })
+                     .filter(function(s){ return s && s.axis === 'y'; });
+          if(ys.length < 2) return;
+          ys.forEach(function(s){
+            var o = s.options;
+            if(!s.$axOrig) s.$axOrig = { position:o.position, display:o.display,
+                                         grid:(o.grid ? o.grid.display : undefined) };
+            var g = s.$axOrig;
+            if(g.position != null){ o.position = g.position; s.position = g.position; }
+            if(g.display  != null){ o.display  = g.display; }
+            if(o.grid && g.grid != null){ o.grid.display = g.grid; }
+            s.$live = (g.display !== false) && s.getMatchingVisibleMetas().length > 0;
+          });
+          var live = ys.filter(function(s){ return s.$live; });
+          if(!live.length || live.length === ys.length) return;   // nothing or everything hidden: leave as built
+          ys.forEach(function(s){ if(!s.$live) s.options.display = false; });
+          var onLeft = live.some(function(s){ return s.options.position === 'left'; });
+          if(!onLeft){
+            var s0 = live[0];
+            s0.options.position = 'left'; s0.position = 'left';
+            if(s0.options.grid) s0.options.grid.display = true;
+          }
+        }catch(e){ /* axis cosmetics must never break a chart */ }
+      }
+    });
   }
 
   // ---- formatting / data helpers ----
