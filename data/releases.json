@@ -1,6 +1,19 @@
 {
  "releases": [
   {
+   "id": "nfib",
+   "name": "NFIB Small Business Optimism",
+   "period": "Sep 2026",
+   "period_key": [
+    2026,
+    9
+   ],
+   "value": "97.9",
+   "url": "/industry/surveys/#cIndSurveysNfibOptimism",
+   "where": "Growth › Business Surveys",
+   "seen": "2026-10-13"
+  },
+  {
    "id": "ism_svc",
    "name": "ISM Services",
    "period": "Sep 2026",
@@ -233,19 +246,6 @@
    "url": "/housing/existing/",
    "where": "Housing › Existing",
    "seen": "2026-09-10"
-  },
-  {
-   "id": "nfib",
-   "name": "NFIB Small Business Optimism",
-   "period": "Aug 2026",
-   "period_key": [
-    2026,
-    8
-   ],
-   "value": "98.7",
-   "url": "/industry/surveys/#cIndSurveysNfibOptimism",
-   "where": "Growth › Business Surveys",
-   "seen": "2026-09-08"
   },
   {
    "id": "gdp",
