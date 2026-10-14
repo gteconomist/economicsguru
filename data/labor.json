@@ -8989,6 +8989,10 @@
     [
       "2026-08",
       -0.26
+    ],
+    [
+      "2026-09",
+      -0.71
     ]
   ],
   "avg_weekly_hours": [
@@ -43133,10 +43137,10 @@
       "label": "2026-09"
     },
     "real_ahe_yoy": {
-      "value": -0.26,
-      "delta": -0.17,
+      "value": -0.71,
+      "delta": -0.45,
       "unit": "pp",
-      "label": "2026-08"
+      "label": "2026-09"
     },
     "openings": {
       "value": 7079.0,
@@ -43167,7 +43171,7 @@
   "ces_latest": "2026-09",
   "cps_latest": "2026-09",
   "jolts_latest": "2026-08",
-  "build_time": "2026-10-09T14:54:44Z",
+  "build_time": "2026-10-14T13:19:10Z",
   "challenger_latest": "2026-09",
   "notice": "The BLS Employment Situation release for October 2025 is missing from the source data. Charts skip the missing month; month-over-month changes are not shown for the month immediately following."
 }

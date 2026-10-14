@@ -4677,6 +4677,10 @@
     [
       "2026-08-01",
       2.75
+    ],
+    [
+      "2026-09-01",
+      2.78
     ]
   ],
   "kpis": {
@@ -4701,9 +4705,9 @@
       "label": "2026-08"
     },
     "cpi_rent_yoy": {
-      "value": 2.75,
-      "delta": -0.11,
-      "label": "2026-08"
+      "value": 2.78,
+      "delta": 0.03,
+      "label": "2026-09"
     }
   },
   "latest_label": "2026-09",
@@ -4711,6 +4715,6 @@
   "al_source": "apartment_list",
   "al_release": "2026-09",
   "zori_latest": "2026-08",
-  "cpi_rent_latest": "2026-08",
-  "build_time": "2026-10-09T14:54:51Z"
+  "cpi_rent_latest": "2026-09",
+  "build_time": "2026-10-14T13:19:22Z"
 }

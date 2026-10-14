@@ -1,6 +1,19 @@
 {
  "releases": [
   {
+   "id": "cpi",
+   "name": "Consumer Price Index",
+   "period": "Sep 2026",
+   "period_key": [
+    2026,
+    9
+   ],
+   "value": "3.7% YoY",
+   "url": "/inflation/cpi/",
+   "where": "Inflation › CPI",
+   "seen": "2026-10-14"
+  },
+  {
    "id": "nfib",
    "name": "NFIB Small Business Optimism",
    "period": "Sep 2026",
@@ -220,19 +233,6 @@
    "url": "/housing/new-homes/#cNhNahbHmi",
    "where": "Housing › New Homes",
    "seen": "2026-09-16"
-  },
-  {
-   "id": "cpi",
-   "name": "Consumer Price Index",
-   "period": "Aug 2026",
-   "period_key": [
-    2026,
-    8
-   ],
-   "value": "3.4% YoY",
-   "url": "/inflation/cpi/",
-   "where": "Inflation › CPI",
-   "seen": "2026-09-11"
   },
   {
    "id": "ppi",
