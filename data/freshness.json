@@ -1,17 +1,17 @@
 {
-  "build_time": "2026-10-15T13:58:38.064163Z",
+  "build_time": "2026-10-15T17:47:02.618463Z",
   "checked_date": "2026-10-15",
   "stale_count": 0,
   "stale": [],
   "datasets": {
     "commodities.json": {
       "status": "ok",
-      "latest": "2026-10-13",
-      "age_days": 2,
+      "latest": "2026-10-14",
+      "age_days": 1,
       "max_age_days": 8,
-      "build_age_days": null,
+      "build_age_days": 0,
       "note": "Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier).",
-      "wrote_this_run": null,
+      "wrote_this_run": true,
       "consecutive_misses": 0
     },
     "consumer.json": {
@@ -76,8 +76,8 @@
     },
     "energy_power.json": {
       "status": "ok",
-      "latest": "2026-10-06",
-      "age_days": 9,
+      "latest": "2026-10-09",
+      "age_days": 6,
       "max_age_days": 16,
       "build_age_days": 0,
       "note": "EIA weekly gas storage Thursdays; monthly electricity ~2 months behind; Census C30 ~day 1.",
@@ -158,8 +158,8 @@
     },
     "housing_mortgage_activity.json": {
       "status": "ok",
-      "latest": "2026-10-08",
-      "age_days": 7,
+      "latest": "2026-10-15",
+      "age_days": 0,
       "max_age_days": 16,
       "build_age_days": 0,
       "note": "MBA weekly applications Wednesdays; FRED rate series daily/weekly.",
