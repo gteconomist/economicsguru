@@ -1,11 +1,8 @@
 {
-  "build_time": "2026-10-15T13:21:38.651837Z",
+  "build_time": "2026-10-15T13:58:38.064163Z",
   "checked_date": "2026-10-15",
-  "stale_count": 2,
-  "stale": [
-    "energy.json:brent: newest observation 2026-10-06 is 9d old (tolerance 8d)",
-    "energy_power.json:henry_hub: newest observation 2026-10-06 is 9d old (tolerance 8d)"
-  ],
+  "stale_count": 0,
+  "stale": [],
   "datasets": {
     "commodities.json": {
       "status": "ok",
@@ -42,7 +39,7 @@
       }
     },
     "energy.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-10-12",
       "age_days": 3,
       "max_age_days": 16,
@@ -58,10 +55,10 @@
           "max_age_days": 16
         },
         "brent": {
-          "status": "STALE",
+          "status": "ok",
           "latest": "2026-10-06",
           "age_days": 9,
-          "max_age_days": 8
+          "max_age_days": 12
         },
         "spr_monthly": {
           "status": "ok",
@@ -78,7 +75,7 @@
       }
     },
     "energy_power.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-10-06",
       "age_days": 9,
       "max_age_days": 16,
@@ -100,10 +97,10 @@
           "max_age_days": 66
         },
         "henry_hub": {
-          "status": "STALE",
+          "status": "ok",
           "latest": "2026-10-06",
           "age_days": 9,
-          "max_age_days": 8
+          "max_age_days": 12
         },
         "sales_12mma.com": {
           "status": "ok",
@@ -121,8 +118,8 @@
     },
     "equities.json": {
       "status": "ok",
-      "latest": "2026-10-14",
-      "age_days": 1,
+      "latest": "2026-10-15",
+      "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily index closes.",
