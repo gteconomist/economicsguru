@@ -1,6 +1,32 @@
 {
  "releases": [
   {
+   "id": "ppi",
+   "name": "Producer Price Index",
+   "period": "Sep 2026",
+   "period_key": [
+    2026,
+    9
+   ],
+   "value": "6.3% YoY",
+   "url": "/inflation/ppi/",
+   "where": "Inflation › PPI",
+   "seen": "2026-10-15"
+  },
+  {
+   "id": "retail",
+   "name": "Retail Sales",
+   "period": "Sep 2026",
+   "period_key": [
+    2026,
+    9
+   ],
+   "value": "+0.8% MoM",
+   "url": "/consumer/retail-confidence/",
+   "where": "Consumer › Retail & Confidence",
+   "seen": "2026-10-15"
+  },
+  {
    "id": "cpi",
    "name": "Consumer Price Index",
    "period": "Sep 2026",
@@ -209,19 +235,6 @@
    "seen": "2026-09-17"
   },
   {
-   "id": "retail",
-   "name": "Retail Sales",
-   "period": "Aug 2026",
-   "period_key": [
-    2026,
-    8
-   ],
-   "value": "+1.1% MoM",
-   "url": "/consumer/retail-confidence/",
-   "where": "Consumer › Retail & Confidence",
-   "seen": "2026-09-16"
-  },
-  {
    "id": "nahb",
    "name": "NAHB Housing Market Index",
    "period": "Sep 2026",
@@ -233,19 +246,6 @@
    "url": "/housing/new-homes/#cNhNahbHmi",
    "where": "Housing › New Homes",
    "seen": "2026-09-16"
-  },
-  {
-   "id": "ppi",
-   "name": "Producer Price Index",
-   "period": "Aug 2026",
-   "period_key": [
-    2026,
-    8
-   ],
-   "value": "5.4% YoY",
-   "url": "/inflation/ppi/",
-   "where": "Inflation › PPI",
-   "seen": "2026-09-10"
   },
   {
    "id": "gdp",
