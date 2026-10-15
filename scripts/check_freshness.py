@@ -87,17 +87,22 @@ TOLERANCES = {
     # the JSON if the workbook download + parse succeeds -- and a silent
     # fallback to the EIA monthly history (frozen at Feb 2026) would
     # otherwise hide behind the fresh EIA weekly series in the same file.
-    # Brent/WTI are daily FRED series checked on the same 8d as commodities.
+    # Brent and Henry Hub are daily series on FRED, but FRED gets them from
+    # EIA, which posts spot prices WEEKLY on Wednesday (~1 PM ET) with data
+    # through the prior Tuesday. At the 9 AM cron on a normal Wednesday the
+    # newest point is already 8 days old; a federal holiday pushes EIA's
+    # update to Thursday and makes it 9 (Columbus Day week, 2026-10-15, was
+    # a false alarm at 8d). 12d = one weekly cycle + holiday slip + slack.
     "energy.json":       dict(max_age_days=16,  note="EIA WPSR Wednesdays for the week ended Friday; retail fuel prices Mondays.",
                               # spr_monthly: EIA Petroleum Supply Monthly runs ~2 months behind
                               # (June data landed Aug 29; July due ~Sep 30) -> 31 + 60 + slack.
-                              watch={"rigs_oil": 16, "brent": 8, "spr_monthly": 105, "gasoline": 12}),
+                              watch={"rigs_oil": 16, "brent": 12, "spr_monthly": 105, "gasoline": 12}),
     # Natural Gas & Electricity: weekly storage (Thursdays, for the prior
     # Friday) keeps the file fresh; the monthly EIA electricity data runs
     # ~2 months behind (June data lands late August) and Census construction
     # spending ~1 month (July data on Sept 1), so those get their own clocks.
     "energy_power.json": dict(max_age_days=16,  note="EIA weekly gas storage Thursdays; monthly electricity ~2 months behind; Census C30 ~day 1.",
-                              watch={"generation_12mma": 100, "data_center_construction": 66, "henry_hub": 8,
+                              watch={"generation_12mma": 100, "data_center_construction": 66, "henry_hub": 12,   # weekly EIA post; see brent note above
                                      "sales_12mma.com": 100, "gas_production_bcfd": 100}),
     "housing_mortgage_activity.json": dict(max_age_days=16,
                               note="MBA weekly applications Wednesdays; FRED rate series daily/weekly.",
