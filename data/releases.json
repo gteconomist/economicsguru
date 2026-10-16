@@ -1,6 +1,19 @@
 {
  "releases": [
   {
+   "id": "ip",
+   "name": "Industrial Production",
+   "period": "Sep 2026",
+   "period_key": [
+    2026,
+    9
+   ],
+   "value": "+0.7% MoM",
+   "url": "/industry/manufacturing/",
+   "where": "Growth › Manufacturing",
+   "seen": "2026-10-16"
+  },
+  {
    "id": "ppi",
    "name": "Producer Price Index",
    "period": "Sep 2026",
@@ -206,19 +219,6 @@
    "value": "-0.1% MoM",
    "url": "/gdp/leading-indicators/",
    "where": "Growth › Leading Indicators",
-   "seen": "2026-09-18"
-  },
-  {
-   "id": "ip",
-   "name": "Industrial Production",
-   "period": "Aug 2026",
-   "period_key": [
-    2026,
-    8
-   ],
-   "value": "+0.0% MoM",
-   "url": "/industry/manufacturing/",
-   "where": "Growth › Manufacturing",
    "seen": "2026-09-18"
   },
   {
