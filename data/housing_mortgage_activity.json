@@ -15358,7 +15358,7 @@
   "mba_latest_week": "2026-10-09",
   "mba_refi_share": 37.7,
   "mba_arm_share": 10.5,
-  "mba_latest_source": "https://www.redbooklumberdata.com/2026/10/14/mortgage-applications-decrease-in-latest-mba-weekly-survey-70",
+  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/10/14/mortgage-applications-decrease-in-latest-mba-weekly-survey",
   "mortgage_30y": [
     [
       "1971-04-02",
@@ -68609,7 +68609,7 @@
     }
   },
   "latest_label": "2026-10-09",
-  "build_time": "2026-10-17T16:15:33Z",
+  "build_time": "2026-10-19T13:07:54Z",
   "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
