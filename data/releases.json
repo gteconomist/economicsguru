@@ -1,6 +1,19 @@
 {
  "releases": [
   {
+   "id": "nahb",
+   "name": "NAHB Housing Market Index",
+   "period": "Oct 2026",
+   "period_key": [
+    2026,
+    10
+   ],
+   "value": "29",
+   "url": "/housing/new-homes/#cNhNahbHmi",
+   "where": "Housing › New Homes",
+   "seen": "2026-10-19"
+  },
+  {
    "id": "ip",
    "name": "Industrial Production",
    "period": "Sep 2026",
@@ -233,19 +246,6 @@
    "url": "/housing/permits-starts/",
    "where": "Housing › Permits & Starts",
    "seen": "2026-09-17"
-  },
-  {
-   "id": "nahb",
-   "name": "NAHB Housing Market Index",
-   "period": "Sep 2026",
-   "period_key": [
-    2026,
-    9
-   ],
-   "value": "32",
-   "url": "/housing/new-homes/#cNhNahbHmi",
-   "where": "Housing › New Homes",
-   "seen": "2026-09-16"
   },
   {
    "id": "gdp",
