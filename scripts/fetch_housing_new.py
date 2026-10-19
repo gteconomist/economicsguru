@@ -644,6 +644,25 @@ def yoy(pairs, decimals=2):
     return out
 
 
+def trailing_avg_3mo(pairs):
+    """[(YYYY-MM-DD, v), ...] oldest-first -> [[YYYY-MM, int], ...] where each
+    value is the average of that month and the two months before it (3-month
+    moving average, as NAHB publishes for regional HMI). Months without three
+    consecutive readings are dropped. Rounded half-up to match NAHB's integers."""
+    from decimal import Decimal, ROUND_HALF_UP
+    def _prev(ym):
+        y, m = int(ym[:4]), int(ym[5:7])
+        return f"{y-1:04d}-12" if m == 1 else f"{y:04d}-{m-1:02d}"
+    vals = {d[:7]: float(v) for d, v in pairs if v is not None}
+    out = []
+    for d, _ in pairs:
+        ym = d[:7]; p1 = _prev(ym); p2 = _prev(p1)
+        if ym in vals and p1 in vals and p2 in vals:
+            avg = (vals[ym] + vals[p1] + vals[p2]) / 3.0
+            out.append([ym, int(Decimal(str(avg)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))])
+    return out
+
+
 def kpi_from_pairs(pairs, decimals=2):
     if not pairs:
         return {"value": None, "delta": None, "label": None}
@@ -712,10 +731,16 @@ def main():
     nahb_current    = [[d[:7], int(v)] for d, v in nahb_pairs["current_sales"]]
     nahb_next6      = [[d[:7], int(v)] for d, v in nahb_pairs["next_6mo_sales"]]
     nahb_traffic    = [[d[:7], int(v)] for d, v in nahb_pairs["traffic"]]
-    nahb_ne         = [[d[:7], int(v)] for d, v in nahb_pairs["hmi_ne"]]
-    nahb_mw         = [[d[:7], int(v)] for d, v in nahb_pairs["hmi_mw"]]
-    nahb_s          = [[d[:7], int(v)] for d, v in nahb_pairs["hmi_s"]]
-    nahb_w          = [[d[:7], int(v)] for d, v in nahb_pairs["hmi_w"]]
+    # Regional HMI is charted as the trailing 3-MONTH MOVING AVERAGE, which is
+    # what NAHB headlines in its press release and Table 1 (the single-month
+    # regional readings in Table 4 are noisy -- small samples). The CSV keeps
+    # the raw monthly values; the average is computed here so the chart agrees
+    # with the numbers in the release and in EIG's writeups. Rounded to an
+    # integer, matching NAHB's own published averages.
+    nahb_ne         = trailing_avg_3mo(nahb_pairs["hmi_ne"])
+    nahb_mw         = trailing_avg_3mo(nahb_pairs["hmi_mw"])
+    nahb_s          = trailing_avg_3mo(nahb_pairs["hmi_s"])
+    nahb_w          = trailing_avg_3mo(nahb_pairs["hmi_w"])
 
     # latest_label = the most recent month any Census series has data for
     latest_label = max(
