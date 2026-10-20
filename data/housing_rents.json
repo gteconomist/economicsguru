@@ -4720,9 +4720,9 @@
   },
   "latest_label": "2026-09",
   "al_latest": "2026-09",
-  "al_source": "apartment_list",
-  "al_release": "2026-09",
+  "al_source": "baseline",
+  "al_release": null,
   "zori_latest": "2026-09",
   "cpi_rent_latest": "2026-09",
-  "build_time": "2026-10-16T13:09:45Z"
+  "build_time": "2026-10-20T18:04:31Z"
 }
