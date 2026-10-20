@@ -1,6 +1,19 @@
 {
  "releases": [
   {
+   "id": "permits",
+   "name": "Building Permits & Starts",
+   "period": "Sep 2026",
+   "period_key": [
+    2026,
+    9
+   ],
+   "value": "1,400K permits",
+   "url": "/housing/permits-starts/",
+   "where": "Housing › Permits & Starts",
+   "seen": "2026-10-20"
+  },
+  {
    "id": "nahb",
    "name": "NAHB Housing Market Index",
    "period": "Oct 2026",
@@ -233,19 +246,6 @@
    "url": "/gdp/leading-indicators/",
    "where": "Growth › Leading Indicators",
    "seen": "2026-09-18"
-  },
-  {
-   "id": "permits",
-   "name": "Building Permits & Starts",
-   "period": "Aug 2026",
-   "period_key": [
-    2026,
-    8
-   ],
-   "value": "1,403K permits",
-   "url": "/housing/permits-starts/",
-   "where": "Housing › Permits & Starts",
-   "seen": "2026-09-17"
   },
   {
    "id": "gdp",
