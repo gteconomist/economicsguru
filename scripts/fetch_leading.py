@@ -608,6 +608,43 @@ def main():
         payload = build_payload(rows)
     except Exception as e:
         print(f"FATAL: build failed ({e}); leaving prior leading.json", file=sys.stderr); sys.exit(0)
+    # --- Resilience: never let a failed upstream fetch (e.g. the FRED outage of
+    # 2026-10-21) blank out a chart. Keep the previously published values for
+    # any series that came back empty this run, and any KPI whose value is None.
+    # Never replaces freshly fetched data, build_time, status flags or notices.
+    try:
+        if OUT_PATH.exists():
+            _prior = json.loads(OUT_PATH.read_text())
+
+            def _merge_preserve(new, old):
+                if isinstance(new, dict) and isinstance(old, dict):
+                    for _k, _v in new.items():
+                        if _k in old:
+                            new[_k] = _merge_preserve(_v, old[_k])
+                    return new
+                if isinstance(new, list):
+                    return old if (not new and isinstance(old, list) and old) else new
+                return new  # scalars: always keep THIS run's value
+
+            payload = _merge_preserve(payload, _prior)
+            if isinstance(_prior.get("kpis"), dict) and isinstance(payload.get("kpis"), dict):
+                for _k, _kp in payload["kpis"].items():
+                    if isinstance(_kp, dict) and _kp.get("value") is None:
+                        _pk = _prior["kpis"].get(_k)
+                        if isinstance(_pk, dict) and _pk.get("value") is not None:
+                            payload["kpis"][_k] = _pk
+            # LEI components are keyed by name; a component whose FRED fetch
+            # failed is simply absent, so carry the prior series over.
+            _pc = _prior.get("components") or {}
+            for _k, _v in _pc.items():
+                if _k not in payload["components"] and isinstance(_v, list) and _v:
+                    payload["components"][_k] = _v
+            payload["components_available"] = sorted(payload["components"].keys())
+            print("  resilience: preserved prior values for series/KPIs that failed this run",
+                  file=sys.stderr)
+    except Exception as _e:
+        print(f"  WARN resilience merge skipped: {_e}", file=sys.stderr)
+
     OUT_PATH.write_text(json.dumps(payload, indent=2))
     print(f"wrote {OUT_PATH}: {len(rows)} months, latest {payload['latest_label']}")
     print(f"  LEI={payload['kpis']['level']} 6m_ann={payload['kpis']['six_m']} "

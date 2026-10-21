@@ -474,6 +474,36 @@ def main():
         out["notice"] = " ".join(notice)
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    # --- Resilience: never let a failed upstream fetch (e.g. the FRED outage of
+    # 2026-10-21) blank out a chart. Keep the previously published values for
+    # any series that came back empty this run, and any KPI whose value is None.
+    # Never replaces freshly fetched data, build_time, status flags or notices.
+    try:
+        if OUT_PATH.exists():
+            _prior = json.loads(OUT_PATH.read_text())
+
+            def _merge_preserve(new, old):
+                if isinstance(new, dict) and isinstance(old, dict):
+                    for _k, _v in new.items():
+                        if _k in old:
+                            new[_k] = _merge_preserve(_v, old[_k])
+                    return new
+                if isinstance(new, list):
+                    return old if (not new and isinstance(old, list) and old) else new
+                return new  # scalars: always keep THIS run's value
+
+            out = _merge_preserve(out, _prior)
+            if isinstance(_prior.get("kpis"), dict) and isinstance(out.get("kpis"), dict):
+                for _k, _kp in out["kpis"].items():
+                    if isinstance(_kp, dict) and _kp.get("value") is None:
+                        _pk = _prior["kpis"].get(_k)
+                        if isinstance(_pk, dict) and _pk.get("value") is not None:
+                            out["kpis"][_k] = _pk
+            print("  resilience: preserved prior values for series/KPIs that failed this run",
+                  file=sys.stderr)
+    except Exception as _e:
+        print(f"  WARN resilience merge skipped: {_e}", file=sys.stderr)
+
     OUT_PATH.write_text(json.dumps(out, separators=(",", ":")))
     print(f"Wrote {OUT_PATH} ({OUT_PATH.stat().st_size:,} bytes); latest={out['latest_label']}; "
           f"gen12mma={len(out['generation_12mma'])} mo, storage={len(out['storage'])} wks, dc={len(out['data_center_construction'])} mo", file=sys.stderr)
