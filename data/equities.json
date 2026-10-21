@@ -1,11 +1,11 @@
 {
-  "build_time": "2026-10-21T13:07:56.408836Z",
-  "latest_label": "2026-10-20",
+  "build_time": "2026-10-21T17:58:02.224903Z",
+  "latest_label": "2026-10-21",
   "kpis": {
     "spx": {
-      "value": 7712.57,
-      "delta_pct": 0.28,
-      "label": "2026-10-20"
+      "value": 7766.6,
+      "delta_pct": 0.7,
+      "label": "2026-10-21"
     },
     "nasdaq": {
       "value": 26424.82,
@@ -13,14 +13,14 @@
       "label": "2026-10-20"
     },
     "dow": {
-      "value": 52495.88,
-      "delta_pct": 1.02,
-      "label": "2026-10-20"
+      "value": 52792.94,
+      "delta_pct": 0.57,
+      "label": "2026-10-21"
     },
     "russell": {
-      "value": 2773.42,
-      "delta_pct": 1.65,
-      "label": "2026-10-20"
+      "value": 2788.31,
+      "delta_pct": 0.54,
+      "label": "2026-10-21"
     },
     "vix": {
       "value": 18.44,
@@ -28,9 +28,9 @@
       "label": "2026-10-19"
     },
     "spx_drawdown": {
-      "value": -1.36,
-      "delta_pct": 0.28,
-      "label": "2026-10-20"
+      "value": -0.67,
+      "delta_pct": 0.69,
+      "label": "2026-10-21"
     }
   },
   "spx": [
@@ -57321,6 +57321,10 @@
     [
       "2026-10-20",
       7712.57
+    ],
+    [
+      "2026-10-21",
+      7766.6
     ]
   ],
   "nasdaq": [
@@ -148553,6 +148557,10 @@
     [
       "2026-10-20",
       52495.88
+    ],
+    [
+      "2026-10-21",
+      52792.94
     ]
   ],
   "russell": [
@@ -187963,6 +187971,10 @@
     [
       "2026-10-20",
       2773.42
+    ],
+    [
+      "2026-10-21",
+      2788.31
     ]
   ],
   "wilshire": [
@@ -320133,6 +320145,10 @@
     [
       "2026-10-20",
       -1.36
+    ],
+    [
+      "2026-10-21",
+      -0.67
     ]
   ],
   "wilshire_pe": [
@@ -321644,6 +321660,6 @@
     ]
   ],
   "yahoo_succeeded": true,
-  "fred_succeeded": true,
-  "notice": null
+  "fred_succeeded": false,
+  "notice": "Nasdaq Composite temporarily unavailable. VIX temporarily unavailable. Corporate profits series temporarily unavailable."
 }

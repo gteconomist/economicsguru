@@ -1,6 +1,6 @@
 {
-  "build_time": "2026-10-16T17:19:57.255791Z",
-  "latest_label": "2026-09-01",
+  "build_time": "2026-10-21T17:58:06.622051Z",
+  "latest_label": null,
   "kpis": {
     "ip_yoy": {
       "value": 2.25,
@@ -47191,7 +47191,7 @@
       ]
     ]
   },
-  "fred_succeeded": true,
+  "fred_succeeded": false,
   "eia_succeeded": true,
-  "notice": null
+  "notice": "Industrial Production: Total temporarily unavailable. IP: Manufacturing temporarily unavailable. IP: Manufacturing ex Motor Vehicles temporarily unavailable. Capacity Utilization: Total temporarily unavailable. Capacity Utilization: Manufacturing temporarily unavailable. New Orders: Total Manufacturing temporarily unavailable. New Orders: Mfg ex Transportation (Core) temporarily unavailable. New Orders: Durable Goods (Total) temporarily unavailable. New Orders: Durable Goods ex Transportation temporarily unavailable. New Orders: Durable Goods ex Defense temporarily unavailable. New Orders: Nondurable Goods temporarily unavailable. New Orders: Nondefense Capital Goods Ex Aircraft (Core Capex) temporarily unavailable. New Orders: Defense Capital Goods temporarily unavailable. Shipments: Total Capital Goods temporarily unavailable. Shipments: Nondefense Capital Goods temporarily unavailable. Shipments: Nondef Cap Goods ex Aircraft temporarily unavailable. CPI: Electricity temporarily unavailable."
 }
