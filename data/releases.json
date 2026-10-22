@@ -1,6 +1,19 @@
 {
  "releases": [
   {
+   "id": "lei",
+   "name": "Leading Economic Index",
+   "period": "Sep 2026",
+   "period_key": [
+    2026,
+    9
+   ],
+   "value": "+0.0% MoM",
+   "url": "/gdp/leading-indicators/",
+   "where": "Growth › Leading Indicators",
+   "seen": "2026-10-22"
+  },
+  {
    "id": "permits",
    "name": "Building Permits & Starts",
    "period": "Sep 2026",
@@ -233,19 +246,6 @@
    "url": "/housing/new-homes/",
    "where": "Housing › New Homes",
    "seen": "2026-09-24"
-  },
-  {
-   "id": "lei",
-   "name": "Leading Economic Index",
-   "period": "Aug 2026",
-   "period_key": [
-    2026,
-    8
-   ],
-   "value": "-0.1% MoM",
-   "url": "/gdp/leading-indicators/",
-   "where": "Growth › Leading Indicators",
-   "seen": "2026-09-18"
   },
   {
    "id": "gdp",
