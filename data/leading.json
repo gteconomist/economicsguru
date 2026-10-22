@@ -30241,7 +30241,7 @@
       ],
       [
         "2026-10-01",
-        0.28
+        0.27
       ]
     ],
     "ism_no": [
@@ -34080,5 +34080,5 @@
     "sp500"
   ],
   "source_note": "The Conference Board Composite Indexes of Leading, Coincident & Lagging Indicators (2016=100, SA) + Leading Credit Index. Components: standardized 6-month change (contribution proxy); 9 from FRED/in-house, LCI from The Conference Board.",
-  "build_time": "2026-10-21T18:04:25Z"
+  "build_time": "2026-10-21T23:59:32Z"
 }
