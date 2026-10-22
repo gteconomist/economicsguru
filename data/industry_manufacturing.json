@@ -1,6 +1,6 @@
 {
-  "build_time": "2026-10-21T17:58:06.622051Z",
-  "latest_label": null,
+  "build_time": "2026-10-22T13:19:21.428688Z",
+  "latest_label": "2026-09-01",
   "kpis": {
     "ip_yoy": {
       "value": 2.25,
@@ -45035,79 +45035,79 @@
       ],
       [
         "2025-01-01",
-        360821.5
+        360793.8
       ],
       [
         "2025-02-01",
-        362186.3
+        362166.9
       ],
       [
         "2025-03-01",
-        362910.5
+        362871.8
       ],
       [
         "2025-04-01",
-        363718.7
+        363704.6
       ],
       [
         "2025-05-01",
-        363347.8
+        363461.6
       ],
       [
         "2025-06-01",
-        363485.5
+        363751.4
       ],
       [
         "2025-07-01",
-        364902.4
+        365161.9
       ],
       [
         "2025-08-01",
-        364662.0
+        364955.7
       ],
       [
         "2025-09-01",
-        365391.0
+        365708.6
       ],
       [
         "2025-10-01",
-        366330.4
+        366417.8
       ],
       [
         "2025-11-01",
-        367383.3
+        367191.6
       ],
       [
         "2025-12-01",
-        369125.1
+        368752.4
       ],
       [
         "2026-01-01",
-        368890.4
+        368545.4
       ],
       [
         "2026-02-01",
-        369241.2
+        368887.8
       ],
       [
         "2026-03-01",
-        370501.8
+        370167.8
       ],
       [
         "2026-04-01",
-        371354.2
+        370995.5
       ],
       [
         "2026-05-01",
-        372242.2
+        371755.6
       ],
       [
         "2026-06-01",
-        372774.4
+        372135.8
       ],
       [
         "2026-07-01",
-        373393.2
+        372760.9
       ]
     ],
     "generation_raw": [
@@ -46073,51 +46073,51 @@
       ],
       [
         "2025-01-01",
-        402345.4
+        402013.1
       ],
       [
         "2025-02-01",
-        338591.7
+        338691.8
       ],
       [
         "2025-03-01",
-        333628.9
+        333396.8
       ],
       [
         "2025-04-01",
-        320477.9
+        320773.3
       ],
       [
         "2025-05-01",
-        344034.0
+        345569.3
       ],
       [
         "2025-06-01",
-        393284.8
+        395109.0
       ],
       [
         "2025-07-01",
-        446319.5
+        446243.6
       ],
       [
         "2025-08-01",
-        420241.8
+        420651.4
       ],
       [
         "2025-09-01",
-        368144.8
+        368432.1
       ],
       [
         "2025-10-01",
-        345253.3
+        342490.1
       ],
       [
         "2025-11-01",
-        334985.6
+        331636.7
       ],
       [
         "2025-12-01",
-        382193.8
+        380021.5
       ],
       [
         "2026-01-01",
@@ -47191,7 +47191,7 @@
       ]
     ]
   },
-  "fred_succeeded": false,
+  "fred_succeeded": true,
   "eia_succeeded": true,
-  "notice": "Industrial Production: Total temporarily unavailable. IP: Manufacturing temporarily unavailable. IP: Manufacturing ex Motor Vehicles temporarily unavailable. Capacity Utilization: Total temporarily unavailable. Capacity Utilization: Manufacturing temporarily unavailable. New Orders: Total Manufacturing temporarily unavailable. New Orders: Mfg ex Transportation (Core) temporarily unavailable. New Orders: Durable Goods (Total) temporarily unavailable. New Orders: Durable Goods ex Transportation temporarily unavailable. New Orders: Durable Goods ex Defense temporarily unavailable. New Orders: Nondurable Goods temporarily unavailable. New Orders: Nondefense Capital Goods Ex Aircraft (Core Capex) temporarily unavailable. New Orders: Defense Capital Goods temporarily unavailable. Shipments: Total Capital Goods temporarily unavailable. Shipments: Nondefense Capital Goods temporarily unavailable. Shipments: Nondef Cap Goods ex Aircraft temporarily unavailable. CPI: Electricity temporarily unavailable."
+  "notice": null
 }
