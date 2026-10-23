@@ -1,6 +1,19 @@
 {
  "releases": [
   {
+   "id": "umich",
+   "name": "UMich Consumer Sentiment",
+   "period": "Oct 2026",
+   "period_key": [
+    2026,
+    10
+   ],
+   "value": "48.0",
+   "url": "/consumer/retail-confidence/#cCsUmich",
+   "where": "Consumer › Retail & Confidence",
+   "seen": "2026-10-23"
+  },
+  {
    "id": "lei",
    "name": "Leading Economic Index",
    "period": "Sep 2026",
@@ -220,19 +233,6 @@
    "url": "/consumer/retail-confidence/#cCsConfBoard",
    "where": "Consumer › Retail & Confidence",
    "seen": "2026-09-29"
-  },
-  {
-   "id": "umich",
-   "name": "UMich Consumer Sentiment",
-   "period": "Sep 2026",
-   "period_key": [
-    2026,
-    9
-   ],
-   "value": "48.1",
-   "url": "/consumer/retail-confidence/#cCsUmich",
-   "where": "Consumer › Retail & Confidence",
-   "seen": "2026-09-25"
   },
   {
    "id": "newhomes",
