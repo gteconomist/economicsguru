@@ -15364,9 +15364,9 @@
     ]
   ],
   "mba_latest_week": "2026-10-16",
-  "mba_refi_share": 37.7,
+  "mba_refi_share": 39.0,
   "mba_arm_share": 10.5,
-  "mba_latest_source": "https://www.redbooklumberdata.com/2026/10/14/mortgage-applications-decrease-in-latest-mba-weekly-survey-70",
+  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/10/21/mortgage-applications-decrease-in-latest-mba-weekly-survey",
   "mortgage_30y": [
     [
       "1971-04-02",
@@ -45910,7 +45910,7 @@
     ],
     [
       "2026-10-22",
-      5.12
+      5.09
     ]
   ],
   "spread_30y_10y": [
@@ -57512,7 +57512,7 @@
     ],
     [
       "2026-10-22",
-      2.2
+      2.23
     ]
   ],
   "mortgage_30y_m": [
@@ -68587,8 +68587,8 @@
       "label": "2026-10-22"
     },
     "spread_30y_10y": {
-      "value": 2.2,
-      "delta": -0.01,
+      "value": 2.23,
+      "delta": 0.02,
       "label": "2026-10-22"
     },
     "purchase_index": {
@@ -68602,14 +68602,14 @@
       "label": "2026-10-16"
     },
     "refi_share": {
-      "value": 37.7,
+      "value": 39.0,
       "delta": null,
-      "label": "2026-10-09"
+      "label": "2026-10-16"
     },
     "arm_share": {
       "value": 10.5,
       "delta": null,
-      "label": "2026-10-09"
+      "label": "2026-10-16"
     },
     "delinquency_rate": {
       "value": 1.86,
@@ -68633,7 +68633,7 @@
     }
   },
   "latest_label": "2026-10-16",
-  "build_time": "2026-10-23T13:06:11Z",
+  "build_time": "2026-10-24T16:29:16Z",
   "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
