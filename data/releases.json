@@ -1,6 +1,32 @@
 {
  "releases": [
   {
+   "id": "cb",
+   "name": "Conference Board Confidence",
+   "period": "Oct 2026",
+   "period_key": [
+    2026,
+    10
+   ],
+   "value": "91.7",
+   "url": "/consumer/retail-confidence/#cCsConfBoard",
+   "where": "Consumer › Retail & Confidence",
+   "seen": "2026-10-27"
+  },
+  {
+   "id": "newhomes",
+   "name": "New Home Sales",
+   "period": "Sep 2026",
+   "period_key": [
+    2026,
+    9
+   ],
+   "value": "676K annual rate",
+   "url": "/housing/new-homes/",
+   "where": "Housing › New Homes",
+   "seen": "2026-10-27"
+  },
+  {
    "id": "umich",
    "name": "UMich Consumer Sentiment",
    "period": "Oct 2026",
@@ -34,7 +60,7 @@
     2026,
     9
    ],
-   "value": "1,400K permits",
+   "value": "1,398K permits",
    "url": "/housing/permits-starts/",
    "where": "Housing › Permits & Starts",
    "seen": "2026-10-20"
@@ -220,32 +246,6 @@
    "url": "/labor/jobs/#cJolts",
    "where": "Labor › Jobs & Unemployment",
    "seen": "2026-09-29"
-  },
-  {
-   "id": "cb",
-   "name": "Conference Board Confidence",
-   "period": "Sep 2026",
-   "period_key": [
-    2026,
-    9
-   ],
-   "value": "81.9",
-   "url": "/consumer/retail-confidence/#cCsConfBoard",
-   "where": "Consumer › Retail & Confidence",
-   "seen": "2026-09-29"
-  },
-  {
-   "id": "newhomes",
-   "name": "New Home Sales",
-   "period": "Aug 2026",
-   "period_key": [
-    2026,
-    8
-   ],
-   "value": "684K annual rate",
-   "url": "/housing/new-homes/",
-   "where": "Housing › New Homes",
-   "seen": "2026-09-24"
   },
   {
    "id": "gdp",

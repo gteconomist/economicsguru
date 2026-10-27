@@ -67674,7 +67674,11 @@
     ],
     [
       "2026-06-30",
-      410700.0
+      413500.0
+    ],
+    [
+      "2026-09-30",
+      393300.0
     ]
   ],
   "median_hh_income_q": [
@@ -68633,7 +68637,7 @@
     }
   },
   "latest_label": "2026-10-16",
-  "build_time": "2026-10-26T19:07:05Z",
+  "build_time": "2026-10-27T18:05:40Z",
   "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
@@ -68650,7 +68654,7 @@
   "hai_factor_window_months": 36,
   "hai_basis": "NAR Housing Affordability Index, seasonally adjusted in-house using monthly factors derived from the historical SA/NSA overlap. Trailing months from the NAR press release via Tavily.",
   "price_income_ratio_rows": 224,
-  "price_quarterly_rows": 254,
+  "price_quarterly_rows": 255,
   "seed_income_quarters": 220,
   "income_shape_factors": {
     "1": 0.9863,
