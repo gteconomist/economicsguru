@@ -7679,6 +7679,10 @@
     [
       "2026-10-16",
       129.2
+    ],
+    [
+      "2026-10-23",
+      134.1
     ]
   ],
   "mba_refinance": [
@@ -15361,12 +15365,16 @@
     [
       "2026-10-16",
       503.1
+    ],
+    [
+      "2026-10-23",
+      516.8
     ]
   ],
-  "mba_latest_week": "2026-10-16",
-  "mba_refi_share": 39.0,
-  "mba_arm_share": 10.5,
-  "mba_latest_source": "https://www.redbooklumberdata.com/2026/10/21/mortgage-applications-decrease-in-latest-mba-weekly-survey-71",
+  "mba_latest_week": "2026-10-23",
+  "mba_refi_share": 38.9,
+  "mba_arm_share": 11.3,
+  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/10/28/mortgage-applications-increase-in-latest-mba-weekly-survey",
   "mortgage_30y": [
     [
       "1971-04-02",
@@ -26967,6 +26975,10 @@
     [
       "2026-10-22",
       7.32
+    ],
+    [
+      "2026-10-29",
+      7.24
     ]
   ],
   "mortgage_15y": [
@@ -34309,6 +34321,10 @@
     [
       "2026-10-22",
       6.68
+    ],
+    [
+      "2026-10-29",
+      6.6
     ]
   ],
   "treasury_10y": [
@@ -45911,6 +45927,10 @@
     [
       "2026-10-22",
       5.09
+    ],
+    [
+      "2026-10-29",
+      5.02
     ]
   ],
   "spread_30y_10y": [
@@ -57513,6 +57533,10 @@
     [
       "2026-10-22",
       2.23
+    ],
+    [
+      "2026-10-29",
+      2.22
     ]
   ],
   "mortgage_30y_m": [
@@ -60182,7 +60206,7 @@
     ],
     [
       "2026-10-01",
-      7.35
+      7.33
     ]
   ],
   "eff_rate_outstanding": [
@@ -68581,39 +68605,39 @@
   ],
   "kpis": {
     "mortgage_30y": {
-      "value": 7.32,
+      "value": 7.24,
       "delta": -0.08,
-      "label": "2026-10-22"
+      "label": "2026-10-29"
     },
     "mortgage_15y": {
-      "value": 6.68,
-      "delta": -0.03,
-      "label": "2026-10-22"
+      "value": 6.6,
+      "delta": -0.08,
+      "label": "2026-10-29"
     },
     "spread_30y_10y": {
-      "value": 2.23,
-      "delta": 0.02,
-      "label": "2026-10-22"
+      "value": 2.22,
+      "delta": -0.01,
+      "label": "2026-10-29"
     },
     "purchase_index": {
-      "value": 129.2,
-      "delta": -10.1,
-      "label": "2026-10-16"
+      "value": 134.1,
+      "delta": 4.9,
+      "label": "2026-10-23"
     },
     "refinance_index": {
-      "value": 503.1,
-      "delta": -10.4,
-      "label": "2026-10-16"
+      "value": 516.8,
+      "delta": 13.7,
+      "label": "2026-10-23"
     },
     "refi_share": {
-      "value": 39.0,
+      "value": 38.9,
       "delta": null,
-      "label": "2026-10-16"
+      "label": "2026-10-23"
     },
     "arm_share": {
-      "value": 10.5,
+      "value": 11.3,
       "delta": null,
-      "label": "2026-10-16"
+      "label": "2026-10-23"
     },
     "delinquency_rate": {
       "value": 1.86,
@@ -68636,16 +68660,16 @@
       "label": "2025-12-31"
     }
   },
-  "latest_label": "2026-10-16",
-  "build_time": "2026-10-29T13:38:04Z",
-  "csv_rows_appended_this_run": 0,
+  "latest_label": "2026-10-23",
+  "build_time": "2026-10-29T18:04:50Z",
+  "csv_rows_appended_this_run": 1,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
   "eff_rate_rows": 591,
   "debt_csv_rows": 110,
   "debt_latest_quarter": "2026-06-30",
   "csv_baseline_loaded": true,
-  "mba_history_rows": 1920,
+  "mba_history_rows": 1921,
   "hai_csv_loaded": true,
   "hai_csv_rows": 549,
   "hai_csv_rows_appended_this_run": 0,
