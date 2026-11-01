@@ -41307,6 +41307,10 @@
     [
       "2026-09",
       43281
+    ],
+    [
+      "2026-10",
+      153074
     ]
   ],
   "sectors": {
@@ -43155,10 +43159,10 @@
       "label": "2026-08"
     },
     "challenger": {
-      "value": 43281,
-      "delta": -9600,
+      "value": 153074,
+      "delta": 109793,
       "unit": "k",
-      "label": "2026-09"
+      "label": "2026-10"
     },
     "health_share": {
       "value": 104.8,
@@ -43171,7 +43175,7 @@
   "ces_latest": "2026-09",
   "cps_latest": "2026-09",
   "jolts_latest": "2026-08",
-  "build_time": "2026-10-14T13:19:10Z",
-  "challenger_latest": "2026-09",
+  "build_time": "2026-11-01T18:19:07Z",
+  "challenger_latest": "2026-10",
   "notice": "The BLS Employment Situation release for October 2025 is missing from the source data. Charts skip the missing month; month-over-month changes are not shown for the month immediately following."
 }
