@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-11-02T14:24:09.891481Z",
+  "build_time": "2026-11-02T19:07:04.513569Z",
   "checked_date": "2026-11-02",
   "stale_count": 0,
   "stale": [],
@@ -92,8 +92,8 @@
         },
         "data_center_construction": {
           "status": "ok",
-          "latest": "2026-08-31",
-          "age_days": 63,
+          "latest": "2026-09-30",
+          "age_days": 33,
           "max_age_days": 66
         },
         "henry_hub": {
@@ -118,8 +118,8 @@
     },
     "equities.json": {
       "status": "ok",
-      "latest": "2026-10-30",
-      "age_days": 3,
+      "latest": "2026-11-02",
+      "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily index closes.",
@@ -265,8 +265,8 @@
     },
     "industry_surveys.json": {
       "status": "ok",
-      "latest": "2026-09-30",
-      "age_days": 33,
+      "latest": "2026-10-31",
+      "age_days": 2,
       "max_age_days": 45,
       "build_age_days": 0,
       "note": "ISM Mfg ~1st business day, ISM Svc ~3rd, NFIB 2nd Tuesday.",
@@ -287,8 +287,8 @@
         },
         "ism_manufacturing.production": {
           "status": "ok",
-          "latest": "2026-09-30",
-          "age_days": 33,
+          "latest": "2026-10-31",
+          "age_days": 2,
           "max_age_days": 45
         },
         "ism_services.business_activity": {
