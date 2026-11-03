@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-11-02T22:17:53.833506Z",
+  "build_time": "2026-11-03T12:26:15.637563Z",
   "latest_label": "2026-10-01",
   "kpis": {
     "ism_mfg_total": {
@@ -46883,7 +46883,7 @@
       },
       {
         "label": "Government regulations",
-        "value": 0.0,
+        "value": 7.0,
         "slug": "regulations"
       },
       {
