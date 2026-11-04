@@ -73,7 +73,9 @@ window.EG_PAGES['income-divide'] = function (data, EG) {
       ]}, options:EG.singleOpts(EG.fmtPct1s) });
 
     // 4. Inside the top: spending by high-income sub-bracket (2023 base only).
-    var tb = mt(data.top_125_175);
+    // The payload pads these series with nulls back to 2020; drop everything
+    // before the 2023-01 base so the axis starts where the data does.
+    var tb = mt((data.top_125_175 || []).filter(function (x) { return x[0] >= '2023-01'; }));
     EG.newChart('cIdTop', { type:'line', data:{
       labels: tb.map(function (x) { return EG.lab(x[0]); }),
       datasets: [
