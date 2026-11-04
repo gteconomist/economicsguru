@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-11-04T14:19:34.183131Z",
+  "build_time": "2026-11-04T19:07:33.089753Z",
   "checked_date": "2026-11-04",
   "stale_count": 0,
   "stale": [],
@@ -40,8 +40,8 @@
     },
     "energy.json": {
       "status": "ok",
-      "latest": "2026-11-02",
-      "age_days": 2,
+      "latest": "2026-11-03",
+      "age_days": 1,
       "max_age_days": 16,
       "build_age_days": 0,
       "note": "EIA WPSR Wednesdays for the week ended Friday; retail fuel prices Mondays.",
@@ -56,8 +56,8 @@
         },
         "brent": {
           "status": "ok",
-          "latest": "2026-10-27",
-          "age_days": 8,
+          "latest": "2026-11-03",
+          "age_days": 1,
           "max_age_days": 12
         },
         "spr_monthly": {
@@ -76,8 +76,8 @@
     },
     "energy_power.json": {
       "status": "ok",
-      "latest": "2026-10-27",
-      "age_days": 8,
+      "latest": "2026-11-03",
+      "age_days": 1,
       "max_age_days": 16,
       "build_age_days": 0,
       "note": "EIA weekly gas storage Thursdays; monthly electricity ~2 months behind; Census C30 ~day 1.",
@@ -98,8 +98,8 @@
         },
         "henry_hub": {
           "status": "ok",
-          "latest": "2026-10-27",
-          "age_days": 8,
+          "latest": "2026-11-03",
+          "age_days": 1,
           "max_age_days": 12
         },
         "sales_12mma.com": {
@@ -118,8 +118,8 @@
     },
     "equities.json": {
       "status": "ok",
-      "latest": "2026-11-03",
-      "age_days": 1,
+      "latest": "2026-11-04",
+      "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily index closes.",
@@ -293,8 +293,8 @@
         },
         "ism_services.business_activity": {
           "status": "ok",
-          "latest": "2026-09-30",
-          "age_days": 35,
+          "latest": "2026-10-31",
+          "age_days": 4,
           "max_age_days": 48
         }
       }
