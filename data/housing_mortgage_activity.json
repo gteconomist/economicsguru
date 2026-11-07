@@ -15380,9 +15380,9 @@
     ]
   ],
   "mba_latest_week": "2026-10-30",
-  "mba_refi_share": 39.8,
-  "mba_arm_share": 11.4,
-  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/11/04/mortgage-applications-decrease-in-latest-mba-weekly-survey",
+  "mba_refi_share": 38.9,
+  "mba_arm_share": 11.3,
+  "mba_latest_source": "https://www.mba.org/news-and-research/newsroom/news/2026/10/28/mortgage-applications-increase-in-latest-mba-weekly-survey",
   "mortgage_30y": [
     [
       "1971-04-02",
@@ -45950,7 +45950,7 @@
     ],
     [
       "2026-11-05",
-      4.94
+      4.91
     ]
   ],
   "spread_30y_10y": [
@@ -57560,7 +57560,7 @@
     ],
     [
       "2026-11-05",
-      2.24
+      2.27
     ]
   ],
   "mortgage_30y_m": [
@@ -68643,8 +68643,8 @@
       "label": "2026-11-05"
     },
     "spread_30y_10y": {
-      "value": 2.24,
-      "delta": 0.01,
+      "value": 2.27,
+      "delta": 0.04,
       "label": "2026-11-05"
     },
     "purchase_index": {
@@ -68658,14 +68658,14 @@
       "label": "2026-10-30"
     },
     "refi_share": {
-      "value": 39.8,
+      "value": 38.9,
       "delta": null,
-      "label": "2026-10-30"
+      "label": "2026-10-23"
     },
     "arm_share": {
-      "value": 11.4,
+      "value": 11.3,
       "delta": null,
-      "label": "2026-10-30"
+      "label": "2026-10-23"
     },
     "delinquency_rate": {
       "value": 1.86,
@@ -68689,7 +68689,7 @@
     }
   },
   "latest_label": "2026-10-30",
-  "build_time": "2026-11-06T14:04:52Z",
+  "build_time": "2026-11-07T17:59:34Z",
   "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,

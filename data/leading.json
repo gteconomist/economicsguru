@@ -29601,7 +29601,7 @@
       ],
       [
         "2012-10-01",
-        -0.34
+        -0.33
       ],
       [
         "2012-11-01",
@@ -30277,7 +30277,7 @@
       ],
       [
         "2026-11-01",
-        -0.63
+        -0.65
       ]
     ],
     "ism_no": [
@@ -49875,7 +49875,7 @@
       ],
       [
         "2026-11-01",
-        0.15
+        0.14
       ]
     ],
     "cons_exp": [
@@ -52621,5 +52621,5 @@
     "spread"
   ],
   "source_note": "The Conference Board Composite Indexes of Leading, Coincident & Lagging Indicators (2016=100, SA) + Leading Credit Index. Components: standardized 6-month change (contribution proxy); 9 from FRED/in-house, LCI from The Conference Board.",
-  "build_time": "2026-11-06T19:55:02Z"
+  "build_time": "2026-11-07T17:59:42Z"
 }
