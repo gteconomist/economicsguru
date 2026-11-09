@@ -1,10 +1,8 @@
 {
-  "build_time": "2026-11-09T14:08:13.253147Z",
+  "build_time": "2026-11-09T15:58:38.158331Z",
   "checked_date": "2026-11-09",
-  "stale_count": 1,
-  "stale": [
-    "energy.json:rigs_oil: newest observation 2026-10-23 is 17d old (tolerance 16d)"
-  ],
+  "stale_count": 0,
+  "stale": [],
   "datasets": {
     "commodities.json": {
       "status": "ok",
@@ -41,7 +39,7 @@
       }
     },
     "energy.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-11-03",
       "age_days": 6,
       "max_age_days": 16,
@@ -51,9 +49,9 @@
       "consecutive_misses": 0,
       "watch": {
         "rigs_oil": {
-          "status": "STALE",
-          "latest": "2026-10-23",
-          "age_days": 17,
+          "status": "ok",
+          "latest": "2026-10-30",
+          "age_days": 10,
           "max_age_days": 16
         },
         "brent": {
@@ -120,8 +118,8 @@
     },
     "equities.json": {
       "status": "ok",
-      "latest": "2026-11-06",
-      "age_days": 3,
+      "latest": "2026-11-09",
+      "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily index closes.",
