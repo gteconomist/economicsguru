@@ -128,10 +128,28 @@ window.EG_PAGES.cpi = function (data, EG) {
     ]}, options:EG.baseOpts(true) }, { pct:true, y1:false });
 
     // Energy prices, indexed (start of range = 100)
-    var gl = seriesTail('gasoline_level', n), el = seriesTail('energy_level', n);
-    EG.newChart('cEnergy', { type:'line', data:{ labels:gl.map(function(p){return EG.lab(p[0]);}), datasets:[
-      EG.line(EG.rebase(gl), T.gas, { label:'Gasoline' }),
-      EG.line(EG.rebase(el), T.energyAll, { label:'Energy (all)' })
+    // Align both series on dates, not position: BLS published gasoline for
+    // Oct 2025 but not the energy aggregate (shutdown), so energy_level is one
+    // point short. Plotted positionally it lands one month left and stops a
+    // month early. Build a shared date spine and rebase each on its first value.
+    var gAll = data.gasoline_level || [], eAll = data.energy_level || [];
+    var gBy = {}, eBy = {}, seen = {}, spine = [];
+    gAll.forEach(function(p){ gBy[p[0]] = p[1]; if(!seen[p[0]]){ seen[p[0]] = 1; spine.push(p[0]); } });
+    eAll.forEach(function(p){ eBy[p[0]] = p[1]; if(!seen[p[0]]){ seen[p[0]] = 1; spine.push(p[0]); } });
+    spine.sort();
+    spine = EG.tail(spine, n);
+    function idx(by){
+      var base = null;
+      return spine.map(function(d){
+        var v = by.hasOwnProperty(d) ? by[d] : null;
+        if (v == null) return null;
+        if (base == null) base = v;
+        return v / base * 100;
+      });
+    }
+    EG.newChart('cEnergy', { type:'line', data:{ labels:spine.map(EG.lab), datasets:[
+      EG.line(idx(gBy), T.gas, { label:'Gasoline', spanGaps:true }),
+      EG.line(idx(eBy), T.energyAll, { label:'Energy (all)', spanGaps:true })
     ]}, options:EG.baseOpts(false) }, { pct:false, y1:false });
 
     // Vintage 1970s-vs-now comparison (range-independent; rebuilt after reset).
