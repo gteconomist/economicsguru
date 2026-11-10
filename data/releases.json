@@ -14,6 +14,19 @@
    "seen": "2026-11-10"
   },
   {
+   "id": "nfib",
+   "name": "NFIB Small Business Optimism",
+   "period": "Oct 2026",
+   "period_key": [
+    2026,
+    10
+   ],
+   "value": "97.8",
+   "url": "/industry/surveys/#cIndSurveysNfibOptimism",
+   "where": "Growth › Business Surveys",
+   "seen": "2026-11-10"
+  },
+  {
    "id": "jobs",
    "name": "Jobs Report",
    "period": "Oct 2026",
@@ -233,19 +246,6 @@
    "url": "/consumer/retail-confidence/",
    "where": "Consumer › Retail & Confidence",
    "seen": "2026-10-15"
-  },
-  {
-   "id": "nfib",
-   "name": "NFIB Small Business Optimism",
-   "period": "Sep 2026",
-   "period_key": [
-    2026,
-    9
-   ],
-   "value": "97.9",
-   "url": "/industry/surveys/#cIndSurveysNfibOptimism",
-   "where": "Growth › Business Surveys",
-   "seen": "2026-10-13"
   },
   {
    "id": "existing",

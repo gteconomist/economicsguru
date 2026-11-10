@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-11-10T14:09:09.448749Z",
+  "build_time": "2026-11-10T17:28:35.696047Z",
   "latest_label": "2026-10-01",
   "kpis": {
     "ism_mfg_total": {
@@ -33,14 +33,14 @@
       "label": "2026-09-01"
     },
     "nfib_optimism": {
-      "value": 97.9,
-      "delta": -0.8,
-      "label": "2026-09-01"
+      "value": 97.8,
+      "delta": -0.1,
+      "label": "2026-10-01"
     },
     "nfib_uncertainty": {
-      "value": 90.0,
-      "delta": 1.0,
-      "label": "2026-09-01"
+      "value": 84.0,
+      "delta": -6.0,
+      "label": "2026-10-01"
     }
   },
   "ism_manufacturing": {
@@ -44934,6 +44934,10 @@
       [
         "2026-09-01",
         97.9
+      ],
+      [
+        "2026-10-01",
+        97.8
       ]
     ],
     "uncertainty": [
@@ -46892,37 +46896,41 @@
       [
         "2026-09-01",
         90.0
+      ],
+      [
+        "2026-10-01",
+        84.0
       ]
     ],
     "problems_latest": [
       {
         "label": "Taxes",
-        "value": 11.0,
+        "value": 21.0,
         "slug": "taxes"
       },
       {
         "label": "Labor quality",
-        "value": 26.0,
+        "value": 25.0,
         "slug": "labor-quality"
       },
       {
         "label": "Inflation",
-        "value": 20.0,
+        "value": 17.0,
         "slug": "inflation"
       },
       {
         "label": "Poor sales",
-        "value": 11.0,
+        "value": 6.0,
         "slug": "poor-sales"
       },
       {
         "label": "Labor costs",
-        "value": 6.0,
+        "value": 7.0,
         "slug": "labor-costs"
       },
       {
         "label": "Insurance",
-        "value": 6.0,
+        "value": 7.0,
         "slug": "insurance"
       },
       {
@@ -46932,17 +46940,17 @@
       },
       {
         "label": "Competition from large biz",
-        "value": 6.0,
+        "value": 5.0,
         "slug": "competition"
       },
       {
         "label": "Financing & interest rates",
-        "value": 26.0,
+        "value": 3.0,
         "slug": "interest-rates"
       },
       {
         "label": "Other / none",
-        "value": 0.0,
+        "value": 2.0,
         "slug": "other"
       }
     ]
@@ -46957,14 +46965,8 @@
     "ism_manufacturing": false,
     "ism_services": false,
     "cass_freight": true,
-    "nfib_sbet": true
+    "nfib_sbet": false
   },
-  "stale": {
-    "nfib_sbet": {
-      "latest": "2026-09",
-      "expected": "2026-10",
-      "months_behind": 1
-    }
-  },
-  "notice": "nfib_sbet is 1 month(s) behind (latest 2026-09, expected 2026-10)."
+  "stale": null,
+  "notice": null
 }

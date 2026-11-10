@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-11-10T14:09:22.172553Z",
+  "build_time": "2026-11-10T17:28:47.221844Z",
   "checked_date": "2026-11-10",
   "stale_count": 0,
   "stale": [],
@@ -26,14 +26,14 @@
       "watch": {
         "debt.credit_card": {
           "status": "ok",
-          "latest": "2026-06-30",
-          "age_days": 133,
+          "latest": "2026-09-30",
+          "age_days": 41,
           "max_age_days": 145
         },
         "delinquency.credit_card": {
           "status": "ok",
-          "latest": "2026-06-30",
-          "age_days": 133,
+          "latest": "2026-09-30",
+          "age_days": 41,
           "max_age_days": 145
         }
       }
@@ -118,8 +118,8 @@
     },
     "equities.json": {
       "status": "ok",
-      "latest": "2026-11-09",
-      "age_days": 1,
+      "latest": "2026-11-10",
+      "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily index closes.",
@@ -193,8 +193,8 @@
         },
         "mortgage_debt_out": {
           "status": "ok",
-          "latest": "2026-06-30",
-          "age_days": 133,
+          "latest": "2026-09-30",
+          "age_days": 41,
           "max_age_days": 145
         },
         "delinquency_rate": {
@@ -255,8 +255,8 @@
     },
     "industry_manufacturing.json": {
       "status": "ok",
-      "latest": "2026-09-30",
-      "age_days": 41,
+      "latest": "2026-10-31",
+      "age_days": 10,
       "max_age_days": 56,
       "build_age_days": 0,
       "note": "Fed G.17 industrial production ~day 16 (R~16).",
@@ -281,8 +281,8 @@
         },
         "nfib_sbet.optimism": {
           "status": "ok",
-          "latest": "2026-09-30",
-          "age_days": 41,
+          "latest": "2026-10-31",
+          "age_days": 10,
           "max_age_days": 48
         },
         "ism_manufacturing.production": {
