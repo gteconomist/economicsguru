@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-11-10T17:28:47.221844Z",
+  "build_time": "2026-11-10T19:09:25.927660Z",
   "checked_date": "2026-11-10",
   "stale_count": 0,
   "stale": [],
@@ -227,8 +227,8 @@
     },
     "housing_rents.json": {
       "status": "ok",
-      "latest": "2026-09-30",
-      "age_days": 41,
+      "latest": "2026-10-31",
+      "age_days": 10,
       "max_age_days": 45,
       "build_age_days": 0,
       "note": "Apartment List monthly, ~day 25-30 of the PRIOR month.",
@@ -237,8 +237,8 @@
       "watch": {
         "rent_us": {
           "status": "ok",
-          "latest": "2026-09-30",
-          "age_days": 41,
+          "latest": "2026-10-31",
+          "age_days": 10,
           "max_age_days": 45
         }
       }
