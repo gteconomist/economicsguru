@@ -1,6 +1,19 @@
 {
  "releases": [
   {
+   "id": "cpi",
+   "name": "Consumer Price Index",
+   "period": "Oct 2026",
+   "period_key": [
+    2026,
+    10
+   ],
+   "value": "3.7% YoY",
+   "url": "/inflation/cpi/",
+   "where": "Inflation › CPI",
+   "seen": "2026-11-10"
+  },
+  {
    "id": "jobs",
    "name": "Jobs Report",
    "period": "Oct 2026",
@@ -220,19 +233,6 @@
    "url": "/consumer/retail-confidence/",
    "where": "Consumer › Retail & Confidence",
    "seen": "2026-10-15"
-  },
-  {
-   "id": "cpi",
-   "name": "Consumer Price Index",
-   "period": "Sep 2026",
-   "period_key": [
-    2026,
-    9
-   ],
-   "value": "3.7% YoY",
-   "url": "/inflation/cpi/",
-   "where": "Inflation › CPI",
-   "seen": "2026-10-14"
   },
   {
    "id": "nfib",
