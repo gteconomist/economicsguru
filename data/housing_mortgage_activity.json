@@ -26991,6 +26991,10 @@
     [
       "2026-11-05",
       7.18
+    ],
+    [
+      "2026-11-12",
+      7.11
     ]
   ],
   "mortgage_15y": [
@@ -34341,6 +34345,10 @@
     [
       "2026-11-05",
       6.57
+    ],
+    [
+      "2026-11-12",
+      6.45
     ]
   ],
   "treasury_10y": [
@@ -45951,6 +45959,10 @@
     [
       "2026-11-05",
       4.91
+    ],
+    [
+      "2026-11-12",
+      4.89
     ]
   ],
   "spread_30y_10y": [
@@ -57561,6 +57573,10 @@
     [
       "2026-11-05",
       2.27
+    ],
+    [
+      "2026-11-12",
+      2.22
     ]
   ],
   "mortgage_30y_m": [
@@ -60234,7 +60250,7 @@
     ],
     [
       "2026-11-01",
-      7.18
+      7.14
     ]
   ],
   "eff_rate_outstanding": [
@@ -65815,6 +65831,10 @@
     [
       "2026-09-01",
       105.5
+    ],
+    [
+      "2026-10-01",
+      102.3
     ]
   ],
   "price_income_ratio": [
@@ -68637,19 +68657,19 @@
   ],
   "kpis": {
     "mortgage_30y": {
-      "value": 7.18,
-      "delta": -0.06,
-      "label": "2026-11-05"
+      "value": 7.11,
+      "delta": -0.07,
+      "label": "2026-11-12"
     },
     "mortgage_15y": {
-      "value": 6.57,
-      "delta": -0.03,
-      "label": "2026-11-05"
+      "value": 6.45,
+      "delta": -0.12,
+      "label": "2026-11-12"
     },
     "spread_30y_10y": {
-      "value": 2.27,
-      "delta": 0.04,
-      "label": "2026-11-05"
+      "value": 2.22,
+      "delta": -0.05,
+      "label": "2026-11-12"
     },
     "purchase_index": {
       "value": 131.4,
@@ -68682,9 +68702,9 @@
       "label": "2026-03-01"
     },
     "affordability": {
-      "value": 105.5,
-      "delta": -2.4,
-      "label": "2026-09-01"
+      "value": 102.3,
+      "delta": -3.1,
+      "label": "2026-10-01"
     },
     "price_income_ratio": {
       "value": 4.66,
@@ -68693,7 +68713,7 @@
     }
   },
   "latest_label": "2026-10-30",
-  "build_time": "2026-11-10T17:26:49Z",
+  "build_time": "2026-11-12T18:08:41Z",
   "csv_rows_appended_this_run": 0,
   "tavily_scrape_succeeded": true,
   "eff_rate_succeeded": true,
@@ -68704,9 +68724,9 @@
   "mba_history_rows": 1922,
   "hai_csv_loaded": true,
   "hai_csv_rows": 549,
-  "hai_csv_rows_appended_this_run": 0,
-  "hai_scrape_succeeded": false,
-  "hai_scrape_source": null,
+  "hai_csv_rows_appended_this_run": 1,
+  "hai_scrape_succeeded": true,
+  "hai_scrape_source": "FRED FIXHAI",
   "hai_factor_window_months": 36,
   "hai_basis": "NAR Housing Affordability Index, seasonally adjusted in-house using monthly factors derived from the historical SA/NSA overlap. Trailing months from the NAR press release via Tavily.",
   "price_income_ratio_rows": 224,
