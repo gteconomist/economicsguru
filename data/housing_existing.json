@@ -34101,8 +34101,8 @@
   "latest_label": "2026-10",
   "case_shiller_latest": "2026-08",
   "mortgage_latest": "2026-11",
-  "build_time": "2026-11-12T18:07:42Z",
+  "build_time": "2026-11-12T19:05:43Z",
   "csv_baseline_loaded": true,
   "sa_method": "computed_ratio_to_ma",
-  "csv_rows_appended_this_run": 1
+  "csv_rows_appended_this_run": 0
 }
