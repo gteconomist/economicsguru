@@ -108,6 +108,10 @@ _ISO_YM_RE = re.compile(r"(20\d\d)-(\d{2})")
 _MON3 = {m[:3].lower(): n for m, n in MONTHS_FULL.items()}
 _MON3["sept"] = 9
 
+# Slug fragments seen on real Job Cut Report posts; used only to ORDER
+# candidates (most report-like first), never to exclude one.
+_SLUG_HINTS = ("challenger-report", "job-cut", "layoff", "cuts", "hiring")
+
 
 def _release_window(year, month):
     """Months ('YYYY-MM') in which the report for year-month is published."""
@@ -229,32 +233,48 @@ def scrape_challenger():
                   f"{month_full} {year}", file=sys.stderr)
             continue
 
-        # Only accept a blog post whose slug names this month. Don't fall back
-        # to any other URL -- a different month's release would parse cleanly
-        # and silently write the wrong value. Slugs used to start with
-        # "challenger-report-"; since late 2026 they read like
-        # "job-cuts-fall-in-september-hiring-plans-up-3-...", so accept either.
-        chosen, chosen_hit = None, None
+        # Candidates: any challengergray.com blog post whose slug names this
+        # month. The slug wording is NOT stable -- "challenger-report-august-
+        # job-cuts-up-58-...", then "job-cuts-fall-in-september-...", then
+        # "october-layoffs-at-three-year-low-..." (Oct 2026), which matched
+        # neither old keyword and left the scraper reporting "not yet
+        # published" for two weeks. So the slug only has to name the month;
+        # the headline regex and the year verification below decide whether a
+        # candidate is really this month's report. Known report-style slugs
+        # are tried first, and every candidate is tried before giving up.
+        candidates = []
         for r in results:
             u = (r.get("url") or "").lower()
             slug = u.rstrip("/").rsplit("/", 1)[-1]
             if "/blog/" not in u or month_full.lower() not in slug:
                 continue
-            if "challenger-report" not in slug and "job-cut" not in slug:
-                continue
-            chosen, chosen_hit = r.get("url"), r
-            break
-        if not chosen:
-            print(f"  Challenger {month_full} {year}: no matching report URL; "
-                  f"release not yet published", file=sys.stderr)
+            likely = any(k in slug for k in _SLUG_HINTS)
+            candidates.append((0 if likely else 1, len(candidates), r))
+        candidates.sort(key=lambda c: c[:2])
+        if not candidates:
+            print(f"  Challenger {month_full} {year}: no blog URL naming the "
+                  f"month; release not yet published. Hits: "
+                  f"{[r.get('url') for r in results]}", file=sys.stderr)
             continue
 
+        for _, _, chosen_hit in candidates:
+            rows = _try_release(chosen_hit, month_full, year, target)
+            if rows:
+                return rows
+
+    return []
+
+
+def _try_release(chosen_hit, month_full, year, target):
+    """Parse + verify one candidate URL. Returns rows, or [] to try the next."""
+    chosen = chosen_hit.get("url")
+    if True:
         try:
             text = _strip_html(tavily_extract(chosen))
         except Exception as e:
             print(f"  Challenger extract failed for {chosen}: {e}",
                   file=sys.stderr)
-            continue
+            return []
 
         rows = []
 
@@ -268,9 +288,9 @@ def scrape_challenger():
                 break
         if hit is None:
             print(f"  Challenger {month_full} {year}: headline pattern not "
-                  f"matched; skipping. First 600 chars: {text[:600]!r}",
+                  f"matched in {chosen}; skipping. First 600 chars: {text[:600]!r}",
                   file=sys.stderr)
-            continue
+            return []
         rows.append({"month": target, "announced_layoffs": hit})
 
         # Prior-month restatement, if the release phrases it that way.
@@ -294,7 +314,7 @@ def scrape_challenger():
         if not ok:
             print(f"  Challenger {month_full} {year}: REFUSING {chosen} -- "
                   f"release year not verified: {why}", file=sys.stderr)
-            continue
+            return []
         print(f"  Challenger {month_full} {year}: year verified {why}",
               file=sys.stderr)
 
@@ -304,8 +324,6 @@ def scrape_challenger():
 
         print(f"  Challenger scraped from {chosen}: {rows}", file=sys.stderr)
         return rows
-
-    return []
 
 
 def main():
