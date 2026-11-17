@@ -1,10 +1,8 @@
 {
-  "build_time": "2026-11-17T14:07:44.257773Z",
+  "build_time": "2026-11-17T15:13:06.838307Z",
   "checked_date": "2026-11-17",
-  "stale_count": 1,
-  "stale": [
-    "labor.json:challenger_layoffs: newest observation 2026-09-30 is 48d old (tolerance 45d)"
-  ],
+  "stale_count": 0,
+  "stale": [],
   "datasets": {
     "commodities.json": {
       "status": "ok",
@@ -42,8 +40,8 @@
     },
     "energy.json": {
       "status": "ok",
-      "latest": "2026-11-11",
-      "age_days": 6,
+      "latest": "2026-11-16",
+      "age_days": 1,
       "max_age_days": 16,
       "build_age_days": 0,
       "note": "EIA WPSR Wednesdays for the week ended Friday; retail fuel prices Mondays.",
@@ -70,8 +68,8 @@
         },
         "gasoline": {
           "status": "ok",
-          "latest": "2026-11-09",
-          "age_days": 8,
+          "latest": "2026-11-16",
+          "age_days": 1,
           "max_age_days": 12
         }
       }
@@ -120,8 +118,8 @@
     },
     "equities.json": {
       "status": "ok",
-      "latest": "2026-11-16",
-      "age_days": 1,
+      "latest": "2026-11-17",
+      "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily index closes.",
@@ -312,7 +310,7 @@
       "consecutive_misses": 0
     },
     "labor.json": {
-      "status": "STALE",
+      "status": "ok",
       "latest": "2026-10-31",
       "age_days": 17,
       "max_age_days": 45,
@@ -328,9 +326,9 @@
           "max_age_days": 100
         },
         "challenger_layoffs": {
-          "status": "STALE",
-          "latest": "2026-09-30",
-          "age_days": 48,
+          "status": "ok",
+          "latest": "2026-10-31",
+          "age_days": 17,
           "max_age_days": 45
         }
       }
