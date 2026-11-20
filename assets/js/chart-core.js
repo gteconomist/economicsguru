@@ -532,7 +532,7 @@ window.EG = (function () {
       }
     }
     footerH += Math.max(0, srcLines.length-1)*srcLH;
-    x.fillStyle=theme.bg; x.fillRect(0,0,W,H);
+    if(!theme.clear){ x.fillStyle=theme.bg; x.fillRect(0,0,W,H); }   // clear = transparent background (PowerTools)
     x.fillStyle=theme.brand; x.fillRect(padL, 22*sc, 40*sc, 4*sc);
     x.textAlign='left'; x.textBaseline='alphabetic';
     x.fillStyle=theme.ink; x.font='700 '+(26*sc)+'px "Source Serif 4", Georgia, serif';
@@ -564,6 +564,10 @@ window.EG = (function () {
   // themeName: 'light' | 'dark'. Finds the page's single chart card (embed pages).
   function exportPngDataUrl(themeName){
     var theme = (themeName === 'light') ? EXPORT_LIGHT : EXPORT_DARK;
+    // PowerTools: dark charts export with a TRANSPARENT background so they float on any
+    // dark slide (gradient included). Add &bg=solid to the embed URL to force the navy fill.
+    // Site PNG downloads (exportPng / exportPngLight) are unaffected.
+    if(themeName !== 'light' && !/[?&]bg=solid(&|$)/.test(location.search)) theme = Object.assign({}, EXPORT_DARK, { clear:true });
     var card = document.querySelector('.card,.hero-card');
     var ch = card && chartInCard(card);
     if(!ch) return null;
