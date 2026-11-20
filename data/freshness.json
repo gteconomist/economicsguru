@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-11-20T17:58:45.164911Z",
+  "build_time": "2026-11-20T20:30:24.868472Z",
   "checked_date": "2026-11-20",
   "stale_count": 0,
   "stale": [],
@@ -76,8 +76,8 @@
     },
     "energy_power.json": {
       "status": "ok",
-      "latest": "2026-11-17",
-      "age_days": 3,
+      "latest": "2026-11-20",
+      "age_days": 0,
       "max_age_days": 16,
       "build_age_days": 0,
       "note": "EIA weekly gas storage Thursdays; monthly electricity ~2 months behind; Census C30 ~day 1.",
@@ -113,6 +113,18 @@
           "latest": "2026-08-31",
           "age_days": 81,
           "max_age_days": 100
+        },
+        "hyperscaler.quarterly_total": {
+          "status": "ok",
+          "latest": "2026-09-30",
+          "age_days": 51,
+          "max_age_days": 140
+        },
+        "hyperscaler.projections_entered": {
+          "status": "ok",
+          "latest": "2026-11-20",
+          "age_days": 0,
+          "max_age_days": 120
         }
       }
     },
@@ -134,7 +146,33 @@
       "build_age_days": 0,
       "note": "BEA advance estimate ~30d after quarter end; third estimate ~90d. 130 tolerates a delayed advance print.",
       "wrote_this_run": true,
-      "consecutive_misses": 0
+      "consecutive_misses": 0,
+      "watch": {
+        "ai_contrib.info_equipment": {
+          "status": "ok",
+          "latest": "2026-09-30",
+          "age_days": 51,
+          "max_age_days": 130
+        },
+        "ai_contrib.software": {
+          "status": "ok",
+          "latest": "2026-09-30",
+          "age_days": 51,
+          "max_age_days": 130
+        },
+        "ai_contrib.pce": {
+          "status": "ok",
+          "latest": "2026-09-30",
+          "age_days": 51,
+          "max_age_days": 130
+        },
+        "ai_contrib.pce_services": {
+          "status": "ok",
+          "latest": "2026-09-30",
+          "age_days": 51,
+          "max_age_days": 130
+        }
+      }
     },
     "government.json": {
       "status": "ok",
@@ -330,6 +368,30 @@
           "latest": "2026-10-31",
           "age_days": 20,
           "max_age_days": 45
+        },
+        "recent_grads.recent_grads": {
+          "status": "ok",
+          "latest": "2026-09-30",
+          "age_days": 51,
+          "max_age_days": 150
+        },
+        "recent_grads.all_workers": {
+          "status": "ok",
+          "latest": "2026-09-30",
+          "age_days": 51,
+          "max_age_days": 150
+        },
+        "recent_grads.college_grads": {
+          "status": "ok",
+          "latest": "2026-09-30",
+          "age_days": 51,
+          "max_age_days": 150
+        },
+        "recent_grads.young_workers": {
+          "status": "ok",
+          "latest": "2026-09-30",
+          "age_days": 51,
+          "max_age_days": 150
         }
       }
     },
@@ -379,7 +441,21 @@
       "build_age_days": 0,
       "note": "Daily H.15 yields; 6d covers a long holiday weekend.",
       "wrote_this_run": true,
-      "consecutive_misses": 0
+      "consecutive_misses": 0,
+      "watch": {
+        "fed_target_upper": {
+          "status": "ok",
+          "latest": "2026-11-20",
+          "age_days": 0,
+          "max_age_days": 6
+        },
+        "fed_target_lower": {
+          "status": "ok",
+          "latest": "2026-11-20",
+          "age_days": 0,
+          "max_age_days": 6
+        }
+      }
     }
   }
 }
