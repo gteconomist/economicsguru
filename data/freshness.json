@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-11-20T20:30:24.868472Z",
+  "build_time": "2026-11-20T20:52:45.783075Z",
   "checked_date": "2026-11-20",
   "stale_count": 0,
   "stale": [],
@@ -454,6 +454,18 @@
           "latest": "2026-11-20",
           "age_days": 0,
           "max_age_days": 6
+        },
+        "fed_outlook.market_asof": {
+          "status": "ok",
+          "latest": "2026-11-19",
+          "age_days": 1,
+          "max_age_days": 7
+        },
+        "fed_outlook.sep_asof": {
+          "status": "ok",
+          "latest": "2026-09-16",
+          "age_days": 65,
+          "max_age_days": 105
         }
       }
     }
