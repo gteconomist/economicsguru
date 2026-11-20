@@ -1441,13 +1441,17 @@ window.EG_CHART_REGISTRY = {
         },
         {
           key:'trs-fed-target', canvas:'cTrFedTarget',
-          title:'Federal Funds Target Range',
-          subtitle:'FOMC target range, upper and lower bound, %, daily, with the effective rate; 2026 rate increases marked',
-          source:'Source: Federal Reserve via FRED — DFEDTARU, DFEDTARL (target range), DFF (effective federal funds rate).',
+          title:'Federal Funds Target Range and the Next 12 Months',
+          subtitle:'Target range, effective rate and 2026 hikes; outlook = market-implied path vs. FOMC median',
+          source:'Source: Federal Reserve via FRED (DFEDTARU, DFEDTARL, DFF); FOMC Summary of Economic Projections, year-end median and range (FEDTARMD/RL/RH); Atlanta Fed Market Probability Tracker, expected 3-month avg. SOFR from CME options.',
           series:[
-            {key:'upper', label:'Target range, upper bound'},
-            {key:'lower', label:'Target range, lower bound'},
-            {key:'effr',  label:'Effective fed funds rate'}
+            {key:'upper',    label:'FOMC target range (upper bound)'},
+            {key:'lower',    label:'Target range, lower bound'},
+            {key:'effr',     label:'Effective fed funds rate'},
+            {key:'mkt_mean', label:'Market-implied path (mean)'},
+            {key:'mkt_p75',  label:'Market path, 75th percentile'},
+            {key:'mkt_p25',  label:'Market path, 25th percentile'},
+            {key:'fomc',     label:'FOMC median projection, year end'}
           ]
         },
         {

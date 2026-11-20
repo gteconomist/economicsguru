@@ -34,13 +34,46 @@ if (window.Chart && !window.__egEventLabels) {
         var idx=-1,i; for(i=0;i<dates.length;i++){ if(dates[i]>=ev.date){idx=i;break;} }
         if(idx<0) return; var x=xs.getPixelForValue(idx); if(x<area.left||x>area.right) return;
         // exportFontPx is set by chart-core's exOpts on the 2200x1000 exports.
-        var right=x>(area.left+area.right)/2, fs=opt.exportFontPx||chart.$evFont||11;
+        // ev.side: 'left' / 'right' forces the caption to that side of the line;
+        // otherwise it flips toward the middle of the plot.
+        var right=ev.side?ev.side==='left':x>(area.left+area.right)/2, fs=opt.exportFontPx||chart.$evFont||11;
         var pad=Math.max(6, Math.round(fs*0.5));
         ctx.font='600 '+fs+'px "Source Sans Pro", sans-serif'; ctx.fillStyle=ev.color||'#E04F39';
         ctx.textBaseline='top'; ctx.textAlign=right?'right':'left';
         ctx.fillText(ev.label, x+(right?-pad:pad), area.top+pad*0.7);
       });
       ctx.restore();
+    }
+  });
+}
+
+// FOMC projection markers for trs-fed-target: a dot at each projected value with a
+// whisker for the participants' low-high range. Drawn here, not as Chart.js points,
+// because the branded export (exportData) zeroes every pointRadius. Reads only
+// dataset properties (egDots / egLo / egHi), which the export copies verbatim.
+if (window.Chart && !window.__egRateDots) {
+  window.__egRateDots = true;
+  Chart.register({ id:'ratesProjectionDots',
+    afterDatasetsDraw:function(chart){
+      var ys=chart.scales&&chart.scales.y; if(!ys) return;
+      var exporting=chart.options.responsive===false, ctx=chart.ctx;
+      (chart.data.datasets||[]).forEach(function(ds,i){
+        if(!ds.egDots || !chart.isDatasetVisible(i)) return;
+        var meta=chart.getDatasetMeta(i), col=ds.borderColor||'#FFCD00';
+        (meta.data||[]).forEach(function(el,j){
+          var v=ds.data[j]; if(v==null) return;
+          var x=el.x, y=ys.getPixelForValue(v), r=exporting?12:5, cap=exporting?14:6;
+          ctx.save(); ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=exporting?4:1.6;
+          var lo=ds.egLo&&ds.egLo[j], hi=ds.egHi&&ds.egHi[j];
+          if(lo!=null&&hi!=null){
+            var y0=ys.getPixelForValue(lo), y1=ys.getPixelForValue(hi);
+            ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,y1);
+            ctx.moveTo(x-cap,y0); ctx.lineTo(x+cap,y0); ctx.moveTo(x-cap,y1); ctx.lineTo(x+cap,y1); ctx.stroke();
+          }
+          ctx.beginPath(); ctx.moveTo(x,y-r); ctx.lineTo(x+r,y); ctx.lineTo(x,y+r); ctx.lineTo(x-r,y); ctx.closePath(); ctx.fill();
+          ctx.restore();
+        });
+      });
     }
   });
 }
@@ -90,27 +123,87 @@ window.EG_PAGES.treasuries = function (data, EG) {
       EG.line(rtAlign(f10, data.fed_funds), YELLOW, { label:'Fed funds (effective)', borderWidth:2.2, tension:.15, spanGaps:true })
     ]}, options:EG.singleOpts(EG.fmtPct2) });
 
-    // 4b. Fed funds target range (upper/lower bound band) + effective rate, with
-    //     every 2026 increase in the upper bound flagged by a vertical event
-    //     line. Hikes are found from the data, so a new one is marked on the
-    //     next refresh with no code change.
-    var tu=rd('fed_target_upper'); var td=tu.map(function(r){return r[0];}); var lt=td.map(EG.lab);
+    // 4b. Fed funds target range + effective rate, 2026 hikes flagged (vertical
+    //     event lines found from the data), and the next ~12 months:
+    //       * market-implied path -- Atlanta Fed Market Probability Tracker, mean and
+    //         25th-75th percentile of expected 3-month average SOFR per CME window,
+    //         plotted at each window's midpoint (fed_outlook.market);
+    //       * FOMC median year-end projection with the participants' low-high range
+    //         as a whisker (fed_outlook.sep, FRED FEDTARMD / FEDTARRL / FEDTARRH).
+    //     The x axis is extended day by day past today so history and outlook share
+    //     one time scale. A "Today" line divides them.
+    var tu=rd('fed_target_upper');
     if (tu.length) {
+      var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      var fmtD=function(iso){ var d=iso.split('-'); return MON[+d[1]-1]+' '+(+d[2])+', '+d[0]; };
+      var iso=function(d){ return d.toISOString().slice(0,10); };
+      var addDays=function(s,n){ var d=new Date(s+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n); return iso(d); };
+      var fo=data.fed_outlook||{}, mk=fo.market||{}, sep=fo.sep||{};
+      var today=tu[tu.length-1][0], horizon=addDays(today, 366);
+      // market windows starting within the next 12 months, plotted at their midpoints
+      var wins=(mk.windows||[]).filter(function(w){ return w.start>today && w.start<=horizon; }).map(function(w){
+        var a=new Date(w.start+'T00:00:00Z'), b=new Date(w.end+'T00:00:00Z');
+        return Object.assign({ mid:iso(new Date((a.getTime()+b.getTime())/2)) }, w); });
+      // FOMC year-end projections that fall inside the outlook (this year and next)
+      var sepPts=[];
+      (sep.median||[]).forEach(function(r){
+        if (r[0]>today && r[0]<=addDays(today, 410)){
+          var lo=(sep.low||[]).filter(function(x){return x[0]===r[0];})[0], hi=(sep.high||[]).filter(function(x){return x[0]===r[0];})[0];
+          sepPts.push({ date:r[0], v:r[1], lo:lo?lo[1]:null, hi:hi?hi[1]:null });
+        }
+      });
+      var last=today;
+      wins.forEach(function(w){ if(w.mid>last) last=w.mid; }); sepPts.forEach(function(p){ if(p.date>last) last=p.date; });
+      var dates=tu.map(function(r){return r[0];}), fut=[], d=today;
+      if (last>today){ while(d<last){ d=addDays(d,1); fut.push(d); } }
+      var all=dates.concat(fut), nH=dates.length, N=all.length, idx={};
+      all.forEach(function(x,k){ idx[x]=k; });
+      var pad=function(arr){ return arr.concat(fut.map(function(){ return null; })); };
+      var at=function(pairs){ var a=all.map(function(){return null;}); pairs.forEach(function(p){ if(idx[p[0]]!=null) a[idx[p[0]]]=p[1]; }); return a; };
+      // the market line starts from today's effective rate so it reads as a continuation
+      var effToday=null, ef=data.fed_funds||[]; for (var e=ef.length-1;e>=0;e--){ if(ef[e][0]<=today){ effToday=ef[e][1]; break; } }
+      var start=effToday!=null?[[today,effToday]]:[];
+      var mMean=at(start.concat(wins.map(function(w){return [w.mid,+w.mean.toFixed(2)];})));
+      var mP75=at(start.concat(wins.map(function(w){return [w.mid,+w.p75.toFixed(2)];})));
+      var mP25=at(start.concat(wins.map(function(w){return [w.mid,+w.p25.toFixed(2)];})));
+      var sepV=at(sepPts.map(function(p){return [p.date,p.v];}));
+      var sepLo=at(sepPts.map(function(p){return [p.date,p.lo];})), sepHi=at(sepPts.map(function(p){return [p.date,p.hi];}));
       var full=data.fed_target_upper||[], hikes=[], k;
       for (k=1;k<full.length;k++){
         if (full[k][0]>='2026-01-01' && full[k][1]>full[k-1][1]){
-          var bp=Math.round((full[k][1]-full[k-1][1])*100), dd=full[k][0].split('-');
-          var mon=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+dd[1]-1];
-          hikes.push({ date:full[k][0], label:'+'+bp+' bp, '+mon+' '+(+dd[2])+', '+dd[0], color:'#E04F39', lineWidth:1.6, dash:[5,4] });
+          hikes.push({ date:full[k][0], label:'+'+Math.round((full[k][1]-full[k-1][1])*100)+' bp, '+fmtD(full[k][0]), color:'#E04F39', lineWidth:1.6, dash:[5,4] });
         }
       }
+      if (fut.length) hikes.push({ date:today, label:'Outlook \u2192', side:'right', color:'#9fb1c2', lineWidth:1.2, dash:[2,3] });
+      var LIME=C[4], MKT_FILL='rgba(164,210,51,0.16)';
       var oT=EG.singleOpts(EG.fmtPct2); oT.scales.y.min=0;
-      oT.plugins.verticalEventLines={ events:hikes, origDates:td };
-      EG.newChart('cTrFedTarget', { type:'line', data:{ labels:lt, datasets:[
-        EG.line(tu.map(function(r){return r[1];}), GOLD, { label:'Target range, upper bound', borderWidth:2.4, tension:0 }),
-        EG.line(rtAlign(tu, data.fed_target_lower), GOLD, { label:'Target range, lower bound', borderWidth:1.4, tension:0, spanGaps:true, backgroundColor:'rgba(179,163,105,0.22)', fill:'-1' }),
-        EG.line(rtAlign(tu, data.fed_funds), ELEC, { label:'Effective fed funds rate', borderWidth:1.6, tension:0, spanGaps:true })
+      oT.scales.x.ticks.align='inner';   // keep the first/last date labels inside the plot (carried into exports)
+      oT.plugins.verticalEventLines={ events:hikes, origDates:all };
+      oT.plugins.tooltip.filter=function(it){ return it.parsed && it.parsed.y!=null; };
+      oT.plugins.tooltip.callbacks.label=function(c){
+        var ds=c.dataset, v=c.parsed.y; if(v==null) return null;
+        if (ds.egDots){ var lo=sepLo[c.dataIndex], hi=sepHi[c.dataIndex];
+          return ' '+ds.label+': '+v.toFixed(2)+'%'+(lo!=null&&hi!=null?' (range '+lo.toFixed(2)+'-'+hi.toFixed(2)+'%)':''); }
+        if (ds.egWin){ var w=wins.filter(function(x){return x.mid===all[c.dataIndex];})[0];
+          if (w) return ' '+ds.label+': '+v.toFixed(2)+'% (avg '+fmtD(w.start)+' to '+fmtD(w.end)+')'; }
+        return ' '+ds.label+': '+v.toFixed(2)+'%';
+      };
+      EG.newChart('cTrFedTarget', { type:'line', data:{ labels:all.map(EG.lab), datasets:[
+        EG.line(pad(tu.map(function(r){return r[1];})), GOLD, { label:'FOMC target range', borderWidth:2.4, tension:0 }),
+        EG.line(pad(rtAlign(tu, data.fed_target_lower)), GOLD, { label:'Target range, lower bound', borderWidth:1.4, tension:0, spanGaps:false, backgroundColor:'rgba(179,163,105,0.22)', fill:'-1', egNoLegend:true }),
+        EG.line(pad(rtAlign(tu, data.fed_funds)), ELEC, { label:'Effective fed funds rate', borderWidth:1.6, tension:0, spanGaps:true }),
+        EG.line(mMean, LIME, { label:'Market-implied path (band: 25th-75th pct.)', borderWidth:2.4, borderDash:[7,4], tension:0, spanGaps:true, egWin:true, egDots:false, pointRadius:3, pointBackgroundColor:LIME }),
+        EG.line(mP75, LIME, { label:'Market path, 75th percentile', borderWidth:0.8, tension:0, spanGaps:true, egWin:true, egNoLegend:true, borderColor:'rgba(164,210,51,0.55)' }),
+        EG.line(mP25, LIME, { label:'Market path, 25th percentile', borderWidth:0.8, tension:0, spanGaps:true, egWin:true, egNoLegend:true, borderColor:'rgba(164,210,51,0.55)', backgroundColor:MKT_FILL, fill:'-1' }),
+        { type:'line', label:'FOMC median, year end (bar: range of members)', data:sepV, borderColor:YELLOW, backgroundColor:YELLOW, showLine:false,
+          pointRadius:0, pointHoverRadius:6, egDots:true, egLo:sepLo, egHi:sepHi }
       ]}, options:oT });
+      // date of the market estimate + SEP into the subtitle, so exports carry it
+      var cv=document.getElementById('cTrFedTarget'), card=cv&&cv.closest('.card,.hero-card'), cs=card&&card.querySelector('.cs');
+      if (cs && (mk.obs_date || sep.asof)){
+        if(!cs.$base) cs.$base=cs.textContent.replace(/\s*·\s*Market [A-Z].*$/,'');
+        cs.textContent=cs.$base+(mk.obs_date?' · Market '+fmtD(mk.obs_date):'')+(sep.asof?' · FOMC '+fmtD(sep.asof):'');
+      }
     }
 
     // 5. Real 10Y + breakeven

@@ -270,6 +270,9 @@ window.EG = (function () {
       return { text:ds.label, fillStyle:ds.borderColor || ds.backgroundColor, strokeStyle:ds.borderColor,
         lineWidth:ds.borderWidth || 0, hidden:chart.getDatasetMeta(i).hidden, datasetIndex:i, pointStyle:'circle' };
     });
+    // datasets flagged egNoLegend (band edges, a range's second bound) stay off the
+    // legend, on screen and in the exports, which build their legend from this too
+    items = items.filter(function(it){ var ds = chart.data.datasets[it.datasetIndex]; return !(ds && ds.egNoLegend); });
     items.forEach(function(it){ if(it.text != null && String(it.text).charAt(0) !== ' ') it.text = ' ' + it.text; });
     return items;
   }

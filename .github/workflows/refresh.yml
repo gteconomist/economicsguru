@@ -187,6 +187,13 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_income_divide.py
 
+      # Atlanta Fed Market Probability Tracker (market-implied fed funds path for
+      # trs-fed-target): ~7 MB workbook, newest day kept in
+      # data/historical/atlfed_mpt_path.csv. Must run BEFORE fetch_treasuries.py.
+      - name: Refresh Atlanta Fed market-implied rate path
+        continue-on-error: true
+        run: python scripts/fetch_atlfed_mpt.py
+
       - name: Refresh Treasuries / Rates data from FRED
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
@@ -414,6 +421,7 @@ jobs:
               data/historical/quarterly_hh_income.csv \
               data/historical/challenger_layoffs.csv \
               data/historical/nyfed_recent_grads.csv \
+              data/historical/atlfed_mpt_path.csv \
               data/historical/baker_hughes_oil_rigs.csv; do
             if [[ -f "$f" && -n "$(git status --porcelain "$f")" ]]; then
               changed="$changed $f"

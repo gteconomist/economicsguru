@@ -73,7 +73,14 @@ TOLERANCES = {
     # fed_target_*: DFEDTARU/DFEDTARL drive the Fed funds target chart
     # (trs-fed-target); FRED posts them daily, so the file-level 6d applies.
     "treasuries.json":   dict(max_age_days=6,   note="Daily H.15 yields; 6d covers a long holiday weekend.",
-                              watch={"fed_target_upper": 6, "fed_target_lower": 6}),
+                              watch={"fed_target_upper": 6, "fed_target_lower": 6,
+                                     # Atlanta Fed Market Probability Tracker: updated each business
+                                     # day with the prior day's estimate -> 7d covers a long weekend
+                                     # plus one failed download.
+                                     "fed_outlook.market_asof": 7,
+                                     # FOMC SEP: four a year (Mar/Jun/Sep/Dec); the longest gap is
+                                     # Dec -> Mar, ~98d. 105 = that + slack.
+                                     "fed_outlook.sep_asof": 105}),
     "equities.json":     dict(max_age_days=6,   note="Daily index closes."),
     "commodities.json":  dict(max_age_days=8,   cron_only=True,
                               note="Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier)."),

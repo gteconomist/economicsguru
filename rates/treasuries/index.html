@@ -37,7 +37,7 @@
   </div>
   <span class="hint">Click a legend chip to toggle a series · every chart exports to CSV &amp; PNG</span>
 </div>
-<nav class="jump" aria-label="Charts on this page"><span class="jl">On this page</span><a href="#cTrCurve">Yield Curve — Today vs. One Year Ago</a><a href="#cTr10y">10-Year Treasury Yield</a><a href="#cTrSpread">10-Year Minus 2-Year Spread</a><a href="#cTrFfrVs10y">Fed Funds vs. 10-Year Treasury</a><a href="#cTrFedTarget">Federal Funds Target Range</a><a href="#cTrReal">Real 10-Year Yield &amp; Inflation Expectations</a><a href="#cTrCredit">Corporate Credit Spreads (IG vs. HY)</a></nav>
+<nav class="jump" aria-label="Charts on this page"><span class="jl">On this page</span><a href="#cTrCurve">Yield Curve — Today vs. One Year Ago</a><a href="#cTr10y">10-Year Treasury Yield</a><a href="#cTrSpread">10-Year Minus 2-Year Spread</a><a href="#cTrFfrVs10y">Fed Funds vs. 10-Year Treasury</a><a href="#cTrFedTarget">Federal Funds Target Range and the Next 12 Months</a><a href="#cTrReal">Real 10-Year Yield &amp; Inflation Expectations</a><a href="#cTrCredit">Corporate Credit Spreads (IG vs. HY)</a></nav>
 
 <div class="grid">
   <div class="card">
@@ -61,9 +61,9 @@
     <div class="src">Source: Federal Reserve via FRED — DGS10, DFF.</div>
   </div>
   <div class="card span2">
-    <div class="top"><div><div class="ct">Federal Funds Target Range</div><div class="cs">FOMC target range, upper and lower bound, %, daily, with the effective rate; 2026 rate increases marked</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
+    <div class="top"><div><div class="ct">Federal Funds Target Range and the Next 12 Months</div><div class="cs">Target range, effective rate and 2026 hikes; outlook = market-implied path vs. FOMC median</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>
     <div class="plot"><canvas id="cTrFedTarget"></canvas></div>
-    <div class="src">Source: Federal Reserve via FRED — DFEDTARU, DFEDTARL (target range), DFF (effective federal funds rate).</div>
+    <div class="src">Source: Federal Reserve via FRED (DFEDTARU, DFEDTARL, DFF); FOMC Summary of Economic Projections, year-end median and range (FEDTARMD/RL/RH); Atlanta Fed Market Probability Tracker, expected 3-month avg. SOFR from CME options.</div>
   </div>
   <div class="card">
     <div class="top"><div><div class="ct">Real 10-Year Yield &amp; Inflation Expectations</div><div class="cs">Nominal 10Y = real yield (TIPS) + 10Y breakeven; available 2003-</div></div><span class="dls"><a class="dl ex" data-act="png" href="#">↓ PNG</a><a class="dl ex" data-act="csv" href="#">↓ CSV</a></span></div>

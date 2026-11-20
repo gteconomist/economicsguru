@@ -215,6 +215,63 @@ def build_curve_snapshot(pair_lookup):
     return today_curve, year_ago_curve, today, year_ago_date_used
 
 
+# ---------- Fed funds outlook (trs-fed-target) ----------
+MPT_CSV = REPO_ROOT / "data" / "historical" / "atlfed_mpt_path.csv"
+SEP_SERIES = {"median": "FEDTARMD", "low": "FEDTARRL", "high": "FEDTARRH"}
+
+
+def fetch_sep():
+    """FOMC Summary of Economic Projections, fed funds rate at year end: median and
+    the low/high of participants' projections (FRED FEDTARMD / FEDTARRL / FEDTARRH,
+    dated Jan 1 of the projection year; stored here as Dec 31 of that year). Also
+    returns the SEP release date from the series' last_updated stamp. Best-effort:
+    {} on failure."""
+    try:
+        api_key = os.environ.get("FRED_API_KEY")
+        if not api_key:
+            raise RuntimeError("FRED_API_KEY is not set")
+        out, asof = {}, None
+        for key, sid in SEP_SERIES.items():
+            q = {"series_id": sid, "api_key": api_key, "file_type": "json"}
+            payload = json.loads(_http_get(f"{FRED_BASE}?{parse.urlencode(q)}"))
+            rows = []
+            for o in payload.get("observations", []):
+                if o.get("value") in (".", "", None):
+                    continue
+                rows.append([f"{o['date'][:4]}-12-31", round(float(o["value"]), 2)])
+            out[key] = rows
+        # Release date: the series' last_updated stamp (FRED loads the SEP the
+        # afternoon of the FOMC decision). Observation realtime_start is NOT usable
+        # here -- by default it is just today's date.
+        q = {"series_id": "FEDTARMD", "api_key": api_key, "file_type": "json"}
+        meta = json.loads(_http_get(f"https://api.stlouisfed.org/fred/series?{parse.urlencode(q)}"))
+        lu = ((meta.get("seriess") or [{}])[0].get("last_updated") or "")[:10]
+        asof = lu or None
+        out["asof"] = asof
+        return out
+    except Exception as e:  # noqa: BLE001
+        print(f"  WARN FOMC SEP fetch failed: {e}", file=sys.stderr)
+        return {}
+
+
+def read_mpt():
+    """Market-implied path from data/historical/atlfed_mpt_path.csv (written by
+    scripts/fetch_atlfed_mpt.py, which runs first). {} if missing/unreadable."""
+    try:
+        import csv as _csv
+        with MPT_CSV.open(newline="") as f:
+            rows = list(_csv.DictReader(ln for ln in f if not ln.startswith("#")))
+        if not rows:
+            return {}
+        return {"obs_date": rows[0]["obs_date"],
+                "windows": [{"start": r["ref_start"], "end": r["ref_end"],
+                             "p25": float(r["p25"]), "mean": float(r["mean"]), "p75": float(r["p75"])}
+                            for r in rows]}
+    except Exception as e:  # noqa: BLE001
+        print(f"  WARN Atlanta Fed MPT CSV read failed: {e}", file=sys.stderr)
+        return {}
+
+
 # ---------- Main ----------
 SERIES = {
     "yields_3m":          "DGS3MO",
@@ -274,6 +331,20 @@ def main():
         default=""
     )
 
+    sep, mkt = fetch_sep(), read_mpt()
+    fed_outlook = {"sep": sep, "market": mkt,
+                   # one-point series so check_freshness.py can age each source
+                   "sep_asof":    [[sep["asof"], 1]] if sep.get("asof") else [],
+                   "market_asof": [[mkt["obs_date"], 1]] if mkt.get("obs_date") else []}
+    if not sep or not mkt:   # keep last run's half that failed rather than dropping it
+        try:
+            prior = json.loads(OUT_PATH.read_text()).get("fed_outlook") or {}
+            for k in (("sep", "sep_asof") if not sep else ()) + (("market", "market_asof") if not mkt else ()):
+                if prior.get(k):
+                    fed_outlook[k] = prior[k]
+        except Exception:  # noqa: BLE001
+            pass
+
     out = {
         # ---- Daily series (% yields, % spreads) ----
         **out_pairs,
@@ -282,6 +353,8 @@ def main():
         "yield_curve_year_ago":      year_ago_curve,
         "yield_curve_today_date":    latest_d,
         "yield_curve_year_ago_date": ya_d,
+        # ---- Fed funds outlook: FOMC SEP + market-implied path (trs-fed-target) ----
+        "fed_outlook": fed_outlook,
         # ---- KPIs ----
         "kpis": kpis,
         # ---- Provenance ----
