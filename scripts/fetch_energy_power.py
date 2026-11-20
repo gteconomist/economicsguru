@@ -464,6 +464,21 @@ def main():
         "census_succeeded": status["census"],
         "build_time": dt.datetime.utcnow().isoformat(timespec="seconds") + "Z",
     }
+    # Hyperscaler capex (Amazon/Alphabet/Meta/Microsoft): built from hand-maintained
+    # CSVs in data/historical/ (see scripts/hyperscaler_capex.py). No network, so it
+    # never fails on an API outage; a bad CSV edit only drops this one block (the
+    # resilience merge below then keeps the last good one).
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from hyperscaler_capex import build as _build_hyperscaler
+        out["hyperscaler"] = _build_hyperscaler()
+    except Exception as e:  # noqa: BLE001
+        print(f"  ERROR hyperscaler capex CSVs: {e}", file=sys.stderr)
+        try:   # keep the last good block rather than dropping the chart
+            out["hyperscaler"] = json.loads(OUT_PATH.read_text()).get("hyperscaler")
+        except Exception:  # noqa: BLE001
+            pass
+
     if not status["eia"]:
         notice.append("One or more EIA series failed to refresh; affected charts show the last good data.")
     if not status["fred"]:

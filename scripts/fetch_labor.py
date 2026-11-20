@@ -384,6 +384,32 @@ def read_challenger():
         return []
 
 
+GRADS_CSV = OUT_PATH.parent / "historical" / "nyfed_recent_grads.csv"
+
+
+def read_recent_grads():
+    """NY Fed recent-college-graduate unemployment, from the baseline that
+    scripts/fetch_nyfed_grads.py maintains (runs before this script).
+
+    Returns ({series: [['YYYY-MM', pct], ...]}, release_text). Problems are
+    swallowed so the labor page loses one chart at worst.
+    """
+    try:
+        import csv as _csv
+        if not GRADS_CSV.exists():
+            return {}, None
+        lines = GRADS_CSV.read_text().splitlines()
+        release = next((ln.split(":", 1)[1].strip() for ln in lines if ln.startswith("# release:")), None)
+        rows = list(_csv.DictReader([ln for ln in lines if not ln.startswith("#")]))
+        out = {}
+        for key in ("recent_grads", "all_workers", "college_grads", "young_workers"):
+            out[key] = [[r["month"], round(float(r[key]), 2)] for r in rows if (r.get(key) or "").strip()]
+        return out, release
+    except Exception as e:
+        print(f"Recent-grads CSV read failed: {e}", file=sys.stderr)
+        return {}, None
+
+
 def main():
     today = dt.date.today()
     raw = fetch_long(ALL_IDS, today.year - 24, today.year)
@@ -447,6 +473,7 @@ def main():
     jolts_latest = "{}-{:02d}".format(*raw["JTS000000000000000JOL"][-1][:2])
 
     challenger = read_challenger()
+    recent_grads, grads_release = read_recent_grads()
 
     out = {
         "unemployment_rate": unemployment_rate,
@@ -471,6 +498,9 @@ def main():
         "jolts_hires":       jolts_hires,
         "jolts_quits":       jolts_quits,
         "challenger_layoffs": challenger,
+        # NY Fed recent college graduates vs. all workers (chart lab-recent-grads)
+        "recent_grads":      recent_grads,
+        "recent_grads_release": grads_release,
         "sectors":           sectors,
         "kpis": {
             "unemployment": kpi(unemployment_rate, unit="pp"),

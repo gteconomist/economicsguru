@@ -1,0 +1,62 @@
+# Hyperscaler capital spending, quarterly, $ millions, calendar quarters.
+# Measure: cash capex = cash-flow-statement "purchases of property and equipment"
+#   (Amazon: "purchases of property and equipment", gross of proceeds/incentives;
+#   Microsoft: "additions to property and equipment"). Finance leases are NOT included.
+# Source: 10-Q / 10-K filings via SEC EDGAR XBRL (companyconcept API):
+#   Amazon CIK 0001018724 PaymentsToAcquireProductiveAssets; Alphabet 0001652044,
+#   Meta 0001326801, Microsoft 0000789019 PaymentsToAcquirePropertyPlantAndEquipment.
+#   Quarters reported only as year-to-date are differenced (Q = YTD - prior YTD).
+#   Microsoft's fiscal year ends June 30; its quarters end on calendar quarter-ends,
+#   so calendar years are sums of the four calendar quarters.
+#   Amazon 2017Q2 is not tagged as a 3-month value; derived as FY2017 (11,955) less Q1+Q3+Q4.
+# Pulled 2026-11-20. UPDATE BY HAND each earnings season: add the new quarter's row.
+#   A calendar year with all four quarters present is drawn as ACTUAL; otherwise the
+#   chart uses hyperscaler_capex_estimates.csv for that year.
+quarter,amazon,alphabet,meta,microsoft
+2015Q1,871,2927,502,1391
+2015Q2,1213,2515,549,1781
+2015Q3,1195,2383,780,1356
+2015Q4,1309,2102,692,2024
+2016Q1,1179,2444,1132,2308
+2016Q2,1711,2136,995,2655
+2016Q3,1841,2554,1095,2163
+2016Q4,3073,3078,1269,1988
+2017Q1,1861,2508,1271,1695
+2017Q2,3401,2831,1444,2283
+2017Q3,3074,3538,1755,2132
+2017Q4,3619,4307,2263,2586
+2018Q1,3098,7299,2812,2934
+2018Q2,3243,5477,3460,3980
+2018Q3,3352,5282,3342,3602
+2018Q4,3734,7081,4301,3707
+2019Q1,3290,4638,3837,2565
+2019Q2,3562,6126,3633,4051
+2019Q3,4697,6732,3532,3385
+2019Q4,5312,6052,4100,3545
+2020Q1,6795,6005,3558,3767
+2020Q2,7459,5391,3255,4744
+2020Q3,11063,5406,3689,4907
+2020Q4,14823,5479,4661,4174
+2021Q1,12082,5942,4303,5089
+2021Q2,14288,5496,4641,6452
+2021Q3,15748,6819,4346,5810
+2021Q4,18935,6383,5400,5865
+2022Q1,14951,9786,5441,5340
+2022Q2,15724,6828,7572,6871
+2022Q3,16378,7276,9375,6283
+2022Q4,16592,7595,8798,6274
+2023Q1,14207,6289,6823,6607
+2023Q2,11455,6888,6134,8943
+2023Q3,12479,8055,6496,9917
+2023Q4,14588,11019,7592,9735
+2024Q1,14925,12012,6400,10952
+2024Q2,17620,13186,8173,13873
+2024Q3,22620,13061,8258,14923
+2024Q4,27834,14276,14425,15804
+2025Q1,25019,17197,12941,16745
+2025Q2,32183,22446,16538,17079
+2025Q3,35095,23953,18829,19394
+2025Q4,39522,27851,21383,29876
+2026Q1,44203,35674,18997,30876
+2026Q2,54208,44924,30116,35802
+2026Q3,77259,51355,33942,39367

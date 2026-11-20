@@ -17,6 +17,34 @@ function rtPct1(v){ return v==null?'n/a':v.toFixed(1)+'%'; }
 function rtPctD(v){ return (v==null?0:v).toFixed(2)+'%'; }
 function rtRefDash(labels, val, label, color){ return { type:'line', label:label, data:labels.map(function(){return val;}), borderColor:color, borderWidth:1.3, borderDash:[4,4], pointRadius:0, fill:false }; }
 
+// Captions for the shared verticalEventLines plugin (chart-core draws only the
+// lines). Same code and the same once-per-page guard as energy.js, so a page that
+// ever loads both registers it once. Used by the Fed funds target chart.
+if (window.Chart && !window.__egEventLabels) {
+  window.__egEventLabels = true;
+  Chart.register({ id:'ratesEventLabels',
+    afterDatasetsDraw:function(chart){
+      var opt=chart.options.plugins&&chart.options.plugins.verticalEventLines;
+      var events=opt&&opt.events, dates=opt&&opt.origDates;
+      if(!events||!events.length||!dates||!dates.length) return;
+      var ctx=chart.ctx, area=chart.chartArea, xs=chart.scales&&chart.scales.x; if(!area||!xs) return;
+      ctx.save();
+      events.forEach(function(ev){
+        if(!ev.label) return;
+        var idx=-1,i; for(i=0;i<dates.length;i++){ if(dates[i]>=ev.date){idx=i;break;} }
+        if(idx<0) return; var x=xs.getPixelForValue(idx); if(x<area.left||x>area.right) return;
+        // exportFontPx is set by chart-core's exOpts on the 2200x1000 exports.
+        var right=x>(area.left+area.right)/2, fs=opt.exportFontPx||chart.$evFont||11;
+        var pad=Math.max(6, Math.round(fs*0.5));
+        ctx.font='600 '+fs+'px "Source Sans Pro", sans-serif'; ctx.fillStyle=ev.color||'#E04F39';
+        ctx.textBaseline='top'; ctx.textAlign=right?'right':'left';
+        ctx.fillText(ev.label, x+(right?-pad:pad), area.top+pad*0.7);
+      });
+      ctx.restore();
+    }
+  });
+}
+
 /* ---------------- Treasuries ---------------- */
 window.EG_PAGES.treasuries = function (data, EG) {
   var C=EG.T.series, GOLD=C[0], ELEC=C[1], ORANGE=C[2], YELLOW=C[6];
@@ -61,6 +89,29 @@ window.EG_PAGES.treasuries = function (data, EG) {
       EG.line(f10.map(function(r){return r[1];}), GOLD, { label:'10-year Treasury', borderWidth:2.5, tension:.15 }),
       EG.line(rtAlign(f10, data.fed_funds), YELLOW, { label:'Fed funds (effective)', borderWidth:2.2, tension:.15, spanGaps:true })
     ]}, options:EG.singleOpts(EG.fmtPct2) });
+
+    // 4b. Fed funds target range (upper/lower bound band) + effective rate, with
+    //     every 2026 increase in the upper bound flagged by a vertical event
+    //     line. Hikes are found from the data, so a new one is marked on the
+    //     next refresh with no code change.
+    var tu=rd('fed_target_upper'); var td=tu.map(function(r){return r[0];}); var lt=td.map(EG.lab);
+    if (tu.length) {
+      var full=data.fed_target_upper||[], hikes=[], k;
+      for (k=1;k<full.length;k++){
+        if (full[k][0]>='2026-01-01' && full[k][1]>full[k-1][1]){
+          var bp=Math.round((full[k][1]-full[k-1][1])*100), dd=full[k][0].split('-');
+          var mon=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+dd[1]-1];
+          hikes.push({ date:full[k][0], label:'+'+bp+' bp, '+mon+' '+(+dd[2])+', '+dd[0], color:'#E04F39', lineWidth:1.6, dash:[5,4] });
+        }
+      }
+      var oT=EG.singleOpts(EG.fmtPct2); oT.scales.y.min=0;
+      oT.plugins.verticalEventLines={ events:hikes, origDates:td };
+      EG.newChart('cTrFedTarget', { type:'line', data:{ labels:lt, datasets:[
+        EG.line(tu.map(function(r){return r[1];}), GOLD, { label:'Target range, upper bound', borderWidth:2.4, tension:0 }),
+        EG.line(rtAlign(tu, data.fed_target_lower), GOLD, { label:'Target range, lower bound', borderWidth:1.4, tension:0, spanGaps:true, backgroundColor:'rgba(179,163,105,0.22)', fill:'-1' }),
+        EG.line(rtAlign(tu, data.fed_funds), ELEC, { label:'Effective fed funds rate', borderWidth:1.6, tension:0, spanGaps:true })
+      ]}, options:oT });
+    }
 
     // 5. Real 10Y + breakeven
     var r10=rd('yields_10y'); var lr=r10.map(function(r){return EG.lab(r[0]);});

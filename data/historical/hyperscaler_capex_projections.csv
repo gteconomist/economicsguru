@@ -1,0 +1,15 @@
+# Analyst projections of hyperscaler capex growth, entered by hand. growth_pct = % change
+# over the PRIOR calendar year's total. The chart shows the min-max range across rows for
+# each year (no point estimate) and compounds it on the prior year's range.
+# Scopes differ by source (some include Oracle / SpaceX); growth rates are used, not dollar levels.
+# entered = date the row was typed in; the chart's "as of" date is the latest entered date.
+# Recheck after Q4-2026 earnings calls (late Jan / early Feb 2027).
+year,source,published,scope,growth_pct,entered,url,note
+2027,UBS,2026-07-17,"Microsoft, Amazon, Alphabet, Meta",25,2026-11-20,https://tribune.com.pk/story/2618784/among-ai-crowd-some-investors-position-for-slower-hyperscaler-spending-growth,"Reuters: capex +76% in 2026 to $673B, +25% in 2027, +6% in 2028"
+2027,Wall Street consensus (MarketScreener via I/O Fund),2026-08-05,"Alphabet, Amazon, Microsoft, Meta",28.0,2026-11-20,https://www.yieldtheory.app/research/hyperscaler-capex-2027-forecast,"$934.5B 2027 vs $730B 2026 guidance midpoints; pre-Q3 estimates"
+2027,UBS,2026-08-22,"broader hyperscaler set",43.4,2026-11-20,https://finance.yahoo.com/technology/ai/articles/ai-absurd-spending-boom-hyperscalers-162709082.html,"$1.009T 2026 -> $1.447T 2027 -> $1.619T 2028"
+2027,S&P Global Ratings,2026-08-27,"six incl. Oracle and SpaceX",49.4,2026-11-20,https://fool.com/investing/2026/09/06/hyperscalers-driving-ai-capex-cash-flow,"$870B 2026 -> $1.3T 2027"
+2027,Goldman Sachs,2026-09-25,"five incl. Oracle",54,2026-11-20,https://trendandticker.com/technology/goldman-sachs-hyperscaler-ai-capex-1-2-trillion-2027,"$1.2T 2027 (+54%), $1.4T 2028 (+12% as reported)"
+2028,UBS,2026-07-17,"Microsoft, Amazon, Alphabet, Meta",6,2026-11-20,https://tribune.com.pk/story/2618784/among-ai-crowd-some-investors-position-for-slower-hyperscaler-spending-growth,"Reuters"
+2028,UBS,2026-08-22,"broader hyperscaler set",11.9,2026-11-20,https://finance.yahoo.com/technology/ai/articles/ai-absurd-spending-boom-hyperscalers-162709082.html,"$1.447T -> $1.619T"
+2028,Goldman Sachs,2026-09-25,"five incl. Oracle",12,2026-11-20,https://trendandticker.com/technology/goldman-sachs-hyperscaler-ai-capex-1-2-trillion-2027,"$1.4T 2028, +12% as reported"

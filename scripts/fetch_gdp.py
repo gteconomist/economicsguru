@@ -16,6 +16,14 @@ Sources
                             rate (productivity bars).
   BLS   PRS30006092         Manufacturing productivity, % change at annual rate
                             (productivity bars).
+  FRED  Y034RY2Q224SBEA     Contribution to real GDP growth, pp: information
+                            processing equipment (NIPA T1.5.2).
+  FRED  B985RY2Q224SBEA     Contribution, pp: software (IPP).
+  FRED  DPCERY2Q224SBEA     Contribution, pp: personal consumption expenditures.
+  FRED  DSERRY2Q224SBEA     Contribution, pp: PCE services.
+        -> "AI-Related Investment vs. Consumer Spending" chart (gdp-ai-contrib).
+           BEA publishes no data-center line, so data-center structures are
+           not included (they sit inside "office" in NIPA structures detail).
 
 Environment variables (all required):
   BEA_API_KEY     register at https://apps.bea.gov/API/signup/
@@ -253,6 +261,19 @@ def main():
     real_gdi_level = _fred_obs("A261RX1Q020SBEA")
     gdp_deflator   = _fred_obs("GDPDEF")
 
+    # 4b. FRED — contributions to real GDP growth for the AI-investment chart.
+    # Best-effort: one bad series leaves an empty list, and the resilience
+    # merge at the end keeps last run's values instead of blanking the chart.
+    ai_ids = {"info_equipment": "Y034RY2Q224SBEA", "software": "B985RY2Q224SBEA",
+              "pce": "DPCERY2Q224SBEA", "pce_services": "DSERRY2Q224SBEA"}
+    ai_contrib = {}
+    for key, sid in ai_ids.items():
+        try:
+            ai_contrib[key] = values(_fred_obs(sid))
+        except Exception as e:  # noqa: BLE001
+            print(f"  WARN {sid} ({key}) failed: {e}", file=sys.stderr)
+            ai_contrib[key] = []
+
     # 5. BLS productivity — already published as % change at annual rate.
     bls = _bls_get(["PRS85006092", "PRS30006092"])
     prod_nfb = bls.get("PRS85006092", [])
@@ -308,6 +329,9 @@ def main():
         # Chart 5 — GDP vs GDI YoY % change (two lines).
         "gdp_yoy": gdp_yoy,
         "gdi_yoy": gdi_yoy,
+
+        # Chart 6 — AI-related investment vs consumer spending, pp contributions.
+        "ai_contrib": ai_contrib,
 
         # Extra series for KPIs / CSV downloads.
         "profits_yoy":          profits_yoy,

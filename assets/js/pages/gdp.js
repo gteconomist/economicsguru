@@ -49,6 +49,36 @@ window.EG_PAGES.gdp = function (data, EG) {
       { type:'line', label:'Real GDP (sum)', data:cg.map(function(r){return r[1];}), borderColor:WHITE, backgroundColor:WHITE, borderWidth:2.4, pointRadius:0, tension:.15, fill:false }
     ]}, options:o2 });
 
+    // 2b. AI-related investment vs consumer spending — contributions to real GDP
+    //     growth, pp. Two stacks side by side each quarter: information processing
+    //     equipment + software (the AI build-out BEA can measure), and PCE. PCE
+    //     services is an optional third column (hidden until toggled). No data-
+    //     center structures line exists in NIPA, so none is drawn.
+    var ai = data.ai_contrib || {};
+    var ae = qtail(ai.info_equipment);
+    if (ae.length) {
+      var labAi = ae.map(function(r){ return qlab(r[0]); });
+      var BLUE_BRIGHT = '#6B8FE3';
+      var ppFmt  = function(v){ return v == null ? 'n/a' : (v > 0 ? '+' : '') + v.toFixed(2) + ' pp'; };
+      var oAi = EG.singleOpts(function(v){ return (+v.toFixed(2)) + ''; });
+      oAi.scales.x.stacked = true; oAi.scales.y.stacked = true;
+      oAi.scales.y.title = { display:true, text:'Percentage points', font:{size:10} };
+      oAi.plugins.tooltip.callbacks.label = function(c){ return ' ' + c.dataset.label + ': ' + ppFmt(c.parsed.y); };
+      oAi.plugins.tooltip.callbacks.footer = function(items){
+        var i = items.length ? items[0].dataIndex : -1, ch = items.length ? items[0].chart : null;
+        if (i < 0 || !ch) return '';
+        var t = 0, any = false;
+        ch.data.datasets.forEach(function(d, k){ if (d.stack === 'ai' && ch.isDatasetVisible(k) && d.data[i] != null){ t += d.data[i]; any = true; } });
+        return any ? 'AI-related investment total: ' + ppFmt(+t.toFixed(2)) : '';
+      };
+      EG.newChart('cGdpAiContrib', { type:'bar', data:{ labels:labAi, datasets:[
+        { label:'Information processing equipment', data:ae.map(function(r){return r[1];}), backgroundColor:ELEC, borderColor:ELEC, stack:'ai' },
+        { label:'Software', data:alignTo(ae, ai.software), backgroundColor:BLUE_BRIGHT, borderColor:BLUE_BRIGHT, stack:'ai' },
+        { label:'Consumer spending (PCE)', data:alignTo(ae, ai.pce), backgroundColor:GOLD, borderColor:GOLD, stack:'pce' },
+        { label:'Consumer spending: services only', data:alignTo(ae, ai.pce_services), backgroundColor:YELLOW, borderColor:YELLOW, stack:'svc', hidden:true }
+      ]}, options:oAi });
+    }
+
     // 3. Real corporate profits QoQ — signed-color bars + 0% line
     var pr = qtail(data.profits_qoq_ann);
     var lab3 = pr.map(function(r){ return qlab(r[0]); });

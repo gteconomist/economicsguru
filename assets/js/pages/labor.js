@@ -70,6 +70,30 @@ window.EG_PAGES.labor = function (data, EG) {
       EG.line(EG.val(st('lfp_rate', n)), C[1], { label:'Participation', yAxisID:'y1' })
     ]}, options:dual('U-3 / U-6 %', true, 'LFP %', true) });
 
+    // 1b. NY Fed: unemployment of recent college graduates vs. all workers.
+    //     Already SA + 3-month moving average at the source; monthly; 1990-.
+    //     All college grads and young workers without a degree start hidden
+    //     (legend chip or ?series= turns them on). Recession bands from the
+    //     page's NBER list, plus 1990-91 which predates it.
+    var rg = data.recent_grads || {};
+    if ((rg.recent_grads || []).length) {
+      var rgAxis = EG.tail(rg.recent_grads, n).map(function(p){ return p[0]; });
+      var rgOpts = EG.singleOpts(function(v){ return v == null ? 'n/a' : v.toFixed(1) + '%'; });
+      rgOpts.scales.y.ticks.callback = function(v){ return (+v.toFixed(1)) + '%'; };
+      rgOpts.plugins.politicalShading = {
+        regions: [['1990-07','1991-03']].concat(data.recessions || []).map(function(r){
+          return { start:r[0], end:r[1], color:'#9fb1c2', alpha:0.16 };
+        }),
+        origDates: rgAxis
+      };
+      EG.newChart('cRecentGrads', { type:'line', data:{ labels:rgAxis.map(EG.lab), datasets:[
+        EG.line(align(rgAxis, rg.recent_grads),  C[0], { label:'Recent college grads (22-27)', borderWidth:2.8, tension:.2 }),
+        EG.line(align(rgAxis, rg.all_workers),   C[1], { label:'All workers (16-65)',           borderWidth:2.2, tension:.2 }),
+        EG.line(align(rgAxis, rg.college_grads), C[6], { label:'All college grads (22-65)',     borderWidth:1.8, tension:.2, hidden:true }),
+        EG.line(align(rgAxis, rg.young_workers), C[2], { label:'Young workers, no degree (22-27)', borderWidth:1.8, tension:.2, hidden:true })
+      ]}, options:rgOpts });
+    }
+
     // 2. Monthly nonfarm payroll change (bars)
     var pm = st('payroll_mom', n);
     EG.newChart('cPayrolls', { type:'bar', data:{ labels:pm.map(function(p){return EG.lab(p[0]);}), datasets:[

@@ -70,7 +70,10 @@ IN_CI = os.environ.get("GITHUB_ACTIONS") == "true"
 
 TOLERANCES = {
     # ---- daily market data ------------------------------------------------
-    "treasuries.json":   dict(max_age_days=6,   note="Daily H.15 yields; 6d covers a long holiday weekend."),
+    # fed_target_*: DFEDTARU/DFEDTARL drive the Fed funds target chart
+    # (trs-fed-target); FRED posts them daily, so the file-level 6d applies.
+    "treasuries.json":   dict(max_age_days=6,   note="Daily H.15 yields; 6d covers a long holiday weekend.",
+                              watch={"fed_target_upper": 6, "fed_target_lower": 6}),
     "equities.json":     dict(max_age_days=6,   note="Daily index closes."),
     "commodities.json":  dict(max_age_days=8,   cron_only=True,
                               note="Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier)."),
@@ -103,7 +106,18 @@ TOLERANCES = {
     # spending ~1 month (July data on Sept 1), so those get their own clocks.
     "energy_power.json": dict(max_age_days=16,  note="EIA weekly gas storage Thursdays; monthly electricity ~2 months behind; Census C30 ~day 1.",
                               watch={"generation_12mma": 100, "data_center_construction": 66, "henry_hub": 12,   # weekly EIA post; see brent note above
-                                     "sales_12mma.com": 100, "gas_production_bcfd": 100}),
+                                     "sales_12mma.com": 100, "gas_production_bcfd": 100,
+                                     # Hyperscaler capex (hyperscaler-capex) is HAND-FED from
+                                     # data/historical/hyperscaler_capex_*.csv -- these two exist
+                                     # to remind, not to catch a broken scraper.
+                                     # quarterly_total: newest quarter of 10-Q/10-K capex entered.
+                                     #   Q4 10-Ks land late Jan to ~Feb 7 (Amazon last), i.e.
+                                     #   ~130d after the Sep 30 quarter end; 140 = that + slack.
+                                     "hyperscaler.quarterly_total": 140,
+                                     # projections_entered: latest `entered` date in the analyst
+                                     #   projections CSV. 120d = recheck the 2027-28 range after
+                                     #   each earnings season (late Jan, late Apr, late Jul, late Oct).
+                                     "hyperscaler.projections_entered": 120}),
     "housing_mortgage_activity.json": dict(max_age_days=16,
                               note="MBA weekly applications Wednesdays; FRED rate series daily/weekly.",
                               watch={"mba_refinance":        20,   # MBA, weekly, Wednesdays
@@ -118,7 +132,16 @@ TOLERANCES = {
     "labor.json":        dict(max_age_days=45,  note="Employment Situation lands ~1st Friday (R~6). JOLTS runs 2 months behind and is checked separately below.",
                               watch={"jolts_openings": 100,
                                      # Challenger prints ~1st Thursday for the prior month.
-                                     "challenger_layoffs": 45}),
+                                     "challenger_layoffs": 45,
+                                     # NY Fed recent college graduates (lab-recent-grads):
+                                     # quarterly releases Feb/May/Aug/Nov, data through the
+                                     # prior quarter's last month (Nov 2, 2026 release = Sep
+                                     # data). Worst healthy case is the day before the Feb
+                                     # release: Sep 30 + ~130d. 150 = that + slack.
+                                     "recent_grads.recent_grads": 150,
+                                     "recent_grads.all_workers": 150,
+                                     "recent_grads.college_grads": 150,
+                                     "recent_grads.young_workers": 150}),
     "inflation.json":    dict(max_age_days=55,  note="CPI ~day 13 of the following month (R~13)."),
     "ppi.json":          dict(max_age_days=58,  note="PPI ~day 16 (R~16)."),
     "pce.json":          dict(max_age_days=70,  note="BEA Personal Income & Outlays lands ~day 28 of the following month (R~28) -- the longest monthly lag on the site."),
@@ -162,7 +185,10 @@ TOLERANCES = {
                                      "ism_services.business_activity": 48}),
 
     # ---- quarterly --------------------------------------------------------
-    "gdp.json":          dict(max_age_days=130, note="BEA advance estimate ~30d after quarter end; third estimate ~90d. 130 tolerates a delayed advance print."),
+    "gdp.json":          dict(max_age_days=130, note="BEA advance estimate ~30d after quarter end; third estimate ~90d. 130 tolerates a delayed advance print.",
+                              # FRED contributions behind gdp-ai-contrib (same advance-estimate clock)
+                              watch={"ai_contrib.info_equipment": 130, "ai_contrib.software": 130,
+                                     "ai_contrib.pce": 130, "ai_contrib.pce_services": 130}),
 }
 
 # Datasets with no meaningful time series to age-check (pure config/lookup).

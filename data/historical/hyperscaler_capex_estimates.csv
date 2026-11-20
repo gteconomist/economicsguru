@@ -1,0 +1,7 @@
+# Full-year estimates for calendar years whose four quarters are not all reported yet, $ millions.
+# Method: Jan-Sep cash capex actual (quarterly CSV) + Q4 implied by each company's latest
+#   full-year guidance (guidance midpoint minus Jan-Sep on the company's own reporting basis).
+# Delete a year's row once its Q4 actuals are in hyperscaler_capex_quarterly.csv.
+# as_of = date of the guidance used.
+year,amazon,alphabet,meta,microsoft,as_of,note
+2026,220000,200000,137236,157945,2026-10-29,"Amazon ~$220B cash capex reiterated Oct 29 (Q4 implied 44.3B); Alphabet $195-205B reiterated Oct 29 (Q4 implied 68.0B); Meta $135-145B incl. finance-lease principal, Oct 21 (Jan-Sep 85.8B on that basis; Q4 implied 54.2B); Microsoft calendar-2026 ~$170B incl. finance leases, Oct 28 (Jan-Sep 118.1B on that basis; Q4 implied 51.9B)"

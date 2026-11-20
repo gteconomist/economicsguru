@@ -1195,6 +1195,18 @@ window.EG_CHART_REGISTRY = {
           ]
         },
         {
+          key:'lab-recent-grads', canvas:'cRecentGrads',
+          title:'Unemployment: Recent College Grads vs. All Workers',
+          subtitle:"Percent, seasonally adjusted, 3-month moving average; recent grads are ages 22-27 with a bachelor's degree or higher",
+          source:'Source: Federal Reserve Bank of New York, The Labor Market for Recent College Graduates (Census/BLS Current Population Survey via IPUMS). Excludes people enrolled in school; Oct 2025 estimated by the NY Fed (survey not conducted). Shading: recessions.',
+          series:[
+            {key:'recent_grads',  label:'Recent college grads (22-27)'},
+            {key:'all_workers',   label:'All workers (16-65)'},
+            {key:'college_grads', label:'All college grads (22-65)'},
+            {key:'young_workers', label:'Young workers, no degree (22-27)'}
+          ]
+        },
+        {
           key:'lab-payrolls', canvas:'cPayrolls',
           title:'Monthly Change in Nonfarm Payrolls',
           subtitle:'Seasonally adjusted; thousands of jobs',
@@ -1428,6 +1440,17 @@ window.EG_CHART_REGISTRY = {
           ]
         },
         {
+          key:'trs-fed-target', canvas:'cTrFedTarget',
+          title:'Federal Funds Target Range',
+          subtitle:'FOMC target range, upper and lower bound, %, daily, with the effective rate; 2026 rate increases marked',
+          source:'Source: Federal Reserve via FRED — DFEDTARU, DFEDTARL (target range), DFF (effective federal funds rate).',
+          series:[
+            {key:'upper', label:'Target range, upper bound'},
+            {key:'lower', label:'Target range, lower bound'},
+            {key:'effr',  label:'Effective fed funds rate'}
+          ]
+        },
+        {
           key:'trs-real', canvas:'cTrReal',
           title:'Real 10-Year Yield & Inflation Expectations',
           subtitle:'Nominal 10Y = real yield (TIPS) + 10Y breakeven; available 2003-',
@@ -1541,6 +1564,18 @@ window.EG_CHART_REGISTRY = {
             {key:'investment',  label:'Private investment'},
             {key:'net_exports', label:'Net exports'},
             {key:'government',  label:'Government'}
+          ]
+        },
+        {
+          key:'gdp-ai-contrib', canvas:'cGdpAiContrib',
+          title:'AI-Related Investment vs. Consumer Spending — Contributions to GDP Growth',
+          subtitle:'Percentage points of real GDP growth at an annual rate; information processing equipment + software vs. personal consumption',
+          source:'Source: U.S. Bureau of Economic Analysis, NIPA Table 1.5.2, via FRED — Y034RY2Q224SBEA, B985RY2Q224SBEA, DPCERY2Q224SBEA, DSERRY2Q224SBEA. BEA publishes no data-center line, so data-center structures are not included.',
+          series:[
+            {key:'info_equipment', label:'Information processing equipment'},
+            {key:'software',       label:'Software'},
+            {key:'pce',            label:'Consumer spending (PCE)'},
+            {key:'pce_services',   label:'Consumer spending: services only'}
           ]
         },
         {
@@ -1743,6 +1778,20 @@ window.EG_CHART_REGISTRY = {
           series:[
             {key:'datacenter', label:'Data center construction (left)'},
             {key:'electric',   label:'Electric power construction (right)'}
+          ]
+        },
+        {
+          key:'hyperscaler-capex', canvas:'cEnHyperscaler',
+          title:'Hyperscaler Capital Spending — Actual and Projected',
+          subtitle:'Calendar-year cash capex, $ billions · 2026 = Jan–Sep actual + Q4 guidance · 2027–28 = analyst range',
+          source:'Source: company 10-K and 10-Q filings (SEC XBRL), purchases of property and equipment, excl. finance leases; Microsoft converted to calendar years. 2026 Q4 from company guidance. 2027–28 range: UBS, Wall Street consensus, S&P Global Ratings, Goldman Sachs (growth rates; scopes differ). Hand-updated.',
+          series:[
+            {key:'amazon',     label:'Amazon'},
+            {key:'alphabet',   label:'Alphabet'},
+            {key:'meta',       label:'Meta'},
+            {key:'microsoft',  label:'Microsoft'},
+            {key:'proj_low',   label:'Projection: low end'},
+            {key:'proj_range', label:'Projection: range to high end'}
           ]
         },
         {

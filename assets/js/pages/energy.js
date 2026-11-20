@@ -145,6 +145,78 @@ if (window.Chart && !window.__egEventLabels) {
   });
 }
 
+// Hyperscaler capex chart helpers (cEnHyperscaler). One page-local plugin draws
+// what Chart.js bars cannot: diagonal hatching on estimated/projected bars, a
+// dashed outline on the analyst-range segment, and a growth label over each bar.
+// Everything it needs rides on the DATASETS (egCompany / egPrev / egEst /
+// egProj / egText), which exportData copies verbatim, so the PNG exports and the
+// PowerPoint plugin draw the same marks. It never fills a background, so the
+// transparent PowerTools export has no navy patches inside the plot.
+if (window.Chart && !window.__egHyperscalerPlugin) {
+  window.__egHyperscalerPlugin = true;
+  Chart.register({ id:'egHyperscaler',
+    afterDatasetsDraw:function(chart){
+      var dss=chart.data.datasets||[];
+      if(!dss.some(function(d){ return d.egCompany; })) return;
+      var ctx=chart.ctx, area=chart.chartArea; if(!area) return;
+      var xo=chart.scales.x&&chart.scales.x.options, tc=xo&&xo.ticks&&xo.ticks.color;
+      var light=(String(tc||'').toLowerCase()==='#10233a');
+      var ink=light?'16,35,58':'255,255,255';
+      var exporting=chart.options.responsive===false;
+      var n=(chart.data.labels||[]).length;
+      var vis=function(i){ return chart.isDatasetVisible(i); };
+      function rectOf(el){ var p=el.getProps(['x','y','base','width'],true);
+        return { x:p.x-p.width/2, y:Math.min(p.y,p.base), w:p.width, h:Math.abs(p.base-p.y) }; }
+      function hatch(r){
+        if(r.h<1||r.w<1) return;
+        ctx.save(); ctx.beginPath(); ctx.rect(r.x,r.y,r.w,r.h); ctx.clip();
+        ctx.strokeStyle='rgba('+ink+','+(light?0.45:0.42)+')'; ctx.lineWidth=exporting?3:1.2;
+        var step=exporting?16:6, s;
+        for(s=-r.h; s<r.w+r.h; s+=step){ ctx.beginPath(); ctx.moveTo(r.x+s, r.y+r.h); ctx.lineTo(r.x+s+r.h, r.y); ctx.stroke(); }
+        ctx.restore();
+      }
+      var tops=[], j;
+      for(j=0;j<n;j++) tops.push(null);
+      dss.forEach(function(d,i){
+        if(!vis(i)) return;
+        var meta=chart.getDatasetMeta(i);
+        (meta.data||[]).forEach(function(el,jj){
+          if(d.data[jj]==null) return;
+          var r=rectOf(el);
+          if((d.egEst&&d.egEst[jj]) || d.egProj==='low') hatch(r);
+          if(d.egProj==='range'){
+            ctx.save(); ctx.setLineDash(exporting?[10,7]:[4,3]); ctx.lineWidth=exporting?2.5:1;
+            ctx.strokeStyle='rgba('+ink+',0.75)'; ctx.strokeRect(r.x+0.5,r.y+0.5,r.w-1,r.h-1); ctx.restore();
+          }
+          if(tops[jj]==null||r.y<tops[jj].y) tops[jj]={ y:r.y, x:r.x+r.w/2, w:r.w };
+        });
+      });
+      // growth labels: projection years read egText; other years compare the
+      // visible companies' total with the prior year's (egPrev for the first bar)
+      var co=dss.map(function(d,i){ return (d.egCompany&&vis(i))?d:null; }).filter(Boolean);
+      var proj=dss.filter(function(d,i){ return d.egProj==='low'&&vis(i); })[0];
+      function total(jj){ var t=0, any=false; co.forEach(function(d){ var v=d.data[jj]; if(v!=null){ t+=v; any=true; } }); return any?t:null; }
+      var prev0=co.length?co.reduce(function(a,d){ return a+(d.egPrev||0); },0):null;
+      var slot=n?(area.right-area.left)/n:40;
+      ctx.save(); ctx.textAlign='center'; ctx.textBaseline='bottom';
+      for(j=0;j<n;j++){
+        if(!tops[j]) continue;
+        var txt=null;
+        if(proj&&proj.data[j]!=null) txt=proj.egText&&proj.egText[j];
+        else { var t=total(j), pv=(j===0)?prev0:total(j-1);
+          if(t!=null&&pv) { var g=(t/pv-1)*100; txt=(g>=0?'+':'')+Math.round(g)+'%'; } }
+        if(!txt) continue;
+        var base=exporting?28:11, fs=Math.max(exporting?16:7, Math.min(base, slot*0.95/(txt.length*0.56)));
+        ctx.font='700 '+fs.toFixed(1)+'px "Source Sans Pro", sans-serif';
+        ctx.fillStyle='rgba('+ink+',0.92)';
+        ctx.fillText(txt, tops[j].x, tops[j].y-(exporting?8:3));
+      }
+      ctx.restore();
+    }
+  });
+}
+function enTn(v){ return v==null?'n/a':(Math.abs(v)>=1000?'$'+(v/1000).toFixed(v%1000===0?0:1)+'T':'$'+Math.round(v)+'B'); }
+
 window.EG_PAGES.gas_electricity = function (data, EG) {
   var C=EG.T.series, GOLD=C[0], ELEC=C[1], ORANGE=C[2], BLUE=C[3], LIME=C[4], PURPLE=C[5], YELLOW=C[6];
   var WHITE='rgba(255,255,255,.85)', GREY='rgba(255,255,255,.45)';
@@ -192,6 +264,63 @@ window.EG_PAGES.gas_electricity = function (data, EG) {
       { type:'line', label:'Data center construction ($B SAAR, left)', data:dc.map(function(x){return x[1];}), borderColor:ELEC, backgroundColor:'rgba(100,204,201,0.18)', borderWidth:2.6, pointRadius:0, tension:.15, fill:'origin', yAxisID:'y' },
       EG.line(enAlign(dc, data.electric_construction), GOLD, { label:'Electric power construction ($B SAAR, right)', borderWidth:2.2, tension:.15, spanGaps:true, yAxisID:'y1' })
     ]}, options:o3 });
+
+    // 3b. Hyperscaler capex — Amazon, Alphabet, Meta, Microsoft, calendar years,
+    //     stacked; 2026 = estimate (hatched); 2027-28 = analyst RANGE (hatched low
+    //     end + dashed segment to the high end). Annual, so the range buttons map
+    //     to year windows ending at the last projection. Hand-updated CSVs; the
+    //     "as of" date is written into the subtitle so it shows on every export.
+    var hs=data.hyperscaler;
+    if (hs && hs.years && hs.years.length) {
+      var st=hs.status||{}, yrs=hs.years.slice();
+      var lastAct=Math.max.apply(null, yrs.filter(function(y){ return st[y]==='actual'; }));
+      var back={'6m':2,'12m':2,'5y':4,'10y':9,'20y':99,'max':99}[range]; if(back==null) back=99;
+      var y0=Math.max(yrs[0]+1, lastAct-back);
+      var win=yrs.filter(function(y){ return y>=y0; });
+      var lab=win.map(function(y){ return String(y)+(st[y]==='estimate'?'E':st[y]==='projection'?'P':''); });
+      var byYr=function(rows){ var m={}; (rows||[]).forEach(function(r){ m[r[0]]=r[1]; }); return m; };
+      var CO=[ ['amazon',ORANGE], ['alphabet',ELEC], ['meta','#6B8FE3'], ['microsoft',GOLD] ];
+      var ds=CO.map(function(c){
+        var m=byYr((hs.annual||{})[c[0]]);
+        return { label:(hs.labels||{})[c[0]]||c[0], data:win.map(function(y){ return m[y]==null?null:m[y]; }),
+                 backgroundColor:c[1], borderColor:c[1], borderWidth:0, stack:'capex',
+                 egCompany:true, egPrev:m[y0-1]||0, egEst:win.map(function(y){ return st[y]==='estimate'; }) };
+      });
+      var P=hs.projection||{};
+      var pct=function(v){ return (v>=0?'+':'')+Math.round(v)+'%'; };
+      ds.push({ label:'Projection: low end', data:win.map(function(y){ return P[y]?P[y].low:null; }),
+                backgroundColor:'rgba(255,255,255,0.20)', borderColor:'rgba(255,255,255,0.20)', borderWidth:0, stack:'capex', egProj:'low',
+                egText:win.map(function(y){ return P[y]?(pct(P[y].low_growth).replace('%','')+'–'+Math.round(P[y].high_growth)+'%'):null; }) });
+      ds.push({ label:'Projection: range to high end', data:win.map(function(y){ return P[y]?+(P[y].high-P[y].low).toFixed(1):null; }),
+                backgroundColor:'rgba(255,255,255,0.06)', borderColor:'rgba(255,255,255,0.06)', borderWidth:0, stack:'capex', egProj:'range' });
+      var top=0; win.forEach(function(y,i){ var t=0; ds.forEach(function(d){ t+=d.data[i]||0; }); if(t>top) top=t; });
+      var oh=EG.singleOpts(enTn);
+      oh.scales.x.stacked=true; oh.scales.y.stacked=true; oh.scales.y.min=0;
+      var stepY=top>1000?200:top>400?100:50;                 // max on a tick step, or the
+      oh.scales.y.max=Math.ceil(top*1.10/stepY)*stepY;        // top two labels collide
+      oh.scales.y.ticks.stepSize=stepY;
+      oh.plugins.tooltip.callbacks.label=function(c){
+        var d=c.dataset, v=c.parsed.y; if(v==null) return null;
+        if(d.egProj==='low')   return ' Analyst range, low end: '+enTn(v)+' ('+pct(P[win[c.dataIndex]].low_growth)+')';
+        if(d.egProj==='range') return ' Analyst range, high end: '+enTn(P[win[c.dataIndex]].high)+' ('+pct(P[win[c.dataIndex]].high_growth)+')';
+        return ' '+d.label+': $'+v.toFixed(1)+'B';
+      };
+      oh.plugins.tooltip.callbacks.footer=function(items){
+        if(!items.length) return ''; var ch=items[0].chart, i=items[0].dataIndex, t=0, any=false;
+        ch.data.datasets.forEach(function(d,k){ if(d.egCompany&&ch.isDatasetVisible(k)&&d.data[i]!=null){ t+=d.data[i]; any=true; } });
+        var y=win[i]; return any?('Total: $'+t.toFixed(1)+'B'+(st[y]==='estimate'?' (estimate)':'')):'';
+      };
+      EG.newChart('cEnHyperscaler', { type:'bar', data:{ labels:lab, datasets:ds }, options:oh });
+      // "as of" into the subtitle (on-site card and embed card alike) so it is
+      // baked into every PNG export and PowerPoint refresh
+      var cv=document.getElementById('cEnHyperscaler'), card=cv&&cv.closest('.card,.hero-card'), cs=card&&card.querySelector('.cs');
+      if(cs && hs.as_of){
+        var a=hs.as_of.split('-'), M=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var asof=M[+a[1]-1]+' '+(+a[2])+', '+a[0];
+        if(!cs.$base) cs.$base=cs.textContent.replace(/\s*·\s*As of .*$/,'');
+        cs.textContent=cs.$base+' · As of '+asof;
+      }
+    }
 
     // 4. Generation mix — stacked shares
     var mg=rd(mix.gas); var md=mg.map(function(x){return x[0];}); var lm=md.map(EG.lab);

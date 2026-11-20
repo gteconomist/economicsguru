@@ -69,6 +69,15 @@ jobs:
         continue-on-error: true
         run: python scripts/fetch_challenger.py
 
+      # NY Fed "Labor Market for Recent College Graduates": plain CSV behind the
+      # interactive, same www.newyorkfed.org host as HHDC/EHI. Rewrites
+      # data/historical/nyfed_recent_grads.csv only when the data changes
+      # (quarterly: Feb/May/Aug/Nov). Must run BEFORE fetch_labor.py, which
+      # reads that CSV into data/labor.json (chart lab-recent-grads).
+      - name: Refresh NY Fed recent college graduates
+        continue-on-error: true
+        run: python scripts/fetch_nyfed_grads.py
+
       - name: Refresh labor market data from BLS
         env:
           BLS_API_KEY: ${{ secrets.BLS_API_KEY }}
@@ -404,6 +413,7 @@ jobs:
               data/historical/mortgage_eff_rate.csv \
               data/historical/quarterly_hh_income.csv \
               data/historical/challenger_layoffs.csv \
+              data/historical/nyfed_recent_grads.csv \
               data/historical/baker_hughes_oil_rigs.csv; do
             if [[ -f "$f" && -n "$(git status --porcelain "$f")" ]]; then
               changed="$changed $f"
