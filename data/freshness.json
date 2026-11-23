@@ -1,5 +1,5 @@
 {
-  "build_time": "2026-11-23T14:06:57.305351Z",
+  "build_time": "2026-11-23T19:06:09.248201Z",
   "checked_date": "2026-11-23",
   "stale_count": 0,
   "stale": [],
@@ -130,8 +130,8 @@
     },
     "equities.json": {
       "status": "ok",
-      "latest": "2026-11-20",
-      "age_days": 3,
+      "latest": "2026-11-23",
+      "age_days": 0,
       "max_age_days": 6,
       "build_age_days": 0,
       "note": "Daily index closes.",
@@ -457,8 +457,8 @@
         },
         "fed_outlook.market_asof": {
           "status": "ok",
-          "latest": "2026-11-19",
-          "age_days": 4,
+          "latest": "2026-11-20",
+          "age_days": 3,
           "max_age_days": 7
         },
         "fed_outlook.sep_asof": {
