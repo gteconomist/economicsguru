@@ -1,17 +1,17 @@
 {
-  "build_time": "2026-11-25T19:13:17.869635Z",
+  "build_time": "2026-11-25T22:41:37.489950Z",
   "checked_date": "2026-11-25",
   "stale_count": 0,
   "stale": [],
   "datasets": {
     "commodities.json": {
       "status": "ok",
-      "latest": "2026-11-23",
-      "age_days": 2,
+      "latest": "2026-11-24",
+      "age_days": 1,
       "max_age_days": 8,
-      "build_age_days": null,
+      "build_age_days": 0,
       "note": "Daily, but metals only refresh once/day on the native cron (MetalPriceAPI free tier).",
-      "wrote_this_run": null,
+      "wrote_this_run": true,
       "consecutive_misses": 0
     },
     "consumer.json": {
@@ -50,8 +50,8 @@
       "watch": {
         "rigs_oil": {
           "status": "ok",
-          "latest": "2026-11-13",
-          "age_days": 12,
+          "latest": "2026-11-20",
+          "age_days": 5,
           "max_age_days": 16
         },
         "brent": {
@@ -176,8 +176,8 @@
     },
     "government.json": {
       "status": "ok",
-      "latest": "2026-11-23",
-      "age_days": 2,
+      "latest": "2026-11-24",
+      "age_days": 1,
       "max_age_days": 20,
       "build_age_days": 0,
       "note": "Treasury Fiscal Data updates near-daily; Monthly Treasury Statement ~day 8.",
