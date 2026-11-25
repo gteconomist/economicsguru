@@ -27,6 +27,19 @@
    "seen": "2026-11-25"
   },
   {
+   "id": "newhomes",
+   "name": "New Home Sales",
+   "period": "Oct 2026",
+   "period_key": [
+    2026,
+    10
+   ],
+   "value": "701K annual rate",
+   "url": "/housing/new-homes/",
+   "where": "Housing › New Homes",
+   "seen": "2026-11-25"
+  },
+  {
    "id": "cb",
    "name": "Conference Board Confidence",
    "period": "Nov 2026",
@@ -73,7 +86,7 @@
     2026,
     10
    ],
-   "value": "1,295K permits",
+   "value": "1,297K permits",
    "url": "/housing/permits-starts/",
    "where": "Housing › Permits & Starts",
    "seen": "2026-11-18"
@@ -246,19 +259,6 @@
    "url": "/gdp/",
    "where": "Growth › GDP",
    "seen": "2026-10-29"
-  },
-  {
-   "id": "newhomes",
-   "name": "New Home Sales",
-   "period": "Sep 2026",
-   "period_key": [
-    2026,
-    9
-   ],
-   "value": "676K annual rate",
-   "url": "/housing/new-homes/",
-   "where": "Housing › New Homes",
-   "seen": "2026-10-27"
   }
  ]
 }
