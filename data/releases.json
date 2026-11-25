@@ -1,6 +1,32 @@
 {
  "releases": [
   {
+   "id": "pce",
+   "name": "PCE Price Index",
+   "period": "Oct 2026",
+   "period_key": [
+    2026,
+    10
+   ],
+   "value": "core 3.3% YoY",
+   "url": "/inflation/pce/",
+   "where": "Inflation › PCE",
+   "seen": "2026-11-25"
+  },
+  {
+   "id": "income",
+   "name": "Personal Income & Spending",
+   "period": "Oct 2026",
+   "period_key": [
+    2026,
+    10
+   ],
+   "value": "income +0.7% MoM",
+   "url": "/consumer/income-spending-debt/",
+   "where": "Consumer › Income & Spending",
+   "seen": "2026-11-25"
+  },
+  {
    "id": "cb",
    "name": "Conference Board Confidence",
    "period": "Nov 2026",
@@ -209,19 +235,6 @@
    "seen": "2026-11-02"
   },
   {
-   "id": "pce",
-   "name": "PCE Price Index",
-   "period": "Sep 2026",
-   "period_key": [
-    2026,
-    9
-   ],
-   "value": "core 3.1% YoY",
-   "url": "/inflation/pce/",
-   "where": "Inflation › PCE",
-   "seen": "2026-10-29"
-  },
-  {
    "id": "gdp",
    "name": "Real GDP",
    "period": "Q3 2026",
@@ -229,22 +242,9 @@
     2026,
     9
    ],
-   "value": "+3.4% annualized",
+   "value": "+4.3% annualized",
    "url": "/gdp/",
    "where": "Growth › GDP",
-   "seen": "2026-10-29"
-  },
-  {
-   "id": "income",
-   "name": "Personal Income & Spending",
-   "period": "Sep 2026",
-   "period_key": [
-    2026,
-    9
-   ],
-   "value": "income +0.2% MoM",
-   "url": "/consumer/income-spending-debt/",
-   "where": "Consumer › Income & Spending",
    "seen": "2026-10-29"
   },
   {
